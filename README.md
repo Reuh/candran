@@ -1,144 +1,148 @@
-Lune
-====
+Candran
+=======
+Candran is a dialect of the [Lua](http://www.lua.org) programming language which compiles to Lua. It adds a preprocessor and several useful syntax additions.
 
-Lune is a simple [Lua](http://www.lua.org) dialect, which compile to normal Lua. It adds a preprocessor and some usefull syntax additions to the language, like += operators.
-
-Lune code example :
+Candran code example :
 
 ````lua
-#local language = args.lang or "en"
-local a = 5
-a += 3
-#if language == "fr" then
-	print("Le resultat est "..a)
-#elseif language == "en" then
-	print("The result is "..a)
-#end
+#import("lib.thing")
+#local debug = args.debug or false
+
+local function debugArgs(func)
+	return function(...)
+		#if debug then
+			for _,arg in pairs({...}) do
+				print(arg, type(arg))
+			end
+		#end
+		return func(...)
+	end
+end
+
+@debugArgs
+local function calculate()
+	local result = thing.do()
+	result += 25
+	return result
+end
+
+print(calculate())
 ````
 
-This code will compile diffrently depending on the "lang" argument you pass to the compiler.
-
-Syntax details
---------------
+The language
+------------
 ### Preprocessor
-Before compiling, a preprocessor is run; it search the lines which start with a # and execute the Lune code after it.
+Before compiling, Candran's preprocessor is run. It execute every line starting with a _#_ (ignoring whitespace) as Candran code.
 For example,
 
 ````lua
 #if args.lang == "fr" then
-	print("Ce programme a ete compile en francais")
+	print("Bonjour")
 #else
-	print("This program was compiled in english")
+	print("Hello")
 #end
 ````
 
-Output ````print("Ce programme a ete compile en francais")```` or ````print("This program was compiled in english")```` depending of the "lang" argument.
+Will output ````print("Bonjour")```` or ````print("Hello")```` depending of the "lang" argument passed to the preprocessor.
 
-In the preprocessor, the following global variables are available :
-* ````lune```` : the Lune library table
-* ````output```` : the preprocessor output string
-* ````include(filename)```` : a function which copy the contents of the file filename to the output and add some code so it is equivalent to :
+The preprocessor has access to the following variables :
+* ````candran```` : the Candran library table.
+* ````output```` : the preprocessor output string.
+* ````import(module[, autoRequire])```` : a function which import a module. This is equivalent to use _require(module)_ in the Candran code, except the module will be embedded in the current file. _autoRequire_ (boolean, default true) indicate if the module should be automaticaly loaded in a local variable or not. If true, the local variable will have the name of the module.
+* ````include(filename)```` : a function which copy the contents of the file _filename_ to the output.
+* ````print(...)```` : instead of writing to stdout, _print(...)_ will write to the preprocessor output. For example, ````#print("hello()")```` will output ````hello()````.
+* ````args```` : the arguments table passed to the compiler. Example use : ````withDebugTools = args["debug"]````.
+* and every standard Lua library.
 
-	````lua
-	filname = require("filename") or filename
-	````
+### Syntax additions
+After the preprocessor is run the Candran code is compiled to Lua. The Candran code adds the folowing syntax to Lua :
+##### New assignment operators
+* ````var += nb````
+* ````var -= nb````
+* ````var *= nb````
+* ````var /= nb````
+* ````var ^= nb````
+* ````var %= nb````
+* ````var ..= str````
 
-	except that the required code is actually embedded in the file.
-* ````rawInclude(filename)```` : a function which copy the contents of the file filename to the output, whithout modifications
-* ````print(...)```` : instead of writing to stdout, write to the preprocessor output; for example,
-	
-	````lua
-	local foo = "hello"
-	#print("foo ..= ' lune')")
-	print(foo)
-	````
+For example, a ````var += nb```` assignment will be compiled into ````var = var + nb````.
 
-	will output :
+##### Decorators
+Candran supports function decorators similar to Python. A decorator is a function returning another function, and allows easy function modification with this syntax :
+````lua
+@decorator
+function name(...)
+	...
+end
+````
+This is equivalent to :
+````lua
+function name(...)
+	...
+end
+name = decorator(name)
+````
+The decorators can be chained. Note that Candran allows this syntax for every variable, not only functions.
 
-	````lua
-	local foo = "hello"
-	foo = foo .. ' lune'
-	print(foo)
-	````
-
-* ````args```` : the arguments table passed to the compiler. Example use :
-
-	````lua
-	argumentValue = args["argumentName"]
-	````
-
-* And all the Lua standard libraries.
-
-### Compiler
-After the preprocessor, the compiler is run; it translate Lune syntax to Lua syntax. What is translated to what :
-* ````var += nb````		>	````var = var + nb````
-* ````var -= nb````		>	````var = var - nb````
-* ````var *= nb````		>	````var = var * nb````
-* ````var /= nb````		>	````var = var / nb````
-* ````var ^= nb````		>	````var = var ^ nb````
-* ````var %= nb````		>	````var = var % nb````
-* ````var ..= str````	>	````var = var .. str````
-* ````var++````			>	````var = var + 1````
-* ````var--````			>	````var = var - 1````
-
-Command-line usage
-------------------
+The library
+-----------
+### Command-line usage
 The library can be used standalone :
 
-	lua lune.lua
+*	````lua candran.lua````
+	
+	Display the information text (version and basic command-line usage).
 
-Display a simple information text (version & basic command-line usage).
+*	````lua candran.lua <filename> [arguments]````
+	
+	Output to stdout the _filename_ Candran file, preprocessed (with _arguments_) and compiled to Lua.
 
-	lua lune.lua <input> [arguments]
+	_arguments_ is of type ````--somearg value --anotherarg anothervalue ...````.
 
-Output to stdout the Lune code compiled in Lua.
-* arguments :
-	* input : input file name
-	* arguments : arguments to pass to the preprocessor (every argument is of type ````--<name> <value>````)
-* example uses :
+	* example uses :
 
-		lua lune.lua foo.lune > foo.lua
+		````lua candran.lua foo.can > foo.lua````
 
-	compile foo.lune and write the result in foo.lua
+		preprocess and compile _foo.can_ and write the result in _foo.lua_.
 
-		lua lune.lua foo.lune --verbose true | lua
+		````lua candran.lua foo.can --verbose true | lua````
 
-	compile foo.lune with "verbose" set to true and execute it
+		preprocess _foo.can_ with _verbose_ set to _true_, compile it and execute it.
 
-Library usage
--------------
-Lune can also be used as a normal Lua library. For example,
+### Library usage
+Candran can also be used as a normal Lua library. For example,
 ````lua
-local lune = require("lune")
+local candran = require("candran")
 
-local f = io.open("foo.lune")
+local f = io.open("foo.can")
 local contents = f:read("*a")
 f:close()
 
-local compiled = lune.make(contents, { lang = "fr" })
+local compiled = candran.make(contents, { lang = "fr" })
 
 load(compiled)()
 ````
-will load Lune, read the file foo.lune, compile its contents with the argument "lang" set to "fr", and then execute the result.
+Will load Candran, read the file _foo.can_, compile its contents with the argument _lang_ set to _"fr"_, and then execute the result.
 
-Lune API :
-* ````lune.VERSION```` : version string
-* ````lune.syntax```` : syntax table used when compiling (TODO : need more explainations)
-* ````lune.preprocess(code[, args])```` : return the Lune code preprocessed with args as argument table
-* ````lune.compile(code)```` : return the Lune code compiled to Lua
-* ````lune.make(code[, args])```` : return the Lune code preprocessed & compilled to Lua with args as argument table
+The table returned by _require("candran")_ gives you access to :
+* ````candran.VERSION```` : Candran's version string.
+* ````candran.syntax```` : table containing all the syntax additions of Candran.
+* ````candran.preprocess(code[, args])```` : return the Candran code _code_, preprocessed with _args_ as argument table.
+* ````candran.compile(code)```` : return the Candran code compiled to Lua.
+* ````candran.make(code[, args])```` : return the Candran code, preprocessed  with _args_ as argument table and compilled to Lua.
 
-Compiling Lune
---------------
-Because the Lune compiler itself is written in Lune, you have to compile it with an already compiled version of Lune. This command will use the precompilled version in build/lune.lua to compile lune.lune and write the result in lune.lua :
+### Compiling the library
+The Candran library itself is written is Candran, so you have to compile it with an already compiled Candran library.
+
+This command will use the precompilled version of this repository (build/candran.lua) to compile _candran.can_ and write the result in _candran.lua_ :
 
 ````
-lua build/lune.lua lune.lune > lune.lua
+lua build/candran.lua candran.can > candran.lua
 ````
 
-You can then test your build :
+You can then run the tests on your build :
 
 ````
 cd tests
-lua test.lua ../lune.lua
+lua test.lua ../candran.lua
 ````

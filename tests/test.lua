@@ -1,17 +1,17 @@
-print("=====================")
-print("||    LUNE TESTS   ||")
-print("=====================")
+print("========================")
+print("||    CANDRAN TESTS   ||")
+print("========================")
 
-local lune = dofile(arg[1] or "../build/lune.lua")
+local candran = dofile(arg[1] or "../build/candran.lua")
 
 -- test helper
 local results = {} -- tests result
-local function test(name, luneCode, result, args)
+local function test(name, candranCode, result, args)
 	results[name] = { result = "not finished", message = "no info" }
 	local self = results[name]
 
 	-- make code
-	local success, code = pcall(lune.make, luneCode, args)
+	local success, code = pcall(candran.make, candranCode, args)
 	if not success then
 		self.result = "error"
 		self.message = "error while making code :\n"..code
@@ -70,12 +70,12 @@ test("preprocessor print function", [[
 #print("local a = true")
 return a
 ]], true)
-test("preprocessor include function", [[
-#include("toInclude.lua")
-return a
+test("preprocessor import function", [[
+#import("toInclude")
+return toInclude
 ]], 5)
-test("preprocessor rawInclude function", "a = [[\n#rawInclude('toInclude.lua')\n]]\nreturn a", 
-	"a = 5\n")
+test("preprocessor include function", "a = [[\n#include('toInclude.lua')\n]]\nreturn a", 
+	"local a = 5\nreturn a\n")
 
 test("+=", [[
 local a = 5
@@ -113,16 +113,84 @@ a ..= " world"
 return a
 ]], "hello world")
 
-test("++", [[
-local a = 5
-a++
-return a
-]], 6)
-test("--", [[
-local a = 5
-a--
-return a
-]], 4)
+test("decorator", [[
+local a = function(func)
+	local wrapper = function(...)
+		local b = func(...)
+		return b + 5
+	end
+	return wrapper
+end
+@a
+function c(nb)
+	return nb^2
+end
+return c(5)
+]], 30)
+test("decorator with arguments", [[
+local a = function(add)
+	local b = function(func)
+		local wrapper = function(...)
+			local c = func(...)
+			return c + add
+		end
+		return wrapper
+	end
+	return b
+end
+@a(10)
+function d(nb)
+	return nb^2
+end
+return d(5)
+]], 35)
+test("multiple decorators", [[
+local a = function(func)
+	local wrapper = function(...)
+		local b = func(...)
+		return b + 5
+	end
+	return wrapper
+end
+local c = function(func)
+	local wrapper = function(...)
+		local d = func(...)
+		return d * 2
+	end
+	return wrapper
+end
+@a
+@c
+function e(nb)
+	return nb^2
+end
+return e(5)
+]], 55)
+test("multiple decorators with arguments", [[
+local a = function(func)
+	local wrapper = function(...)
+		local b = func(...)
+		return b + 5
+	end
+	return wrapper
+end
+local c = function(mul)
+	local d = function(func)
+		local wrapper = function(...)
+			local e = func(...)
+			return e * mul
+		end
+		return wrapper
+	end
+	return d
+end
+@a
+@c(3)
+function f(nb)
+	return nb^2
+end
+return f(5)
+]], 80)
 
 -- results
 print("=====================")

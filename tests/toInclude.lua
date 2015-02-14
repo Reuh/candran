@@ -1,1 +1,2 @@
-a = 5
+local a = 5
+return a

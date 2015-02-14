@@ -1,8 +1,8 @@
 --[[
-Lua table utilities by Thomas99.
+Table utility by Thomas99.
 
 LICENSE :
-Copyright (c) 2014 Thomas99
+Copyright (c) 2015 Thomas99
 
 This software is provided 'as-is', without any express or implied warranty. 
 In no event will the authors be held liable for any damages arising from the 
@@ -12,16 +12,23 @@ Permission is granted to anyone to use this software for any purpose, including
 commercial applications, and to alter it and redistribute it freely, subject 
 to the following restrictions:
 
-    1. The origin of this software must not be misrepresented; you must not 
-    claim that you wrote the original software. If you use this software in a 
-    product, an acknowledgment in the product documentation would be appreciated 
-    but is not required.
+	1. The origin of this software must not be misrepresented; you must not 
+	claim that you wrote the original software. If you use this software in a 
+	product, an acknowledgment in the product documentation would be appreciated 
+	but is not required.
 
-    2. Altered source versions must be plainly marked as such, and must not be 
-    misrepresented as being the original software.
+	2. Altered source versions must be plainly marked as such, and must not be 
+	misrepresented as being the original software.
 
-    3. This notice may not be removed or altered from any source distribution.
+	3. This notice may not be removed or altered from any source distribution.
 ]]
+
+-- Diverses fonctions en rapport avec les tables.
+-- v0.1.0
+--
+-- Changements :
+-- - v0.1.0 :
+-- 		Première version versionnée. Il a dû se passer des trucs avant mais j'ai pas noté :p
 
 -- Copie récursivement la table t dans la table dest (ou une table vide si non précisé) et la retourne
 -- replace (false) : indique si oui ou non, les clefs existant déjà dans dest doivent être écrasées par celles de t
@@ -73,16 +80,6 @@ end
 function table.isIn(table, value)
 	for _,v in pairs(table) do
 		if v == value then
-			return true
-		end
-	end
-	return false
-end
-
--- retourne true si la clé key est dans la table
-function table.hasKey(table, key)
-	for k,_ in pairs(table) do
-		if k == key then
 			return true
 		end
 	end
