@@ -1,0 +1,285 @@
+return function(ast, opts)
+	local options = {
+		indentation = "\t",
+		newline = "\n",
+		requirePrefix = "CANDRAN_"
+	}
+
+	local indentLevel = 0
+	local function newline()
+		return options.newline .. string.rep(options.indentation, indentLevel)
+	end
+	local function indent()
+		indentLevel += 1
+		return newline()
+	end
+	local function unindent()
+		indentLevel -= 1
+		return newline()
+	end
+
+	local required = {}
+	local requireStr = ""
+	local function addRequire(str, name, field)
+		if not required[str] then
+			requireStr ..= "local " .. options.requirePrefix .. name .. (" = require(%q)"):format(str) .. (field and "."..field or "") .. options.newline
+			required[str] = true
+		end
+	end
+	local function getRequire(name)
+		return options.requirePrefix .. name
+	end
+
+	local tags
+	local function lua(ast, forceTag, ...)
+		return tags[forceTag or ast.tag](ast, ...)
+	end
+
+	tags = setmetatable({
+		-- block: { stat* } --
+		Block = function(t)
+			local r = ""
+			for i=1, #t-1, 1 do
+				r = r .. lua(t[i]) .. newline()
+			end
+			if t[#t] then
+				r = r .. lua(t[#t])
+			end
+			return r
+		end,
+
+		-- stat --
+
+		-- Do{ stat* }
+		Do = function(t)
+			return "do" .. indent() .. lua(t, "Block") .. unindent() .. "end"
+		end,
+		-- Set{ {lhs+} opid? {expr+} }
+		Set = function(t)
+			if #t == 2 then
+				return lua(t[1], "_lhs") .. " = " .. lua(t[2], "_lhs")
+			else
+				local r = lua(t[1], "_lhs") .. " = " .. lua({ t[2], t[1][1], t[3][1] }, "Op")
+				for i=2, math.min(#t[3], #t[1]), 1 do
+					r = r .. ", " .. lua({ t[2], t[1][i], t[3][i] }, "Op")
+				end
+				return r
+			end
+		end,
+		-- While{ expr block }
+		While = function(t)
+			return "while " .. lua(t[1]) .. " do" .. indent() .. lua(t[2]) .. unindent() .. "end"
+		end,
+		-- Repeat{ block expr }
+		Repeat = function(t)
+			return "repeat".. indent() .. lua(t[1]) .. unindent() .. "until " .. lua(t[2])
+		end,
+		-- If{ (expr block)+ block? }
+		If = function(t)
+			local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
+			for i=3, #t-1, 2 do
+				r = r .. "elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i+1]) .. unindent()
+			end
+			if #t % 2 == 1 then
+				r = r .. "else" .. indent() .. lua(t[#t]) .. unindent()
+			end
+			return r .. "end"
+		end,
+		-- Fornum{ ident expr expr expr? block }
+		Fornum = function(t)
+			local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3])
+			if #t == 5 then
+				return r .. ", " .. lua(t[4]) .. " do" .. indent() .. lua(t[5]) .. unindent() .. "end"
+			else
+				return r .. " do" .. indent() .. lua(t[4]) .. unindent() .. "end"
+			end
+		end,
+		-- Forin{ {ident+} {expr+} block }
+		Forin = function(t)
+			return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. lua(t[3]) .. unindent() .. "end"
+		end,
+		-- Local{ {ident+} {expr+}? }
+		Local = function(t)
+			local r = "local "..lua(t[1], "_lhs")
+			if t[2][1] then
+				r = r .. " = "..lua(t[2], "_lhs")
+			end
+			return r
+		end,
+		-- Localrec{ ident expr }
+		Localrec = function(t)
+			return "local function "..lua(t[1][1])..lua(t[2][1], "_functionWithoutKeyword")
+		end,
+		-- Goto{ <string> }
+		Goto = function(t)
+			return "goto " .. lua(t[1], "Id")
+		end,
+		-- Label{ <string> }
+		Label = function(t)
+			return "::" .. lua(t[1], "Id") .. "::"
+		end,
+		-- Return{ <expr*> }
+		Return = function(t)
+			return "return "..lua(t, "_lhs")
+		end,
+		-- Break
+		Break = function()
+			return "break"
+		end,
+		-- apply (below)
+
+		-- expr --
+
+		-- Nil
+		Nil = function()
+			return "nil"
+		end,
+		-- Dots
+		Dots = function()
+			return "..."
+		end,
+		-- Boolean{ <boolean> }
+		Boolean = function(t)
+			return tostring(t[1])
+		end,
+		-- Number{ <number> }
+		Number = function(t)
+			return tostring(t[1])
+		end,
+		-- String{ <string> }
+		String = function(t)
+			return ("%q"):format(t[1])
+		end,
+		-- Function{ { ( `ParPair{ Id expr } | `Id{ <string> } )* `Dots? } block }
+		_functionWithoutKeyword = function(t)
+			local r = "("
+			local decl = {}
+			if t[1][1] then
+				if t[1][1].tag == "ParPair" then
+					local id = lua(t[1][1][1])
+					indentLevel += 1
+					table.insert(decl, id .. " = " .. id .. " == nil and " .. lua(t[1][1][2]) .. " or " .. id)
+					indentLevel -= 1
+					r = r .. id
+				else
+					r = r .. lua(t[1][1])
+				end
+				for i=2, #t[1], 1 do
+					if t[1][i].tag == "ParPair" then
+						local id = lua(t[1][i][1])
+						indentLevel += 1
+						table.insert(decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][i][2]) .. " end")
+						indentLevel -= 1
+						r = r .. ", " ..id
+					else
+						r = r .. ", " .. lua(t[1][i])
+					end
+				end
+			end
+			r = r .. ")" .. indent()
+			for _, d in ipairs(decl) do
+				r = r .. d .. newline()
+			end
+			return r .. lua(t[2]) .. unindent() .. "end"
+		end,
+		Function = function(t)
+			return "function" .. lua(t, "_functionWithoutKeyword")
+		end,
+		-- Table{ ( `Pair{ expr expr } | expr )* }
+		Pair = function(t)
+			return "[" .. lua(t[1]) .. "] = " .. lua(t[2])
+		end,
+		Table = function(t)
+			if #t == 0 then
+				return "{}"
+			elseif #t == 1 then
+				return "{ " .. lua(t, "_lhs") .. " }"
+			else
+				return "{" .. indent() .. lua(t, "_lhs") .. unindent() .. "}"
+			end
+		end,
+		-- Op{ opid expr expr? }
+		Op = function(t)
+			local r
+			if #t == 2 then
+				if type(tags._opid[t[1]]) == "string" then
+					r = tags._opid[t[1]] .. " " .. lua(t[2])
+				else
+					r = tags._opid[t[1]](t[2])
+				end
+			else
+				if type(tags._opid[t[1]]) == "string" then
+					r = lua(t[2]) .. " " .. tags._opid[t[1]] .. " " .. lua(t[3])
+				else
+					r = tags._opid[t[1]](t[2], t[3])
+				end
+			end
+			return r
+		end,
+		-- Paren{ expr }
+		Paren = function(t)
+			return "(" .. lua(t[1]) .. ")"
+		end,
+		-- apply (below)
+		-- lhs (below)
+
+		-- apply --
+
+		-- Call{ expr expr* }
+		Call = function(t)
+			return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")"
+		end,
+
+		-- Invoke{ expr `String{ <string> } expr* }
+		Invoke = function(t)
+			return lua(t[1])..":"..lua(t[2], "Id").."("..lua(t, "_lhs", 3)..")"
+		end,
+
+		-- lhs --
+		_lhs = function(t, start)
+			start = start or 1
+			local r
+			if t[start] then
+				r = lua(t[start])
+				for i=start+1, #t, 1 do
+					r = r .. ", "..lua(t[i])
+				end
+			else
+				r = ""
+			end
+			return r
+		end,
+		-- Id{ <string> }
+		Id = function(t)
+			return t[1]
+		end,
+		-- Index{ expr expr }
+		Index = function(t)
+			return lua(t[1]).."["..lua(t[2]).."]"
+		end,
+
+		-- opid --
+		_opid = {
+			add = "+", sub = "-", mul = "*", div = "/",
+			idiv = "//", mod = "%", pow = "^", concat = "..",
+			band = "&", bor = "|", bxor = "~", shl = "<<", shr = ">>",
+			eq = "==", ne = "~=", lt = "<", gt = ">", le = "<=", ge = ">=",
+			["and"] = "and", ["or"] = "or", unm = "-", len = "#", bnot = "~", ["not"] = "not"
+		}
+	}, {
+		__index = function(self, key)
+			error("don't know how to compile a "..tostring(key).." to Lua 5.3")
+		end
+	})
+
+	#placeholder("patch")
+
+	if opts then
+		for k, v in pairs(opts) do
+			options[k] = v
+		end
+	end
+
+	local r = lua(ast)
+	return requireStr .. r
+end

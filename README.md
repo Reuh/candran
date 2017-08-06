@@ -1,33 +1,29 @@
 Candran
 =======
-Candran is a dialect of the [Lua](http://www.lua.org) programming language which compiles to Lua. It adds a preprocessor and several useful syntax additions.
+Candran is a dialect of the [Lua 5.3](http://www.lua.org) programming language which compiles to Lua 5.3 and Lua 5.1/LuaJit. It adds a preprocessor and several useful syntax additions.
+
+Unlike Moonscript, Candran tries to stay close to the Lua syntax.
 
 Candran code example :
 
 ````lua
 #import("lib.thing")
-#local debug = args.debug or false
+#local debug = debug or false
 
-local function debugArgs(func)
-	return function(...)
-		#if debug then
-			for _,arg in pairs({...}) do
-				print(arg, type(arg))
-			end
-		#end
-		return func(...)
-	end
-end
-
-@debugArgs
-local function calculate()
+local function calculate(toadd=25)
 	local result = thing.do()
-	result += 25
+	result += toadd
+    #if debug then
+        print("Did something")
+    #end
 	return result
 end
 
 print(calculate())
 ````
+
+##### Quick setup
+Install LPegLabel (```luarocks install LPegLabel```), download this repository and use Candran through ```canc.lua``` or ```candran.lua```.
 
 The language
 ------------
@@ -36,7 +32,7 @@ Before compiling, Candran's preprocessor is run. It execute every line starting 
 For example,
 
 ````lua
-#if args.lang == "fr" then
+#if lang == "fr" then
 	print("Bonjour")
 #else
 	print("Hello")
@@ -47,11 +43,12 @@ Will output ````print("Bonjour")```` or ````print("Hello")```` depending of the 
 
 The preprocessor has access to the following variables :
 * ````candran```` : the Candran library table.
-* ````output```` : the preprocessor output string.
-* ````import(module[, autoRequire])```` : a function which import a module. This is equivalent to use _require(module)_ in the Candran code, except the module will be embedded in the current file. _autoRequire_ (boolean, default true) indicate if the module should be automaticaly loaded in a local variable or not. If true, the local variable will have the name of the module.
+* ````output```` : the current preprocessor output string.
+* ````import(module[, [args, autoRequire]])```` : a function which import a module. This is equivalent to use _require(module)_ in the Candran code, except the module will be embedded in the current file. _args_ is an optional preprocessor arguments table for the imported module (current preprocessor arguments will be inherited). _autoRequire_ (boolean, default true) indicate if the module should be automaticaly loaded in a local variable or not. If true, the local variable will have the name of the module.
 * ````include(filename)```` : a function which copy the contents of the file _filename_ to the output.
-* ````print(...)```` : instead of writing to stdout, _print(...)_ will write to the preprocessor output. For example, ````#print("hello()")```` will output ````hello()````.
-* ````args```` : the arguments table passed to the compiler. Example use : ````withDebugTools = args["debug"]````.
+* ````write(...)```` : write to the preprocessor output. For example, ````#print("hello()")```` will output ````hello()```` in the final file.
+* ```placeholder(name)``` : if the variable _name_ is defined in the preprocessor environement, its content will be inserted here.
+* ````...```` : each arguments passed to the preprocessor is directly available.
 * and every standard Lua library.
 
 ### Syntax additions
@@ -61,56 +58,70 @@ After the preprocessor is run the Candran code is compiled to Lua. The Candran c
 * ````var -= nb````
 * ````var *= nb````
 * ````var /= nb````
+* ````var //= nb````
 * ````var ^= nb````
 * ````var %= nb````
 * ````var ..= str````
+* ````var and= str````
+* ````var or= str````
+* ````var &= nb````
+* ````var |= nb````
+* ````var <<= nb````
+* ````var >>= nb````
 
 For example, a ````var += nb```` assignment will be compiled into ````var = var + nb````.
 
-##### Decorators
-Candran supports function decorators similar to Python. A decorator is a function returning another function, and allows easy function modification with this syntax :
-````lua
-@decorator
-function name(...)
-	...
+##### Default function parameters
+```lua
+function foo(bar = "default", other = thing.do())
+    -- stuff
 end
-````
-This is equivalent to :
-````lua
-function name(...)
-	...
-end
-name = decorator(name)
-````
-The decorators can be chained. Note that Candran allows this syntax for every variable, not only functions.
+```
+If an argument isn't provided or ```nil``` when the function is called, it will be automatically set to a default value.
+
+It is equivalent to doing ```if arg == nil then arg = default end``` for each argument at the start of the function.
+
+The default values can be complete Lua expressions, and will be evaluated each time the function is run.
+
+Compile targets
+---------------
+Candran is based on the Lua 5.3 syntax, but can be compiled to both Lua 5.3 and Lua 5.1/LuaJit.
+
+To chose a compile target, either explicitly give ```lua53``` or ```luajit``` as a second argument to ```candran.compile```, or set the ```target``` preprocessor argument when using ```candran.make``` or the command line tools.
+
+Lua 5.3 specific syntax (bitwise operators, integer division) will automatically be translated in valid Lua 5.1 code, using LuaJit's ```bit``` library if necessary.
 
 The library
 -----------
 ### Command-line usage
-The library can be used standalone :
+The library can be used standalone through the ```canc``` utility:
 
-*	````lua candran.lua````
-	
+*	````lua canc.lua````
+
 	Display the information text (version and basic command-line usage).
 
-*	````lua candran.lua <filename> [arguments]````
-	
-	Output to stdout the _filename_ Candran file, preprocessed (with _arguments_) and compiled to Lua.
+*	````lua canc.lua [arguments] filename...````
 
-	_arguments_ is of type ````--somearg value --anotherarg anothervalue ...````.
+	Preprocess and compile each  _filename_ Candran files, and creates the assiociated ```.lua``` files in the same directories.
+
+	_arguments_ is of type ````-somearg -anotherarg thing=somestring other=5 ...````, which will generate a Lua table ```{ somearg = true, anotherarg = true, thing = "somestring", other = 5 }```.
+
+    You can choose to use another directory where files should be written using the ```dest=destinationDirectory``` argument.
+
+    ```canc``` can write to the standard output instead of creating files using the ```-print``` argument.
 
 	* example uses :
 
-		````lua candran.lua foo.can > foo.lua````
+		````lua canc.lua foo.can````
 
 		preprocess and compile _foo.can_ and write the result in _foo.lua_.
 
-		````lua candran.lua foo.can --verbose true | lua````
+		````lua canc.lua foo.can -verbose -print | lua````
 
 		preprocess _foo.can_ with _verbose_ set to _true_, compile it and execute it.
 
 ### Library usage
-Candran can also be used as a normal Lua library. For example,
+Candran can also be used as a Lua library. For example,
 ````lua
 local candran = require("candran")
 
@@ -126,18 +137,19 @@ Will load Candran, read the file _foo.can_, compile its contents with the argume
 
 The table returned by _require("candran")_ gives you access to :
 * ````candran.VERSION```` : Candran's version string.
-* ````candran.syntax```` : table containing all the syntax additions of Candran.
 * ````candran.preprocess(code[, args])```` : return the Candran code _code_, preprocessed with _args_ as argument table.
-* ````candran.compile(code)```` : return the Candran code compiled to Lua.
+* ````candran.compile(code[, target])```` : return the Candran code compiled to Lua.
 * ````candran.make(code[, args])```` : return the Candran code, preprocessed  with _args_ as argument table and compilled to Lua.
 
 ### Compiling the library
 The Candran library itself is written is Candran, so you have to compile it with an already compiled Candran library.
 
-This command will use the precompilled version of this repository (build/candran.lua) to compile _candran.can_ and write the result in _candran.lua_ :
+The compiled _candran.lua_ should include every Lua library needed to run it. You will still need to install LPegLabel.
+
+This command will use the precompilled version of this repository (candran.lua) to compile _candran.can_ and write the result in _candran.lua_ :
 
 ````
-lua build/candran.lua candran.can > candran.lua
+lua canc.lua candran.can
 ````
 
 You can then run the tests on your build :

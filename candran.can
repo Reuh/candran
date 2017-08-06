@@ -1,170 +1,148 @@
---[[
-Candran language, preprocessor and compiler by Thomas99.
+#import("util")
+#import("compiler.lua53")
+#import("compiler.luajit")
+#import("lua-parser.scope")
+#import("lua-parser.validator")
+#import("lua-parser.pp")
+#import("lua-parser.parser")
+#import("cmdline")
 
-LICENSE :
-Copyright (c) 2015 Thomas99
-
-This software is provided 'as-is', without any express or implied warranty. 
-In no event will the authors be held liable for any damages arising from the 
-use of this software.
-
-Permission is granted to anyone to use this software for any purpose, including 
-commercial applications, and to alter it and redistribute it freely, subject 
-to the following restrictions:
-
-	1. The origin of this software must not be misrepresented; you must not 
-	claim that you wrote the original software. If you use this software in a 
-	product, an acknowledgment in the product documentation would be appreciated 
-	but is not required.
-
-	2. Altered source versions must be plainly marked as such, and must not be 
-	misrepresented as being the original software.
-
-	3. This notice may not be removed or altered from any source distribution.
-]]
+local util = require("util")
 
 local candran = {
-	VERSION = "0.1.0",
-	syntax = {
-		assignment = { "+=", "-=", "*=", "/=", "^=", "%=", "..=" },
-		decorator = "@"
-	}
+	VERSION = "0.2.0"
 }
-package.loaded["candran"] = candran
 
-#import("lib.table")
-#import("lib.LuaMinify.Util")
-#import("lib.LuaMinify.Scope")
-#import("lib.LuaMinify.ParseCandran")
-#import("lib.LuaMinify.FormatIdentityCandran")
-
--- Preprocessor
-function candran.preprocess(input, args)
-	-- generate preprocessor
-	local preprocessor = "return function()\n"
-
-	local lines = {}
-	for line in (input.."\n"):gmatch("(.-)\n") do
-		table.insert(lines, line)
-		-- preprocessor instructions (exclude shebang)
-		if line:match("^%s*#") and not (line:match("^#!") and #lines == 1) then
-			preprocessor ..= line:gsub("^%s*#", "") .. "\n"
+--- Run the preprocessor
+-- @tparam input string input code
+-- @tparam args table arguments for the preprocessor. They will be inserted into the preprocessor environement.
+-- @treturn output string output code
+function candran.preprocess(input, args={})
+	-- generate preprocessor code
+	local preprocessor = ""
+	for line in (input.."\n"):gmatch("(.-\n)") do
+		if line:match("^%s*#") and not line:match("^#!") then -- exclude shebang
+			preprocessor ..= line:gsub("^%s*#", "")
 		else
-			preprocessor ..= "output ..= lines[" .. #lines .. "] .. \"\\n\"\n"
+			preprocessor ..= ("write(%q)"):format(line:sub(1, -2)) .. "\n"
 		end
 	end
-	preprocessor ..= "return output\nend"
+	preprocessor ..= "return output"
 
 	-- make preprocessor environement
-	local env = table.copy(_G)
+	local env = {}
+	for k,v in pairs(_G) do
+		env[k] = v
+	end
+	for k, v in pairs(args) do
+		env[k] = v
+	end
+	--- Candran library table
 	env.candran = candran
+	--- Current preprocessor output
 	env.output = ""
-	env.import = function(modpath, autoRequire)
-		local autoRequire = (autoRequire == nil) or autoRequire
-
-		-- get module filepath
-		local filepath
-		for _,search in ipairs(package.searchers) do
-			local loader, path = search(modpath)
-			if type(loader) == "function" and type(path) == "string" then
-				filepath = path
-				break
-			end
-		end
-		if not filepath then error("No module named \""..modpath.."\"") end
+	--- Import an external Candran/Lua module into the generated file
+	-- @tparam modpath string module path
+	-- @tparam margs table preprocessor arguments to use when preprocessessing the module
+	-- @tparam autoRequire[opt=true] boolean true to automatically load the module into a local variable
+	env.import = function(modpath, margs=args, autoRequire=true)
+		local filepath = assert(util.search(modpath), "No module named \""..modpath.."\"")
 
 		-- open module file
 		local f = io.open(filepath)
 		if not f then error("Can't open the module file to import") end
-		local modcontent = f:read("*a")
+		for k, v in pairs(args) do
+			if margs[k] == nil then margs[k] = v end
+		end
+		local modcontent = candran.preprocess(f:read("*a"), margs)
 		f:close()
 
 		-- get module name (ex: module name of path.to.module is module)
 		local modname = modpath:match("[^%.]+$")
 
-		-- 
-		env.output ..=
-			"-- IMPORT OF MODULE \""..modpath.."\" --\n"..
+		env.write(
+			"-- MODULE \""..modpath.."\" --\n"..
 			"local function _()\n"..
 				modcontent.."\n"..
 			"end\n"..
 			(autoRequire and "local "..modname.." = _() or "..modname.."\n" or "").. -- auto require
 			"package.loaded[\""..modpath.."\"] = "..(autoRequire and modname or "_()").." or true\n".. -- add to package.loaded
-			"-- END OF IMPORT OF MODULE \""..modpath.."\" --\n"
+			"-- END OF MODULE \""..modpath.."\" --"
+		)
 	end
+	--- Include another file content in the preprocessor output.
+	-- @tparam file string filepath
 	env.include = function(file)
 		local f = io.open(file)
-		if not f then error("Can't open the file to include") end
-		env.output ..= f:read("*a").."\n"
+		if not f then error("Can't open the file "..file.." to include") end
+		env.write(f:read("*a"))
 		f:close()
 	end
-	env.print = function(...)
+	--- Write a line in the preprocessor output.
+	-- @tparam ... string strings to write (similar to print)
+	env.write = function(...)
 		env.output ..= table.concat({...}, "\t") .. "\n"
 	end
-	env.args = args or {}
-	env.lines = lines
+	--- Will be replaced with the content of the variable with the given name, if it exists.
+	-- @tparam name string variable name
+	env.placeholder = function(name)
+		if env[name] then
+			env.write(env[name])
+		end
+	end
 
-	-- load preprocessor
-	local preprocess, err = load(candran.compile(preprocessor), "Preprocessor", nil, env)
-	if not preprocess then error("Error while creating preprocessor :\n" .. err) end
+	-- compile & load preprocessor
+	local preprocess, err = util.loadenv(candran.compile(preprocessor, args.target), "candran preprocessor", env)
+	if not preprocess then error("Error while creating Candran preprocessor: " .. err) end
 
 	-- execute preprocessor
-	local success, output = pcall(preprocess())
-	if not success then error("Error while preprocessing file :\n" .. output .. "\nWith preprocessor : \n" .. preprocessor) end
+	local success, output = pcall(preprocess)
+	if not success then error("Error while preprocessing file: " .. output .. "\nWith preprocessor : \n" .. preprocessor) end
 
 	return output
 end
 
 -- Compiler
-function candran.compile(input)
-	local parse = require("lib.LuaMinify.ParseCandran")
-	local format = require("lib.LuaMinify.FormatIdentityCandran")
+function candran.compile(input, target="lua53")
+	local parse = require("lua-parser.parser").parse
 
-	local success, ast = parse.ParseLua(input)
-	if not success then error("Error while parsing the file :\n"..tostring(ast)) end
-	
-	local success, output  = format(ast)
-	if not success then error("Error while formating the file :\n"..tostring(output)) end
+	local ast, errmsg = parse(input, "candran")
 
-	return output
+	if not ast then
+		error("Compiler: error while parsing file: "..errmsg)
+	end
+
+	return require("compiler."..target)(ast)
 end
 
 -- Preprocess & compile
-function candran.make(code, args)
-	local preprocessed = candran.preprocess(code, args or {})
-	local output = candran.compile(preprocessed)
-
-	return output
+function candran.make(code, args={})
+	return candran.compile(candran.preprocess(code, args), args.target)
 end
 
--- Standalone mode
-if debug.getinfo(3) == nil and arg then
-	-- Check args
-	if #arg < 1 then
-		print("Candran version "..candran.VERSION.." by Thomas99")
-		print("Command-line usage :")
-		print("lua candran.lua <filename> [preprocessor arguments]")
-		return candran
-	end
-
-	-- Parse args
-	local inputFilepath = arg[1]
-	local args = {}
-	for i=2, #arg, 1 do
-		if arg[i]:sub(1,2) == "--" then
-			args[arg[i]:sub(3)] = arg[i+1]
-			i = i + 1 -- skip argument value
+function candran.searcher(modpath)
+	-- get module filepath
+	local notfound = ""
+	local filepath
+	for path in package.path:gsub("%.lua", ".can"):gmatch("[^;]+") do
+		local path = path:gsub("%?", (modpath:gsub("%.", "/")))
+		local f = io.open(path)
+		if f then
+			f:close()
+			filepath = path
+		else
+			notfound = notfound .. "\n\tno Candran file '"..path.."'"
 		end
 	end
+	if not filepath then return notfound end
 
-	-- Open & read input file
-	local inputFile, err = io.open(inputFilepath, "r")
-	if not inputFile then error("Error while opening input file : "..err) end
-	local input = inputFile:read("*a")
-	inputFile:close()
+	-- open module file
+	local f = io.open(filepath)
+	if not f then error("Can't open the module file to import") end
+	local modcontent = f:read("*a")
+	f:close()
 
-	-- Make
-	print(candran.make(input, args))
+	return load(candran.make(modcontent))
 end
 
 return candran

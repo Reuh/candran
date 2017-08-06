@@ -2,7 +2,7 @@ print("========================")
 print("||    CANDRAN TESTS   ||")
 print("========================")
 
-local candran = dofile(arg[1] or "../build/candran.lua")
+local candran = dofile(arg[1] or "../candran.lua")
 
 -- test helper
 local results = {} -- tests result
@@ -19,7 +19,7 @@ local function test(name, candranCode, result, args)
 	end
 
 	-- load code
-	local success, func = pcall(load, code)
+	local success, func = pcall(loadstring or load, code)
 	if not success then
 		self.result = "error"
 		self.message = "error while loading code :\n"..func
@@ -61,21 +61,21 @@ test("preprocessor condition", [[
 #end
 ]], true)
 test("preprocessor args table", [[
-#if not (args and args.foo == "sky") then
+#if not foo == "sky" then
 #	error("Invalid foo argument")
 #end
 return true
 ]], true, { foo = "sky" })
-test("preprocessor print function", [[
-#print("local a = true")
+test("preprocessor write function", [[
+#write("local a = true")
 return a
 ]], true)
 test("preprocessor import function", [[
 #import("toInclude")
 return toInclude
 ]], 5)
-test("preprocessor include function", "a = [[\n#include('toInclude.lua')\n]]\nreturn a", 
-	"local a = 5\nreturn a\n")
+test("preprocessor include function", "a = [[\n#include('toInclude.lua')\n]]\nreturn a",
+	"local a = 5\nreturn a\n\n")
 
 test("+=", [[
 local a = 5
@@ -112,85 +112,12 @@ local a = "hello"
 a ..= " world"
 return a
 ]], "hello world")
-
-test("decorator", [[
-local a = function(func)
-	local wrapper = function(...)
-		local b = func(...)
-		return b + 5
-	end
-	return wrapper
+test("default parameters", [[
+local function test(hey, def="re", no, foo=("bar"):gsub("bar", "batru"))
+	return def..foo
 end
-@a
-function c(nb)
-	return nb^2
-end
-return c(5)
-]], 30)
-test("decorator with arguments", [[
-local a = function(add)
-	local b = function(func)
-		local wrapper = function(...)
-			local c = func(...)
-			return c + add
-		end
-		return wrapper
-	end
-	return b
-end
-@a(10)
-function d(nb)
-	return nb^2
-end
-return d(5)
-]], 35)
-test("multiple decorators", [[
-local a = function(func)
-	local wrapper = function(...)
-		local b = func(...)
-		return b + 5
-	end
-	return wrapper
-end
-local c = function(func)
-	local wrapper = function(...)
-		local d = func(...)
-		return d * 2
-	end
-	return wrapper
-end
-@a
-@c
-function e(nb)
-	return nb^2
-end
-return e(5)
-]], 55)
-test("multiple decorators with arguments", [[
-local a = function(func)
-	local wrapper = function(...)
-		local b = func(...)
-		return b + 5
-	end
-	return wrapper
-end
-local c = function(mul)
-	local d = function(func)
-		local wrapper = function(...)
-			local e = func(...)
-			return e * mul
-		end
-		return wrapper
-	end
-	return d
-end
-@a
-@c(3)
-function f(nb)
-	return nb^2
-end
-return f(5)
-]], 80)
+return test(78, "SANDWICH", true)
+]], "SANDWICHbatru")
 
 -- results
 print("=====================")

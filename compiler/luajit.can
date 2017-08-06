@@ -1,0 +1,33 @@
+tags._opid.idiv = function(left, right)
+	return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")"
+end
+tags._opid.band = function(left, right)
+	addRequire("bit", "band", "band")
+	return getRequire("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.bor = function(left, right)
+	addRequire("bit", "bor", "bor")
+	return getRequire("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.bxor = function(left, right)
+	addRequire("bit", "bxor", "bxor")
+	return getRequire("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.shl = function(left, right)
+	addRequire("bit", "lshift", "lshift")
+	return getRequire("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.shr = function(left, right)
+	addRequire("bit", "rshift", "rshift")
+	return getRequire("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.bnot = function(right)
+	addRequire("bit", "bnot", "bnot")
+	return getRequire("bnot") .. "(" .. lua(right) .. ")"
+end
+
+#local patch = output
+#output = ""
+#import("compiler.lua53", { patch = patch })
+
+return lua53

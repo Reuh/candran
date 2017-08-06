@@ -1,0 +1,26 @@
+local util = {}
+
+function util.search(modpath, exts={"can", "lua"})
+	for _, ext in ipairs(exts) do
+		for path in package.path:gmatch("[^;]+") do
+			local fpath = path:gsub("%.lua", "."..ext):gsub("%?", (modpath:gsub("%.", "/")))
+			local f = io.open(fpath)
+			if f then
+				f:close()
+				return fpath
+			end
+		end
+	end
+end
+
+function util.loadenv(str, name, env)
+	if _VERSION == "Lua 5.1" then
+		local fn, err = loadstring(str, name)
+		if not fn then return fn, err end
+		return env ~= nil and setfenv(fn, env) or fn
+	else
+		return load(str, name, nil, env)
+	end
+end
+
+return util
