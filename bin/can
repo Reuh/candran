@@ -22,12 +22,6 @@ else -- REPL
 			line = line:gsub("^=", "return tostring(") .. ")"
 		end
 
-		local p = dofile("lib/lua-parser/parser.lua")
-		local d = dofile("lib/lua-parser/pp.lua")
-		print(p.parse(line))
-		print(d.dump(p.parse(line)))
-		print(require"compiler.lua53"(p.parse(line)))
-
 		local t = { pcall(candran.load, line, "stdin") }
 		if t[1] == false then
 			print(t[2])
