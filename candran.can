@@ -1,28 +1,45 @@
-#import("util")
+#import("lib.util")
+#import("lib.cmdline")
+
 #import("compiler.lua53")
 #import("compiler.luajit")
-#import("lua-parser.scope")
-#import("lua-parser.validator")
-#import("lua-parser.pp")
-#import("lua-parser.parser")
-#import("cmdline")
 
-local util = require("util")
+#import("lib.lua-parser.scope")
+#import("lib.lua-parser.validator")
+#import("lib.lua-parser.pp")
+#import("lib.lua-parser.parser")
 
 local candran = {
-	VERSION = "0.2.0"
+	VERSION = "0.3.0"
+}
+
+--- Default options.
+local default = {
+	target = "lua53",
+	indentation = "",
+	newline = "\n",
+	requirePrefix = "CANDRAN_",
+	mapLines = true,
+	chunkname = "nil",
+	rewriteErrors = true
 }
 
 --- Run the preprocessor
 -- @tparam input string input code
--- @tparam args table arguments for the preprocessor. They will be inserted into the preprocessor environement.
+-- @tparam options table arguments for the preprocessor. They will be inserted into the preprocessor environement.
 -- @treturn output string output code
-function candran.preprocess(input, args={})
+function candran.preprocess(input, options={})
+	options = util.merge(default, options)
+
 	-- generate preprocessor code
 	local preprocessor = ""
+	local i = 0
 	for line in (input.."\n"):gmatch("(.-\n)") do
+		i += 1
 		if line:match("^%s*#") and not line:match("^#!") then -- exclude shebang
 			preprocessor ..= line:gsub("^%s*#", "")
+		elseif options.mapLines then
+			preprocessor ..= ("write(%q)"):format(line:sub(1, -2) .. " -- "..options.chunkname..":" .. i) .. "\n"
 		else
 			preprocessor ..= ("write(%q)"):format(line:sub(1, -2)) .. "\n"
 		end
@@ -30,13 +47,7 @@ function candran.preprocess(input, args={})
 	preprocessor ..= "return output"
 
 	-- make preprocessor environement
-	local env = {}
-	for k,v in pairs(_G) do
-		env[k] = v
-	end
-	for k, v in pairs(args) do
-		env[k] = v
-	end
+	local env = util.merge(_G, options)
 	--- Candran library table
 	env.candran = candran
 	--- Current preprocessor output
@@ -45,15 +56,14 @@ function candran.preprocess(input, args={})
 	-- @tparam modpath string module path
 	-- @tparam margs table preprocessor arguments to use when preprocessessing the module
 	-- @tparam autoRequire[opt=true] boolean true to automatically load the module into a local variable
-	env.import = function(modpath, margs=args, autoRequire=true)
+	env.import = function(modpath, margs={}, autoRequire=true)
 		local filepath = assert(util.search(modpath), "No module named \""..modpath.."\"")
 
 		-- open module file
 		local f = io.open(filepath)
 		if not f then error("Can't open the module file to import") end
-		for k, v in pairs(args) do
-			if margs[k] == nil then margs[k] = v end
-		end
+
+		margs = util.merge(options, { chunkname = filepath }, margs)
 		local modcontent = candran.preprocess(f:read("*a"), margs)
 		f:close()
 
@@ -92,57 +102,143 @@ function candran.preprocess(input, args={})
 	end
 
 	-- compile & load preprocessor
-	local preprocess, err = util.loadenv(candran.compile(preprocessor, args.target), "candran preprocessor", env)
+	local preprocess, err = util.load(candran.compile(preprocessor, args), "candran preprocessor", env)
 	if not preprocess then error("Error while creating Candran preprocessor: " .. err) end
 
 	-- execute preprocessor
 	local success, output = pcall(preprocess)
-	if not success then error("Error while preprocessing file: " .. output .. "\nWith preprocessor : \n" .. preprocessor) end
+	if not success then error("Error while preprocessing file: " .. output) end
 
 	return output
 end
 
--- Compiler
-function candran.compile(input, target="lua53")
-	local parse = require("lua-parser.parser").parse
+--- Run the compiler
+-- @tparam input string input code
+-- @tparam options table options for the compiler
+-- @treturn output string output code
+function candran.compile(input, options={})
+	options = util.merge(default, options)
 
-	local ast, errmsg = parse(input, "candran")
+	local ast, errmsg = parser.parse(input, "candran")
 
 	if not ast then
 		error("Compiler: error while parsing file: "..errmsg)
 	end
 
-	return require("compiler."..target)(ast)
+	return require("compiler."..options.target)(input, ast, options)
 end
 
--- Preprocess & compile
-function candran.make(code, args={})
-	return candran.compile(candran.preprocess(code, args), args.target)
+--- Preprocess & compile code
+-- @tparam code string input code
+-- @tparam options table arguments for the preprocessor and compiler
+-- @treturn output string output code
+function candran.make(code, options)
+	return candran.compile(candran.preprocess(code, options), options)
 end
 
-function candran.searcher(modpath)
-	-- get module filepath
-	local notfound = ""
-	local filepath
-	for path in package.path:gsub("%.lua", ".can"):gmatch("[^;]+") do
-		local path = path:gsub("%?", (modpath:gsub("%.", "/")))
-		local f = io.open(path)
-		if f then
-			f:close()
-			filepath = path
-		else
-			notfound = notfound .. "\n\tno Candran file '"..path.."'"
-		end
-	end
-	if not filepath then return notfound end
-
-	-- open module file
-	local f = io.open(filepath)
-	if not f then error("Can't open the module file to import") end
-	local modcontent = f:read("*a")
+local errorRewritingActive = false
+local codeCache = {}
+--- Candran equivalent to the Lua 5.3's loadfile funtion.
+-- Will rewrite errors by default.
+function candran.loadfile(filepath, env, options)
+	local f, err = io.open(filepath)
+	if not f then error("can't open the file: "..err) end
+	local content = f:read("*a")
 	f:close()
 
-	return load(candran.make(modcontent))
+	return candran.load(content, filepath, env, options)
+end
+
+--- Candran equivalent to the Lua 5.3's load funtion.
+-- Will rewrite errors by default.
+function candran.load(chunk, chunkname, env, options={})
+	options = util.merge({ chunkname = tostring(chunkname or chunk) }, options)
+
+	codeCache[options.chunkname] = candran.make(chunk, options)
+	local f = util.load(codeCache[options.chunkname], options.chunkname, env)
+
+	if options.rewriteErrors == false then
+		return f
+	else
+		return function()
+			if not errorRewritingActive then
+				errorRewritingActive = true
+				local t = { xpcall(f, candran.messageHandler) }
+				errorRewritingActive = false
+				if t[1] == false then
+					error(t[2], 0)
+				end
+				return unpack(t, 2)
+			else
+				return f()
+			end
+		end
+	end
+end
+
+--- Candran equivalent to the Lua 5.3's dofile funtion.
+-- Will rewrite errors by default.
+function candran.dofile(filename, options)
+	return candran.loadfile(filename, nil, options)()
+end
+
+--- Candran error message handler.
+-- Use it in xpcall to rewrite stacktraces to display Candran source file lines instead of compiled Lua lines.
+function candran.messageHandler(message)
+	return debug.traceback(message, 2):gsub("(\n?%s*)([^\n]-)%:(%d+)%:", function(indentation, source, line)
+		line = tonumber(line)
+
+		local originalFile
+		local strName = source:match("%[string \"(.-)\"%]")
+		if strName then
+			if codeCache[strName] then
+				originalFile = codeCache[strName]
+				source = strName
+			end
+		else
+			local fi = io.open(source, "r")
+			if fi then
+				originalFile = fi:read("*a")
+			end
+			fi:close()
+		end
+
+		if originalFile then
+			local i = 0
+			for l in originalFile:gmatch("([^\n]*)") do
+				i = i +1
+				if i == line then
+					local extSource, lineMap = l:match("%-%- (.-)%:(%d+)$")
+					if lineMap then
+						if extSource ~= source then
+							return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):"
+						else
+							return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):"
+						end
+					end
+					break
+				end
+			end
+		end
+	end)
+end
+
+--- Candran package searcher function. Use the existing package.path.
+function candran.searcher(modpath)
+	local filepath = util.search(modpath)
+	if not filepath then
+		return "\n\tno candran file in package.path"
+	end
+	return candran.loadfile(filepath)
+end
+
+--- Register the Candran package searcher.
+function candran.setup()
+	if _VERSION == "Lua 5.1" then
+		table.insert(package.loaders, 2, candran.searcher)
+	else
+		table.insert(package.searchers, 2, candran.searcher)
+	end
 end
 
 return candran

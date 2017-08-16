@@ -13,14 +13,28 @@ function util.search(modpath, exts={"can", "lua"})
 	end
 end
 
-function util.loadenv(str, name, env)
+function util.load(str, name, env)
 	if _VERSION == "Lua 5.1" then
 		local fn, err = loadstring(str, name)
 		if not fn then return fn, err end
 		return env ~= nil and setfenv(fn, env) or fn
 	else
-		return load(str, name, nil, env)
+		if env then
+			return load(str, name, nil, env)
+		else
+			return load(str, name)
+		end
 	end
+end
+
+function util.merge(...)
+	local r = {}
+	for _, t in ipairs({...}) do
+		for k, v in pairs(t) do
+			r[k] = v
+		end
+	end
+	return r
 end
 
 return util

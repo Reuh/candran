@@ -1,10 +1,10 @@
 #!/bin/lua
 local candran = require("candran")
-local cmdline = require("cmdline")
+local cmdline = require("lib.cmdline")
 
 if #arg < 1 then
 	print("Candran compiler version "..candran.VERSION.." by Reuh")
-	print("Usage: "..arg[0].." [target=<target>] [dest=<destination directory>] [-print] [preprocessor arguments] filename...")
+	print("Usage: "..arg[0].." [target=<target>] [dest=<destination directory>] [-print] [-preprocess] [-compile] [options] filename...")
 	return
 end
 
@@ -25,7 +25,20 @@ for _, file in ipairs(args) do
 	local input = inputFile:read("*a")
 	inputFile:close()
 
-	local out = candran.make(input, args)
+	if args.chunkname == nil then
+		args.chunkname = file
+	end
+
+	local out = input
+	if args.preprocess then
+		out = candran.preprocess(out, args)
+	end
+	if args.compile then
+		out = candran.compile(out, args)
+	end
+	if args.compile == nil and args.preprocess == nil then
+		out = candran.make(input, args)
+	end
 
 	if args.print then
 		print(out)

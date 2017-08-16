@@ -8,7 +8,7 @@ block: { stat* }
 
 stat:
     `Do{ stat* }
-  | `Set{ {lhs+} {expr+} }                    -- lhs1, lhs2... = e1, e2...
+  | `Set{ {lhs+} (opid? = opid?)? {expr+} }   -- lhs1, lhs2... op=op e1, e2...
   | `While{ expr block }                      -- while e do b end
   | `Repeat{ block expr }                     -- repeat b until e
   | `If{ (expr block)+ block? }               -- if e1 then b1 [elseif e2 then b2] ... [else bn] end
@@ -28,7 +28,7 @@ expr:
   | `Boolean{ <boolean> }
   | `Number{ <number> }
   | `String{ <string> }
-  | `Function{ { `Id{ <string> }* `Dots? } block }
+  | `Function{ { ( `ParPair{ Id expr } | `Id{ <string> } )* `Dots? } block }
   | `Table{ ( `Pair{ expr expr } | expr )* }
   | `Op{ opid expr expr? }
   | `Paren{ expr }       -- significant to cut multiple values returns
@@ -257,6 +257,14 @@ local function makeIndexOrCall (t1, t2)
   return { tag = "Index", pos = t1.pos, [1] = t1, [2] = t2[1] }
 end
 
+local function fixAnonymousMethodParams(t1, t2)
+    if t1 == ":" then
+        t1 = t2
+        table.insert(t1, 1, { tag = "Id", "self" })
+    end
+    return t1
+end
+
 -- grammar
 local G = { V"Lua",
   Lua      = V"Shebang"^-1 * V"Skip" * V"Block" * expect(P(-1), "Extra");
@@ -288,7 +296,7 @@ local G = { V"Lua",
   LocalStat    = kw("local") * expect(V"LocalFunc" + V"LocalAssign", "DefLocal");
   LocalFunc    = tagC("Localrec", kw("function") * expect(V"Id", "NameLFunc") * V"FuncBody") / fixFuncStat;
   LocalAssign  = tagC("Local", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())));
-  Assignment   = tagC("Set", V"VarList" * V"AssignmentOp" * expect(V"ExprList", "EListAssign"));
+  Assignment   = tagC("Set", V"VarList" * V"BinOp"^-1 * (sym("=") / "=") * V"BinOp"^-1 * expect(V"ExprList", "EListAssign"));
 
   FuncStat    = tagC("Set", kw("function") * expect(V"FuncName", "FuncName") * V"FuncBody") / fixFuncStat;
   FuncName    = Cf(V"Id" * (sym(".") * expect(V"StrId", "NameFunc1"))^0, insertIndex)
@@ -342,13 +350,20 @@ local G = { V"Lua",
   VarExpr   = Cmt(V"SuffixedExpr", function(s, i, exp) return exp.tag == "Id" or exp.tag == "Index", exp end);
 
   SuffixedExpr  = Cf(V"PrimaryExpr" * (V"Index" + V"Call")^0, makeIndexOrCall);
-  PrimaryExpr   = V"Id" + tagC("Paren", sym("(") * expect(V"Expr", "ExprParen") * expect(sym(")"), "CParenExpr"));
+  PrimaryExpr   = V"SelfId" * (V"SelfCall" + V"SelfIndex")
+                + V"Id"
+                + tagC("Paren", sym("(") * expect(V"Expr", "ExprParen") * expect(sym(")"), "CParenExpr"));
   Index         = tagC("DotIndex", sym("." * -P".") * expect(V"StrId", "NameIndex"))
                 + tagC("ArrayIndex", sym("[" * -P(S"=[")) * expect(V"Expr", "ExprIndex") * expect(sym("]"), "CBracketIndex"));
   Call          = tagC("Invoke", Cg(sym(":" * -P":") * expect(V"StrId", "NameMeth") * expect(V"FuncArgs", "MethArgs")))
                 + tagC("Call", V"FuncArgs");
+  SelfIndex     = tagC("DotIndex", V"StrId");
+  SelfCall      = tagC("Invoke", Cg(V"StrId" * V"FuncArgs"));
 
-  FuncDef   = kw("function") * V"FuncBody";
+  ShortFuncDef     = tagC("Function", V"ShortFuncParams" * V"Block" * expect(kw("end"), "EndFunc"));
+  ShortFuncParams  = (sym(":") / ":")^-1 * sym("(") * V"ParList" * sym(")") / fixAnonymousMethodParams;
+
+  FuncDef   = (kw("function") * V"FuncBody") + V"ShortFuncDef";
   FuncArgs  = sym("(") * commaSep(V"Expr", "ArgList")^-1 * expect(sym(")"), "CParenArgs")
             + V"Table"
             + tagC("String", V"String");
@@ -361,7 +376,8 @@ local G = { V"Lua",
              + V"StrId" * #("=" * -P"=");
   FieldSep   = sym(",") + sym(";");
 
-  Id     = tagC("Id", V"Name");
+  SelfId = tagC("Id", sym"@" / "self");
+  Id     = tagC("Id", V"Name") + V"SelfId";
   StrId  = tagC("String", V"Name");
 
   -- lexer
@@ -455,12 +471,12 @@ local G = { V"Lua",
             + sym("#")   / "len"
             + sym("~")   / "bnot";
   PowOp     = sym("^")   / "pow";
-  AssignmentOp = (V"OrOp" + V"AndOp" + V"BOrOp" + V"BXorOp" + V"BAndOp" + V"ShiftOp" + V"ConcatOp" + V"AddOp" + V"MulOp" + V"PowOp")^-1 * sym("=")
+  BinOp     = V"OrOp" + V"AndOp" + V"BOrOp" + V"BXorOp" + V"BAndOp" + V"ShiftOp" + V"ConcatOp" + V"AddOp" + V"MulOp" + V"PowOp";
 }
 
 local parser = {}
 
-local validator = require("lua-parser.validator")
+local validator = require("lib.lua-parser.validator")
 local validate = validator.validate
 local syntaxerror = validator.syntaxerror
 

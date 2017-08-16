@@ -1,0 +1,43 @@
+#!/bin/lua
+local candran = require("candran")
+local cmdline = require("lib.cmdline")
+
+local args = cmdline(arg)
+
+if args.help or args.h then
+	print("Candran interpreter version "..candran.VERSION.." by Reuh")
+	print("Usage: "..arg[0].." [target=<target>] [options] filename")
+	return
+end
+
+if #args >= 1 then
+	candran.dofile(args[1], args)
+else -- REPL
+	print("Candran " .. candran.VERSION)
+	candran.setup()
+	while true do
+		io.write("> ")
+		local line = io.read()
+		if line:match("^=") then
+			line = line:gsub("^=", "return tostring(") .. ")"
+		end
+
+		local p = dofile("lib/lua-parser/parser.lua")
+		local d = dofile("lib/lua-parser/pp.lua")
+		print(p.parse(line))
+		print(d.dump(p.parse(line)))
+		print(require"compiler.lua53"(p.parse(line)))
+
+		local t = { pcall(candran.load, line, "stdin") }
+		if t[1] == false then
+			print(t[2])
+		else
+			t = { pcall(t[2]) }
+			if t[1] == false then
+				print(t[2])
+			elseif #t > 1 then
+				print(unpack(t, 2))
+			end
+		end
+	end
+end

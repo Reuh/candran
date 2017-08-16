@@ -48,6 +48,8 @@ Parameters:
                  example: var1,var2=$$125     --> var1,var2 = "$125","$125"
          * if value is convertible to number, it is a number
                  example: var1,var2=125       --> var1,var2 = 125,125
+         * if value is true of false, it is a boolean
+                 example: var1=false          --> var1 = false
          * otherwise it is a string
                  example: name=John           --> name = "John"
 
@@ -86,7 +88,13 @@ return function(t_in, options, params)
     elseif v:find("=") then
       local ids, val = v:match("^([^=]+)%=(.*)") -- no space around =
       if not ids then return argerror("invalid assignment syntax", i) end
-      val = val:sub(1,1)=="$" and val:sub(2) or tonumber(val) or val
+      if val == "false" then
+          val = false
+      elseif val == "true" then
+          val = true
+      else
+          val = val:sub(1,1)=="$" and val:sub(2) or tonumber(val) or val
+      end
       for id in ids:gmatch"[^,;]+" do
         if not idcheck(id) then return iderror(i) end
         t_out[id] = val
