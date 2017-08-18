@@ -10,9 +10,9 @@ description = {
 	]],
 	license = "MIT",
 	homepage = "https://github.com/Reuh/Candran",
-	issues_url = "https://github.com/Reuh/Candran",
-	maintener = "Étienne 'Reuh' Fildadut <fildadut@reuh.eu>",
-	--labels = {}
+	--issues_url = "https://github.com/Reuh/Candran", -- LuaRocks 3.0
+	maintainer = "Étienne 'Reuh' Fildadut <fildadut@reuh.eu>",
+	--labels = {} -- LuaRocks 3.0
 }
 
 source = {
