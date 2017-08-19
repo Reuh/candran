@@ -53,7 +53,7 @@ Will output ````print("Bonjour")```` or ````print("Hello")```` depending of the 
 The preprocessor has access to the following variables :
 * ````candran```` : the Candran library table.
 * ````output```` : the current preprocessor output string.
-* ````import(module[, [args, autoRequire]])```` : a function which import a module. This is equivalent to use _require(module)_ in the Candran code, except the module will be embedded in the current file. _args_ is an optional preprocessor arguments table for the imported module (current preprocessor arguments will be inherited). _autoRequire_ (boolean, default true) indicate if the module should be automaticaly loaded in a local variable or not. If true, the local variable will have the name of the module.
+* ````import(module[, [options])```` : a function which import a module. This should be equivalent to using _require(module)_ in the Candran code, except the module will be embedded in the current file. _options_ is an optional preprocessor arguments table for the imported module (current preprocessor arguments will be inherited). Options specific to this function: ```loadLocal``` (default ```true```): ```true``` to automatically load the module into a local variable (i.e. ```local thing = require("module.thing")```); ```loadPackage``` (default ```true```): ```true``` to automatically load the module into the loaded packages table (so it will be available for following ```require("module")``` calls).
 * ````include(filename)```` : a function which copy the contents of the file _filename_ to the output.
 * ````write(...)```` : write to the preprocessor output. For example, ````#print("hello()")```` will output ````hello()```` in the final file.
 * ```placeholder(name)``` : if the variable _name_ is defined in the preprocessor environement, its content will be inserted here.
@@ -254,6 +254,8 @@ mapLines = true -- If true, compiled files will contain comments at the end of e
 chunkname = "nil" -- The chunkname used when running code using the helper functions and writing the line origin comments. Candran will try to set it to the original filename if it knows it.
 rewriteErrors = true -- True to enable error rewriting when loading code using the helper functions. Will wrap the whole code in a xpcall().
 ```
+
+There are also a few function-specific options available, see the associated functions documentation for more information.
 
 ### Compiling the library
 The Candran library itself is written is Candran, so you have to compile it with an already compiled Candran library.

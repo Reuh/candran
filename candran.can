@@ -10,7 +10,7 @@
 #import("lib.lua-parser.parser")
 
 local candran = {
-	VERSION = "0.3.0"
+	VERSION = "0.3.1"
 }
 
 --- Default options.
@@ -53,17 +53,19 @@ function candran.preprocess(input, options={})
 	--- Current preprocessor output
 	env.output = ""
 	--- Import an external Candran/Lua module into the generated file
+	-- Notable options:
+	-- * loadLocal (true): true to automatically load the module into a local variable
+	-- * loadPackage (true): true to automatically load the module into the loaded packages table
 	-- @tparam modpath string module path
-	-- @tparam margs table preprocessor arguments to use when preprocessessing the module
-	-- @tparam autoRequire[opt=true] boolean true to automatically load the module into a local variable
-	env.import = function(modpath, margs={}, autoRequire=true)
+	-- @tparam margs table preprocessor options to use when preprocessessing the module
+	env.import = function(modpath, margs={})
 		local filepath = assert(util.search(modpath), "No module named \""..modpath.."\"")
 
 		-- open module file
 		local f = io.open(filepath)
 		if not f then error("Can't open the module file to import") end
 
-		margs = util.merge(options, { chunkname = filepath }, margs)
+		margs = util.merge(options, { chunkname = filepath, loadLocal = true, loadPackage = true }, margs)
 		local modcontent = candran.preprocess(f:read("*a"), margs)
 		f:close()
 
@@ -71,13 +73,13 @@ function candran.preprocess(input, options={})
 		local modname = modpath:match("[^%.]+$")
 
 		env.write(
-			"-- MODULE \""..modpath.."\" --\n"..
+			"-- MODULE "..modpath.." --\n"..
 			"local function _()\n"..
 				modcontent.."\n"..
 			"end\n"..
-			(autoRequire and "local "..modname.." = _() or "..modname.."\n" or "").. -- auto require
-			"package.loaded[\""..modpath.."\"] = "..(autoRequire and modname or "_()").." or true\n".. -- add to package.loaded
-			"-- END OF MODULE \""..modpath.."\" --"
+			(margs.loadLocal and ("local %s = _() or %s\n"):format(modname, modname) or "").. -- auto require
+			(margs.loadPackage and ("package.loaded[%q] = %s or true\n"):format(modpath, margs.loadLocal and modname or "_()") or "").. -- add to package.loaded
+			"-- END OF MODULE "..modpath.." --"
 		)
 	end
 	--- Include another file content in the preprocessor output.

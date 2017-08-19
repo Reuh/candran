@@ -651,7 +651,6 @@ return requireStr .. lua(ast) .. newline()
 end
 end
 local lua53 = _() or lua53
-package["loaded"]["compiler.lua53"] = lua53 or true
 return lua53
 end
 local luajit = _() or luajit
@@ -1808,7 +1807,7 @@ return parser
 end
 local parser = _() or parser
 package["loaded"]["lib.lua-parser.parser"] = parser or true
-local candran = { ["VERSION"] = "0.3.0" }
+local candran = { ["VERSION"] = "0.3.1" }
 local default = {
 ["target"] = "lua53", ["indentation"] = "", ["newline"] = "\
 ", ["requirePrefix"] = "CANDRAN_", ["mapLines"] = true, ["chunkname"] = "nil", ["rewriteErrors"] = true
@@ -1836,25 +1835,26 @@ preprocessor = preprocessor .. "return output"
 local env = util["merge"](_G, options)
 env["candran"] = candran
 env["output"] = ""
-env["import"] = function(modpath, margs, autoRequire)
+env["import"] = function(modpath, margs)
 if margs == nil then margs = {} end
-if autoRequire == nil then autoRequire = true end
 local filepath = assert(util["search"](modpath), "No module named \"" .. modpath .. "\"")
 local f = io["open"](filepath)
 if not f then
 error("Can't open the module file to import")
 end
-margs = util["merge"](options, { ["chunkname"] = filepath }, margs)
+margs = util["merge"](options, {
+["chunkname"] = filepath, ["loadLocal"] = true, ["loadPackage"] = true
+}, margs)
 local modcontent = candran["preprocess"](f:read("*a"), margs)
 f:close()
 local modname = modpath:match("[^%.]+$")
-env["write"]("-- MODULE \"" .. modpath .. "\" --\
+env["write"]("-- MODULE " .. modpath .. " --\
 " .. "local function _()\
 " .. modcontent .. "\
 " .. "end\
-" .. (autoRequire and "local " .. modname .. " = _() or " .. modname .. "\
-" or "") .. "package.loaded[\"" .. modpath .. "\"] = " .. (autoRequire and modname or "_()") .. " or true\
-" .. "-- END OF MODULE \"" .. modpath .. "\" --")
+" .. (margs["loadLocal"] and ("local %s = _() or %s\
+"):format(modname, modname) or "") .. (margs["loadPackage"] and ("package.loaded[%q] = %s or true\
+"):format(modpath, margs["loadLocal"] and modname or "_()") or "") .. "-- END OF MODULE " .. modpath .. " --")
 end
 env["include"] = function(file)
 local f = io["open"](file)
