@@ -1,0 +1,151 @@
+List of potential ideas.
+
+To be implemented, theese need to:
+* aesthetically fit into the current Candran/Lua syntax. We can add a few weird glyphs here and there, but our goal *is not* to become a punctuation inventory like MoonScript.
+* vanilla Lua code *must* produce functionaly identical code after going through the Candran compiler, so make sure the additions:
+    * are invalid vanilla Lua syntax.
+    * are not ambigous with any vanilla Lua syntax.
+* be significantly useful compared to existing Candran/Lua code.
+* be useful without having to rewrite APIs specifically for Candran. Candran intends to make Lua easier, not supersede it.
+
+Example rejected ideas:
+* Python-style function decorators (implemented in Candran 0.1.0):
+    Useless 95% of the time because most Lua APIs applying something to a function are used like applySomething(someArg,func) instead of func=applySomething(someArg)(func).
+    This could be adapted, but this will mean unecessary named functions in the environment and it will only works when the decorator returns the functions.
+    In this state, these didn't provide anothing useful over short anonymous functions.
+* Making then and do optional:
+    This actually doesn't work because if condition then (doStuff)() end would become ambigous ("condition(doStuff)() then" or "condition then doStuff()"?).
+* Whitespace significance.
+    Doesn't fit with Lua's verbose keywords.
+
+Of course, if you really thinks these would be useful or you found a clever way of making theses work, feel free to open an issue or pull request and discuss.
+
+Most of Candran's additions were inspired by MoonScript and CoffeeScript.
+
+Please note that the following ideas are just random though and won't be necessarly implemented, and some won't even work together.
+
+Feel free to open issues about ideas you find useful or want to improve. Otherwise, I will only implements them when I really need them or am bored.
+
+Actually, open issues for everything. I know of a couple persons using Candran but have no idea what they like and want with it.
+
+* class keyword
+class Thing(parents...)
+    foo = "bar"
+
+    new = :()
+        stuff()
+    end
+end
+local a = new Thing()
+->
+(TODO: define how classes work. May even use ClassCommons)
+
+* continue keyword for loops
+while true do
+    stuff()
+    if thing then
+        continue
+    end
+end
+->
+while true do
+    repeat
+        stuff()
+        if thing then
+            break
+        end
+    until true
+end
+
+* list comprehension
+local a = [x for x in pairs(stuff)]
+local a = [x for x in pairs(stuff) if x == true]
+local a = [x for x in pairs(stuff) if x == true for...]
+local a = x for x in pairs(stuff)
+local a = for x in pairs(stuff) do x
+local no_color = {k,v for k,v in pairs(thing) if k ~= "color"}
+
+local a = (x if x == true)
+
+* expressions flow decorators
+foo() while condition end
+->
+(function()
+    while condition do
+        return foo()
+    end
+end)()
+
+foo() if stuff > other end
+
+* block expressions
+local a = do
+    return true
+end
+->
+local a = (()
+    return true
+end)()
+
+local a = if x == true then
+    return a
+end
+
+local stuff = for ... (accumulate in a table)
+
+* try / except|catch / finally / else / other keywords
+try
+    error("hey")
+catch err
+    print(err)
+finally
+    clean()
+end
+
+* Safe navigation operator
+local name = articles?[0].author?.name (?[] and ?. index opeators)
+or
+local zip = lottery.drawWinner?().address?.zipcode (expr? existence test suffix)
+
+See http://coffeescript.org/#existential-operator
+
+* static type checking
+local a = externalFunc() -- unknown
+if a == "hey" then
+    -- a = string
+    a:sub(5,3) -- ok
+    a:exit() -- error!
+else
+    -- a = unknown
+    a:exit() -- ok
+end
+
+Will need to define stuff for a lot of Lua libraries (see the work already done by TypedLua).
+
+While we're talking about static analysis, what about forking luacheck into candrancheck? Or at least make the line mapping work.
+
+* array slicing
+local b = a[3:5:1]
+
+* Destructuring assignment
+local pos = { x = 5, y = 12 }
+
+local {x, y} = pos -- x, y = pos.x, pos.y
+local {x = x, y = y} = pos
+local {:x, :y} = pos -- shorthand for the above line
+local [x, y] = pos -- x, y = pos[0], pos[1]
+local x, y $= pos
+
+And in implicit assignments:
+for i, {x, y} in ipairs(positions) do
+
+* local short alias
+let a -> local a
+or
+var a
+
+* Other potential inspiration
+https://love2d.org/forums/viewtopic.php?f=3&t=82650&sid=b6d9a8dec64afcc1c67806cb5ba65458
+https://www.ruby-lang.org/fr/
+
+Well done, you're at the end of the file!

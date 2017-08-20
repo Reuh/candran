@@ -239,6 +239,18 @@ function a:hey()
 end
 return a:hey()
 ]], "Hoi")
+test("@name method call", [[
+local a = {
+	foo = "Hoi",
+	bar = function(self)
+		return self.foo
+	end
+}
+function a:hey()
+	return @bar()
+end
+return a:hey()
+]], "Hoi")
 test("@[expt] indexation", [[
 local a = {
 	foo = "Hoi"
