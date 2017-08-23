@@ -31,10 +31,16 @@ end)
 
 ````
 
+Candran is released under the MIT License (see ```LICENSE``` for details).
+
 #### Quick setup
 Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.4.0-1.rockspec```.
 
 Or manually install LPegLabel (```luarocks install LPegLabel```), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
+
+#### Editor support
+Most editors should be able to use their existing Lua support for Candran code. If you want full support for the additional syntax in your editor:
+* **Atom**: [language-candran](https://atom.io/packages/language-candran) support the full Candran syntax
 
 The language
 ------------
