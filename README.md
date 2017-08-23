@@ -32,7 +32,9 @@ end)
 ````
 
 #### Quick setup
-Install LPegLabel (```luarocks install LPegLabel```), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install candran```.
+
+Or manually install LPegLabel (```luarocks install LPegLabel```), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
 The language
 ------------

@@ -40,23 +40,6 @@ local a = new Thing()
 ->
 (TODO: define how classes work. May even use ClassCommons)
 
-* continue keyword for loops
-while true do
-    stuff()
-    if thing then
-        continue
-    end
-end
-->
-while true do
-    repeat
-        stuff()
-        if thing then
-            break
-        end
-    until true
-end
-
 * list comprehension
 local a = [x for x in pairs(stuff)]
 local a = [x for x in pairs(stuff) if x == true]
@@ -90,6 +73,8 @@ end)()
 local a = if x == true then
     return a
 end
+
+With implicits returns?...
 
 local stuff = for ... (accumulate in a table)
 
@@ -138,11 +123,6 @@ local x, y $= pos
 
 And in implicit assignments:
 for i, {x, y} in ipairs(positions) do
-
-* local short alias
-let a -> local a
-or
-var a
 
 * Other potential inspiration
 https://love2d.org/forums/viewtopic.php?f=3&t=82650&sid=b6d9a8dec64afcc1c67806cb5ba65458

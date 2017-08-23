@@ -15,11 +15,13 @@ stat:
   | `Fornum{ ident expr expr expr? block }    -- for ident = e, e[, e] do b end
   | `Forin{ {ident+} {expr+} block }          -- for i1, i2... in e1, e2... do b end
   | `Local{ {ident+} {expr+}? }               -- local i1, i2... = e1, e2...
+  | `Let{ {ident+} {expr+}? }                 -- let i1, i2... = e1, e2...
   | `Localrec{ ident expr }                   -- only used for 'local function'
   | `Goto{ <string> }                         -- goto str
   | `Label{ <string> }                        -- ::str::
   | `Return{ <expr*> }                        -- return e1, e2...
   | `Break                                    -- break
+  | `Continue                                 -- continue
   | apply
 
 expr:
@@ -93,6 +95,7 @@ local labels = {
   { "ErrDoFor", "expected 'do' after the range of the for loop" },
 
   { "ErrDefLocal", "expected a function definition or assignment after local" },
+  { "ErrDefLet", "expected a function definition or assignment after let" },
   { "ErrNameLFunc", "expected a function name after 'function'" },
   { "ErrEListLAssign", "expected one or more expressions after '='" },
   { "ErrEListAssign", "expected one or more expressions after '='" },
@@ -272,7 +275,7 @@ local G = { V"Lua",
 
   Block       = tagC("Block", V"Stat"^0 * V"RetStat"^-1);
   Stat        = V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat"
-              + V"LocalStat" + V"FuncStat" + V"BreakStat" + V"LabelStat" + V"GoToStat"
+              + V"LocalStat" + V"LetStat" + V"FuncStat" + V"BreakStat" + V"ContinueStat" + V"LabelStat" + V"GoToStat"
               + V"FuncCall" + V"Assignment" + sym(";") + -V"BlockEnd" * throw("InvalidStat");
   BlockEnd    = P"return" + "end" + "elseif" + "else" + "until" + -1;
 
@@ -296,6 +299,10 @@ local G = { V"Lua",
   LocalStat    = kw("local") * expect(V"LocalFunc" + V"LocalAssign", "DefLocal");
   LocalFunc    = tagC("Localrec", kw("function") * expect(V"Id", "NameLFunc") * V"FuncBody") / fixFuncStat;
   LocalAssign  = tagC("Local", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())));
+
+  LetStat      = kw("let") * expect(V"LetAssign", "DefLet");
+  LetAssign    = tagC("Let", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())));
+
   Assignment   = tagC("Set", V"VarList" * V"BinOp"^-1 * (sym("=") / "=") * V"BinOp"^-1 * expect(V"ExprList", "EListAssign"));
 
   FuncStat    = tagC("Set", kw("function") * expect(V"FuncName", "FuncName") * V"FuncBody") / fixFuncStat;
@@ -312,10 +319,11 @@ local G = { V"Lua",
                 + V"Id";
   ParKey        = V"Id" * #("=" * -P"=");
 
-  LabelStat  = tagC("Label", sym("::") * expect(V"Name", "Label") * expect(sym("::"), "CloseLabel"));
-  GoToStat   = tagC("Goto", kw("goto") * expect(V"Name", "Goto"));
-  BreakStat  = tagC("Break", kw("break"));
-  RetStat    = tagC("Return", kw("return") * commaSep(V"Expr", "RetList")^-1 * sym(";")^-1);
+  LabelStat    = tagC("Label", sym("::") * expect(V"Name", "Label") * expect(sym("::"), "CloseLabel"));
+  GoToStat     = tagC("Goto", kw("goto") * expect(V"Name", "Goto"));
+  BreakStat    = tagC("Break", kw("break"));
+  ContinueStat = tagC("Continue", kw("continue"));
+  RetStat      = tagC("Return", kw("return") * commaSep(V"Expr", "RetList")^-1 * sym(";")^-1);
 
   NameList  = tagC("NameList", commaSep(V"Id"));
   VarList   = tagC("VarList", commaSep(V"VarExpr", "VarList"));

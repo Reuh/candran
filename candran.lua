@@ -168,14 +168,34 @@ return newline()
 end
 local required = {}
 local requireStr = ""
-local function addRequire(str, name, field)
-if not required[str] then
-requireStr = requireStr .. "local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(str) .. (field and "." .. field or "") .. options["newline"]
-required[str] = true
+local function addRequire(mod, name, field)
+if not required[mod] then
+requireStr = requireStr .. "local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"]
+required[mod] = true
 end
 end
 local function getRequire(name)
 return options["requirePrefix"] .. name
+end
+local function any(list, tags)
+local tagsCheck = {}
+for _, tag in ipairs(tags) do
+tagsCheck[tag] = true
+end
+for _, node in ipairs(list) do
+if tagsCheck[node["tag"]] then
+return node
+end
+end
+return nil
+end
+local namedNodes = {}
+local function wrap(name, prefix, suffix)
+local node = namedNodes[name]
+if not node then
+error("not inside a " .. name)
+end
+node["prefix"], node["suffix"] = prefix .. newline(), newline() .. suffix
 end
 local tags
 local function lua(ast, forceTag, ...)
@@ -183,6 +203,13 @@ if options["mapLines"] and ast["pos"] then
 lastInputPos = ast["pos"]
 end
 return tags[forceTag or ast["tag"]](ast, ...)
+end
+local function namedLua(name, ast, ...)
+local old = namedNodes[name]
+namedNodes[name] = ast
+local code = lua(ast, ...)
+namedNodes[name] = old
+return (ast["prefix"] or "") .. code .. (ast["suffix"] or "")
 end
 tags = setmetatable({
 ["Block"] = function(t)
@@ -239,9 +266,9 @@ end
 return r
 end
 end, ["While"] = function(t)
-return "while " .. lua(t[1]) .. " do" .. indent() .. lua(t[2]) .. unindent() .. "end"
+return "while " .. lua(t[1]) .. " do" .. indent() .. namedLua("loop", t[2]) .. unindent() .. "end"
 end, ["Repeat"] = function(t)
-return "repeat" .. indent() .. lua(t[1]) .. unindent() .. "until " .. lua(t[2])
+return "repeat" .. indent() .. namedLua("loop", t[1]) .. unindent() .. "until " .. lua(t[2])
 end, ["If"] = function(t)
 local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
 for i = 3, # t - 1, 2 do
@@ -256,14 +283,27 @@ local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3])
 if # t == 5 then
 return r .. ", " .. lua(t[4]) .. " do" .. indent() .. lua(t[5]) .. unindent() .. "end"
 else
-return r .. " do" .. indent() .. lua(t[4]) .. unindent() .. "end"
+return r .. " do" .. indent() .. namedLua("loop", t[4]) .. unindent() .. "end"
 end
 end, ["Forin"] = function(t)
-return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. lua(t[3]) .. unindent() .. "end"
+return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. namedLua("loop", t[3]) .. unindent() .. "end"
 end, ["Local"] = function(t)
 local r = "local " .. lua(t[1], "_lhs")
 if t[2][1] then
 r = r .. " = " .. lua(t[2], "_lhs")
+end
+return r
+end, ["Let"] = function(t)
+local nameList = lua(t[1], "_lhs")
+local r = "local " .. nameList
+if t[2][1] then
+if any(t[2], {
+"Function", "Table", "Paren"
+}) then
+r = r .. newline() .. nameList .. " = " .. lua(t[2], "_lhs")
+else
+r = r .. " = " .. lua(t[2], "_lhs")
+end
 end
 return r
 end, ["Localrec"] = function(t)
@@ -275,6 +315,9 @@ return "::" .. lua(t[1], "Id") .. "::"
 end, ["Return"] = function(t)
 return "return " .. lua(t, "_lhs")
 end, ["Break"] = function()
+return "break"
+end, ["Continue"] = function()
+wrap("loop", "repeat", "until true")
 return "break"
 end, ["Nil"] = function()
 return "nil"
@@ -372,7 +415,8 @@ end, ["_opid"] = {
 }, { ["__index"] = function(self, key)
 error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3")
 end })
-return requireStr .. lua(ast) .. newline()
+local code = lua(ast) .. newline()
+return requireStr .. code
 end
 end
 local lua53 = _() or lua53
@@ -416,14 +460,34 @@ return newline()
 end
 local required = {}
 local requireStr = ""
-local function addRequire(str, name, field)
-if not required[str] then
-requireStr = requireStr .. "local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(str) .. (field and "." .. field or "") .. options["newline"]
-required[str] = true
+local function addRequire(mod, name, field)
+if not required[mod] then
+requireStr = requireStr .. "local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"]
+required[mod] = true
 end
 end
 local function getRequire(name)
 return options["requirePrefix"] .. name
+end
+local function any(list, tags)
+local tagsCheck = {}
+for _, tag in ipairs(tags) do
+tagsCheck[tag] = true
+end
+for _, node in ipairs(list) do
+if tagsCheck[node["tag"]] then
+return node
+end
+end
+return nil
+end
+local namedNodes = {}
+local function wrap(name, prefix, suffix)
+local node = namedNodes[name]
+if not node then
+error("not inside a " .. name)
+end
+node["prefix"], node["suffix"] = prefix .. newline(), newline() .. suffix
 end
 local tags
 local function lua(ast, forceTag, ...)
@@ -431,6 +495,13 @@ if options["mapLines"] and ast["pos"] then
 lastInputPos = ast["pos"]
 end
 return tags[forceTag or ast["tag"]](ast, ...)
+end
+local function namedLua(name, ast, ...)
+local old = namedNodes[name]
+namedNodes[name] = ast
+local code = lua(ast, ...)
+namedNodes[name] = old
+return (ast["prefix"] or "") .. code .. (ast["suffix"] or "")
 end
 tags = setmetatable({
 ["Block"] = function(t)
@@ -487,9 +558,9 @@ end
 return r
 end
 end, ["While"] = function(t)
-return "while " .. lua(t[1]) .. " do" .. indent() .. lua(t[2]) .. unindent() .. "end"
+return "while " .. lua(t[1]) .. " do" .. indent() .. namedLua("loop", t[2]) .. unindent() .. "end"
 end, ["Repeat"] = function(t)
-return "repeat" .. indent() .. lua(t[1]) .. unindent() .. "until " .. lua(t[2])
+return "repeat" .. indent() .. namedLua("loop", t[1]) .. unindent() .. "until " .. lua(t[2])
 end, ["If"] = function(t)
 local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
 for i = 3, # t - 1, 2 do
@@ -504,14 +575,27 @@ local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3])
 if # t == 5 then
 return r .. ", " .. lua(t[4]) .. " do" .. indent() .. lua(t[5]) .. unindent() .. "end"
 else
-return r .. " do" .. indent() .. lua(t[4]) .. unindent() .. "end"
+return r .. " do" .. indent() .. namedLua("loop", t[4]) .. unindent() .. "end"
 end
 end, ["Forin"] = function(t)
-return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. lua(t[3]) .. unindent() .. "end"
+return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. namedLua("loop", t[3]) .. unindent() .. "end"
 end, ["Local"] = function(t)
 local r = "local " .. lua(t[1], "_lhs")
 if t[2][1] then
 r = r .. " = " .. lua(t[2], "_lhs")
+end
+return r
+end, ["Let"] = function(t)
+local nameList = lua(t[1], "_lhs")
+local r = "local " .. nameList
+if t[2][1] then
+if any(t[2], {
+"Function", "Table", "Paren"
+}) then
+r = r .. newline() .. nameList .. " = " .. lua(t[2], "_lhs")
+else
+r = r .. " = " .. lua(t[2], "_lhs")
+end
 end
 return r
 end, ["Localrec"] = function(t)
@@ -523,6 +607,9 @@ return "::" .. lua(t[1], "Id") .. "::"
 end, ["Return"] = function(t)
 return "return " .. lua(t, "_lhs")
 end, ["Break"] = function()
+return "break"
+end, ["Continue"] = function()
+wrap("loop", "repeat", "until true")
 return "break"
 end, ["Nil"] = function()
 return "nil"
@@ -647,7 +734,8 @@ tags["_opid"]["bnot"] = function(right)
 addRequire("bit", "bnot", "bnot")
 return getRequire("bnot") .. "(" .. lua(right) .. ")"
 end
-return requireStr .. lua(ast) .. newline()
+local code = lua(ast) .. newline()
+return requireStr .. code
 end
 end
 local lua53 = _() or lua53
@@ -898,6 +986,13 @@ return nil, syntaxerror(env["errorinfo"], stm["pos"], msg)
 end
 return true
 end
+local function traverse_continue(env, stm)
+if not insideloop(env) then
+local msg = "<continue> not inside a loop"
+return nil, syntaxerror(env["errorinfo"], stm["pos"], msg)
+end
+return true
+end
 local function traverse_forin(env, stm)
 begin_loop(env)
 new_scope(env)
@@ -1112,7 +1207,7 @@ elseif tag == "Fornum" then
 return traverse_fornum(env, stm)
 elseif tag == "Forin" then
 return traverse_forin(env, stm)
-elseif tag == "Local" then
+elseif tag == "Local" or tag == "Let" then
 return traverse_let(env, stm)
 elseif tag == "Localrec" then
 return traverse_letrec(env, stm)
@@ -1124,6 +1219,8 @@ elseif tag == "Return" then
 return traverse_return(env, stm)
 elseif tag == "Break" then
 return traverse_break(env, stm)
+elseif tag == "Continue" then
+return traverse_continue(env, stm)
 elseif tag == "Call" then
 return traverse_call(env, stm)
 elseif tag == "Invoke" then
@@ -1552,6 +1649,8 @@ local labels = {
 }, {
 "ErrDefLocal", "expected a function definition or assignment after local"
 }, {
+"ErrDefLet", "expected a function definition or assignment after let"
+}, {
 "ErrNameLFunc", "expected a function name after 'function'"
 }, {
 "ErrEListLAssign", "expected one or more expressions after '='"
@@ -1766,7 +1865,7 @@ return t1
 end
 local G = {
 V("Lua"), ["Lua"] = V("Shebang") ^ - 1 * V("Skip") * V("Block") * expect(P(- 1), "Extra"), ["Shebang"] = P("#!") * (P(1) - P("\
-")) ^ 0, ["Block"] = tagC("Block", V("Stat") ^ 0 * V("RetStat") ^ - 1), ["Stat"] = V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat") + V("LocalStat") + V("FuncStat") + V("BreakStat") + V("LabelStat") + V("GoToStat") + V("FuncCall") + V("Assignment") + sym(";") + - V("BlockEnd") * throw("InvalidStat"), ["BlockEnd"] = P("return") + "end" + "elseif" + "else" + "until" + - 1, ["IfStat"] = tagC("If", V("IfPart") * V("ElseIfPart") ^ 0 * V("ElsePart") ^ - 1 * expect(kw("end"), "EndIf")), ["IfPart"] = kw("if") * expect(V("Expr"), "ExprIf") * expect(kw("then"), "ThenIf") * V("Block"), ["ElseIfPart"] = kw("elseif") * expect(V("Expr"), "ExprEIf") * expect(kw("then"), "ThenEIf") * V("Block"), ["ElsePart"] = kw("else") * V("Block"), ["DoStat"] = kw("do") * V("Block") * expect(kw("end"), "EndDo") / tagDo, ["WhileStat"] = tagC("While", kw("while") * expect(V("Expr"), "ExprWhile") * V("WhileBody")), ["WhileBody"] = expect(kw("do"), "DoWhile") * V("Block") * expect(kw("end"), "EndWhile"), ["RepeatStat"] = tagC("Repeat", kw("repeat") * V("Block") * expect(kw("until"), "UntilRep") * expect(V("Expr"), "ExprRep")), ["ForStat"] = kw("for") * expect(V("ForNum") + V("ForIn"), "ForRange") * expect(kw("end"), "EndFor"), ["ForNum"] = tagC("Fornum", V("Id") * sym("=") * V("NumRange") * V("ForBody")), ["NumRange"] = expect(V("Expr"), "ExprFor1") * expect(sym(","), "CommaFor") * expect(V("Expr"), "ExprFor2") * (sym(",") * expect(V("Expr"), "ExprFor3")) ^ - 1, ["ForIn"] = tagC("Forin", V("NameList") * expect(kw("in"), "InFor") * expect(V("ExprList"), "EListFor") * V("ForBody")), ["ForBody"] = expect(kw("do"), "DoFor") * V("Block"), ["LocalStat"] = kw("local") * expect(V("LocalFunc") + V("LocalAssign"), "DefLocal"), ["LocalFunc"] = tagC("Localrec", kw("function") * expect(V("Id"), "NameLFunc") * V("FuncBody")) / fixFuncStat, ["LocalAssign"] = tagC("Local", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))), ["Assignment"] = tagC("Set", V("VarList") * V("BinOp") ^ - 1 * (sym("=") / "=") * V("BinOp") ^ - 1 * expect(V("ExprList"), "EListAssign")), ["FuncStat"] = tagC("Set", kw("function") * expect(V("FuncName"), "FuncName") * V("FuncBody")) / fixFuncStat, ["FuncName"] = Cf(V("Id") * (sym(".") * expect(V("StrId"), "NameFunc1")) ^ 0, insertIndex) * (sym(":") * expect(V("StrId"), "NameFunc2")) ^ - 1 / markMethod, ["FuncBody"] = tagC("Function", V("FuncParams") * V("Block") * expect(kw("end"), "EndFunc")), ["FuncParams"] = expect(sym("("), "OParenPList") * V("ParList") * expect(sym(")"), "CParenPList"), ["ParList"] = V("NamedParList") * (sym(",") * expect(tagC("Dots", sym("...")), "ParList")) ^ - 1 / addDots + Ct(tagC("Dots", sym("..."))) + Ct(Cc()), ["NamedParList"] = tagC("NamedParList", commaSep(V("NamedPar"))), ["NamedPar"] = tagC("ParPair", V("ParKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Id"), ["ParKey"] = V("Id") * # ("=" * - P("=")), ["LabelStat"] = tagC("Label", sym("::") * expect(V("Name"), "Label") * expect(sym("::"), "CloseLabel")), ["GoToStat"] = tagC("Goto", kw("goto") * expect(V("Name"), "Goto")), ["BreakStat"] = tagC("Break", kw("break")), ["RetStat"] = tagC("Return", kw("return") * commaSep(V("Expr"), "RetList") ^ - 1 * sym(";") ^ - 1), ["NameList"] = tagC("NameList", commaSep(V("Id"))), ["VarList"] = tagC("VarList", commaSep(V("VarExpr"), "VarList")), ["ExprList"] = tagC("ExpList", commaSep(V("Expr"), "ExprList")), ["Expr"] = V("OrExpr"), ["OrExpr"] = chainOp(V("AndExpr"), V("OrOp"), "OrExpr"), ["AndExpr"] = chainOp(V("RelExpr"), V("AndOp"), "AndExpr"), ["RelExpr"] = chainOp(V("BOrExpr"), V("RelOp"), "RelExpr"), ["BOrExpr"] = chainOp(V("BXorExpr"), V("BOrOp"), "BOrExpr"), ["BXorExpr"] = chainOp(V("BAndExpr"), V("BXorOp"), "BXorExpr"), ["BAndExpr"] = chainOp(V("ShiftExpr"), V("BAndOp"), "BAndExpr"), ["ShiftExpr"] = chainOp(V("ConcatExpr"), V("ShiftOp"), "ShiftExpr"), ["ConcatExpr"] = V("AddExpr") * (V("ConcatOp") * expect(V("ConcatExpr"), "ConcatExpr")) ^ - 1 / binaryOp, ["AddExpr"] = chainOp(V("MulExpr"), V("AddOp"), "AddExpr"), ["MulExpr"] = chainOp(V("UnaryExpr"), V("MulOp"), "MulExpr"), ["UnaryExpr"] = V("UnaryOp") * expect(V("UnaryExpr"), "UnaryExpr") / unaryOp + V("PowExpr"), ["PowExpr"] = V("SimpleExpr") * (V("PowOp") * expect(V("UnaryExpr"), "PowExpr")) ^ - 1 / binaryOp, ["SimpleExpr"] = tagC("Number", V("Number")) + tagC("String", V("String")) + tagC("Nil", kw("nil")) + tagC("Boolean", kw("false") * Cc(false)) + tagC("Boolean", kw("true") * Cc(true)) + tagC("Dots", sym("...")) + V("FuncDef") + V("Table") + V("SuffixedExpr"), ["FuncCall"] = Cmt(V("SuffixedExpr"), function(s, i, exp)
+")) ^ 0, ["Block"] = tagC("Block", V("Stat") ^ 0 * V("RetStat") ^ - 1), ["Stat"] = V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat") + V("LocalStat") + V("LetStat") + V("FuncStat") + V("BreakStat") + V("ContinueStat") + V("LabelStat") + V("GoToStat") + V("FuncCall") + V("Assignment") + sym(";") + - V("BlockEnd") * throw("InvalidStat"), ["BlockEnd"] = P("return") + "end" + "elseif" + "else" + "until" + - 1, ["IfStat"] = tagC("If", V("IfPart") * V("ElseIfPart") ^ 0 * V("ElsePart") ^ - 1 * expect(kw("end"), "EndIf")), ["IfPart"] = kw("if") * expect(V("Expr"), "ExprIf") * expect(kw("then"), "ThenIf") * V("Block"), ["ElseIfPart"] = kw("elseif") * expect(V("Expr"), "ExprEIf") * expect(kw("then"), "ThenEIf") * V("Block"), ["ElsePart"] = kw("else") * V("Block"), ["DoStat"] = kw("do") * V("Block") * expect(kw("end"), "EndDo") / tagDo, ["WhileStat"] = tagC("While", kw("while") * expect(V("Expr"), "ExprWhile") * V("WhileBody")), ["WhileBody"] = expect(kw("do"), "DoWhile") * V("Block") * expect(kw("end"), "EndWhile"), ["RepeatStat"] = tagC("Repeat", kw("repeat") * V("Block") * expect(kw("until"), "UntilRep") * expect(V("Expr"), "ExprRep")), ["ForStat"] = kw("for") * expect(V("ForNum") + V("ForIn"), "ForRange") * expect(kw("end"), "EndFor"), ["ForNum"] = tagC("Fornum", V("Id") * sym("=") * V("NumRange") * V("ForBody")), ["NumRange"] = expect(V("Expr"), "ExprFor1") * expect(sym(","), "CommaFor") * expect(V("Expr"), "ExprFor2") * (sym(",") * expect(V("Expr"), "ExprFor3")) ^ - 1, ["ForIn"] = tagC("Forin", V("NameList") * expect(kw("in"), "InFor") * expect(V("ExprList"), "EListFor") * V("ForBody")), ["ForBody"] = expect(kw("do"), "DoFor") * V("Block"), ["LocalStat"] = kw("local") * expect(V("LocalFunc") + V("LocalAssign"), "DefLocal"), ["LocalFunc"] = tagC("Localrec", kw("function") * expect(V("Id"), "NameLFunc") * V("FuncBody")) / fixFuncStat, ["LocalAssign"] = tagC("Local", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))), ["LetStat"] = kw("let") * expect(V("LetAssign"), "DefLet"), ["LetAssign"] = tagC("Let", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))), ["Assignment"] = tagC("Set", V("VarList") * V("BinOp") ^ - 1 * (sym("=") / "=") * V("BinOp") ^ - 1 * expect(V("ExprList"), "EListAssign")), ["FuncStat"] = tagC("Set", kw("function") * expect(V("FuncName"), "FuncName") * V("FuncBody")) / fixFuncStat, ["FuncName"] = Cf(V("Id") * (sym(".") * expect(V("StrId"), "NameFunc1")) ^ 0, insertIndex) * (sym(":") * expect(V("StrId"), "NameFunc2")) ^ - 1 / markMethod, ["FuncBody"] = tagC("Function", V("FuncParams") * V("Block") * expect(kw("end"), "EndFunc")), ["FuncParams"] = expect(sym("("), "OParenPList") * V("ParList") * expect(sym(")"), "CParenPList"), ["ParList"] = V("NamedParList") * (sym(",") * expect(tagC("Dots", sym("...")), "ParList")) ^ - 1 / addDots + Ct(tagC("Dots", sym("..."))) + Ct(Cc()), ["NamedParList"] = tagC("NamedParList", commaSep(V("NamedPar"))), ["NamedPar"] = tagC("ParPair", V("ParKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Id"), ["ParKey"] = V("Id") * # ("=" * - P("=")), ["LabelStat"] = tagC("Label", sym("::") * expect(V("Name"), "Label") * expect(sym("::"), "CloseLabel")), ["GoToStat"] = tagC("Goto", kw("goto") * expect(V("Name"), "Goto")), ["BreakStat"] = tagC("Break", kw("break")), ["ContinueStat"] = tagC("Continue", kw("continue")), ["RetStat"] = tagC("Return", kw("return") * commaSep(V("Expr"), "RetList") ^ - 1 * sym(";") ^ - 1), ["NameList"] = tagC("NameList", commaSep(V("Id"))), ["VarList"] = tagC("VarList", commaSep(V("VarExpr"), "VarList")), ["ExprList"] = tagC("ExpList", commaSep(V("Expr"), "ExprList")), ["Expr"] = V("OrExpr"), ["OrExpr"] = chainOp(V("AndExpr"), V("OrOp"), "OrExpr"), ["AndExpr"] = chainOp(V("RelExpr"), V("AndOp"), "AndExpr"), ["RelExpr"] = chainOp(V("BOrExpr"), V("RelOp"), "RelExpr"), ["BOrExpr"] = chainOp(V("BXorExpr"), V("BOrOp"), "BOrExpr"), ["BXorExpr"] = chainOp(V("BAndExpr"), V("BXorOp"), "BXorExpr"), ["BAndExpr"] = chainOp(V("ShiftExpr"), V("BAndOp"), "BAndExpr"), ["ShiftExpr"] = chainOp(V("ConcatExpr"), V("ShiftOp"), "ShiftExpr"), ["ConcatExpr"] = V("AddExpr") * (V("ConcatOp") * expect(V("ConcatExpr"), "ConcatExpr")) ^ - 1 / binaryOp, ["AddExpr"] = chainOp(V("MulExpr"), V("AddOp"), "AddExpr"), ["MulExpr"] = chainOp(V("UnaryExpr"), V("MulOp"), "MulExpr"), ["UnaryExpr"] = V("UnaryOp") * expect(V("UnaryExpr"), "UnaryExpr") / unaryOp + V("PowExpr"), ["PowExpr"] = V("SimpleExpr") * (V("PowOp") * expect(V("UnaryExpr"), "PowExpr")) ^ - 1 / binaryOp, ["SimpleExpr"] = tagC("Number", V("Number")) + tagC("String", V("String")) + tagC("Nil", kw("nil")) + tagC("Boolean", kw("false") * Cc(false)) + tagC("Boolean", kw("true") * Cc(true)) + tagC("Dots", sym("...")) + V("FuncDef") + V("Table") + V("SuffixedExpr"), ["FuncCall"] = Cmt(V("SuffixedExpr"), function(s, i, exp)
 return exp["tag"] == "Call" or exp["tag"] == "Invoke", exp
 end), ["VarExpr"] = Cmt(V("SuffixedExpr"), function(s, i, exp)
 return exp["tag"] == "Id" or exp["tag"] == "Index", exp
@@ -1807,7 +1906,7 @@ return parser
 end
 local parser = _() or parser
 package["loaded"]["lib.lua-parser.parser"] = parser or true
-local candran = { ["VERSION"] = "0.3.1" }
+local candran = { ["VERSION"] = "0.4.0" }
 local default = {
 ["target"] = "lua53", ["indentation"] = "", ["newline"] = "\
 ", ["requirePrefix"] = "CANDRAN_", ["mapLines"] = true, ["chunkname"] = "nil", ["rewriteErrors"] = true

@@ -162,6 +162,14 @@ local function traverse_break (env, stm)
   return true
 end
 
+local function traverse_continue (env, stm)
+  if not insideloop(env) then
+    local msg = "<continue> not inside a loop"
+    return nil, syntaxerror(env.errorinfo, stm.pos, msg)
+  end
+  return true
+end
+
 local function traverse_forin (env, stm)
   begin_loop(env)
   new_scope(env)
@@ -344,7 +352,8 @@ function traverse_stm (env, stm)
     return traverse_fornum(env, stm)
   elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block }
     return traverse_forin(env, stm)
-  elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
+  elseif tag == "Local" or -- `Local{ {ident+} {expr+}? }
+         tag == "Let" then -- `Let{ {ident+} {expr+}? }
     return traverse_let(env, stm)
   elseif tag == "Localrec" then -- `Localrec{ ident expr }
     return traverse_letrec(env, stm)
@@ -356,6 +365,8 @@ function traverse_stm (env, stm)
     return traverse_return(env, stm)
   elseif tag == "Break" then
     return traverse_break(env, stm)
+elseif tag == "Continue" then
+    return traverse_continue(env, stm)
   elseif tag == "Call" then -- `Call{ expr expr* }
     return traverse_call(env, stm)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }

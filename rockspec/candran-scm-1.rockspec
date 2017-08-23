@@ -1,6 +1,6 @@
-package = "Candran"
+package = "candran"
 
-version = "0.3.1-1"
+version = "scm-1"
 
 description = {
 	summary = "A simple Lua dialect and preprocessor.",
@@ -9,15 +9,14 @@ description = {
 		Unlike Moonscript, Candran tries to stay close to the Lua syntax.
 	]],
 	license = "MIT",
-	homepage = "https://github.com/Reuh/Candran",
-	--issues_url = "https://github.com/Reuh/Candran", -- LuaRocks 3.0
+	homepage = "https://github.com/Reuh/candran",
+	--issues_url = "https://github.com/Reuh/candran", -- LuaRocks 3.0
 	maintainer = "Étienne 'Reuh' Fildadut <fildadut@reuh.eu>",
 	--labels = {} -- LuaRocks 3.0
 }
 
 source = {
-	url = "git://github.com/Reuh/Candran",
-	tag = "v0.3.1"
+	url = "git://github.com/Reuh/candran"
 }
 
 dependencies = {

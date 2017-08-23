@@ -1,10 +1,13 @@
 return function(code, ast, options)
-	local lastInputPos = 1
-	local prevLinePos = 1
-	local lastSource = "nil"
-	local lastLine = 1
+	--- Line mapping
+	local lastInputPos = 1 -- last token position in the input code
+	local prevLinePos = 1 -- last token position in the previous line of code in the input code
+	local lastSource = "nil" -- last found code source name (from the original file)
+	local lastLine = 1 -- last found line number (from the original file)
 
+	--- Newline management
 	local indentLevel = 0
+	-- Returns a newline.
 	local function newline()
 		local r = options.newline .. string.rep(options.indentation, indentLevel)
 		if options.mapLines then
@@ -26,44 +29,83 @@ return function(code, ast, options)
 		end
 		return r
 	end
+	-- Returns a newline and add one level of indentation.
 	local function indent()
 		indentLevel += 1
 		return newline()
 	end
+	-- Returns a newline and remove one level of indentation.
 	local function unindent()
 		indentLevel -= 1
 		return newline()
 	end
 
-	local required = {}
+	--- Module management
+	local required = {} -- { ["module"] = true, ... }
 	local requireStr = ""
-	local function addRequire(str, name, field)
-		if not required[str] then
-			requireStr ..= "local " .. options.requirePrefix .. name .. (" = require(%q)"):format(str) .. (field and "."..field or "") .. options.newline
-			required[str] = true
+	-- Add the module "mod" to the list of modules to require, and load its field "field" (or the whole module if nil) into the variable "name".
+	local function addRequire(mod, name, field)
+		if not required[mod] then
+			requireStr ..= "local " .. options.requirePrefix .. name .. (" = require(%q)"):format(mod) .. (field and "."..field or "") .. options.newline
+			required[mod] = true
 		end
 	end
+	-- Returns the required module variable name.
 	local function getRequire(name)
 		return options.requirePrefix .. name
 	end
 
+	--- AST traversal helpers
+	-- Returns the first node from the list "list" which tag is in the list "tags", or nil if there were none.
+	local function any(list, tags)
+		local tagsCheck = {}
+		for _, tag in ipairs(tags) do
+			tagsCheck[tag] = true
+		end
+		for _, node in ipairs(list) do
+			if tagsCheck[node.tag] then
+				return node
+			end
+		end
+		return nil
+	end
+
+	--- Modification helpers
+	local namedNodes = {} -- { ["name"] = ast, ... }
+	-- Wrap the compiled code of a named node with suffix and prefix.
+	local function wrap(name, prefix, suffix)
+		local node = namedNodes[name]
+		if not node then error("not inside a " .. name) end
+		node.prefix, node.suffix = prefix .. newline(), newline() .. suffix
+	end
+
+	--- Lua compiler
 	local tags
+	-- Recursively returns the compiled AST Lua code, set "forceTag" to override the tag type and pass additional arguments to the tag constructor if needed.
 	local function lua(ast, forceTag, ...)
 		if options.mapLines and ast.pos then
 			lastInputPos = ast.pos
 		end
 		return tags[forceTag or ast.tag](ast, ...)
 	end
-
+	-- Same as lua(), but gives the AST node a name which can be used for further access & modification.
+	local function namedLua(name, ast, ...)
+		local old = namedNodes[name]
+		namedNodes[name] = ast
+		local code = lua(ast, ...)
+		namedNodes[name] = old
+		return (ast.prefix or "") .. code .. (ast.suffix or "")
+	end
+	-- Tag constructors
 	tags = setmetatable({
 		-- block: { stat* } --
-		Block = function(t)
+		Block = (t)
 			local r = ""
 			for i=1, #t-1, 1 do
-				r = r .. lua(t[i]) .. newline()
+				r ..= lua(t[i]) .. newline()
 			end
 			if t[#t] then
-				r = r .. lua(t[#t])
+				r ..= lua(t[#t])
 			end
 			return r
 		end,
@@ -71,11 +113,11 @@ return function(code, ast, options)
 		-- stat --
 
 		-- Do{ stat* }
-		Do = function(t)
+		Do = (t)
 			return "do" .. indent() .. lua(t, "Block") .. unindent() .. "end"
 		end,
 		-- Set{ {lhs+} (opid? = opid?)? {expr+} }
-		Set = function(t)
+		Set = (t)
 			if #t == 2 then
 				return lua(t[1], "_lhs") .. " = " .. lua(t[2], "_lhs")
 			elseif #t == 3 then
@@ -84,82 +126,100 @@ return function(code, ast, options)
 				if t[3] == "=" then
 					local r = lua(t[1], "_lhs") .. " = " .. lua({ t[2], t[1][1], t[4][1] }, "Op")
 					for i=2, math.min(#t[4], #t[1]), 1 do
-						r = r .. ", " .. lua({ t[2], t[1][i], t[4][i] }, "Op")
+						r ..= ", " .. lua({ t[2], t[1][i], t[4][i] }, "Op")
 					end
 					return r
 				else
 					local r = lua(t[1], "_lhs") .. " = " .. lua({ t[3], t[4][1], t[1][1] }, "Op")
 					for i=2, math.min(#t[4], #t[1]), 1 do
-						r = r .. ", " .. lua({ t[3], t[4][i], t[1][i] }, "Op")
+						r ..= ", " .. lua({ t[3], t[4][i], t[1][i] }, "Op")
 					end
 					return r
 				end
 			else -- You are mad.
 				local r = lua(t[1], "_lhs") .. " = " .. lua({ t[2], t[1][1], { tag = "Op", t[4], t[5][1], t[1][1] } }, "Op")
 				for i=2, math.min(#t[5], #t[1]), 1 do
-					r = r .. ", " .. lua({ t[2], t[1][i], { tag = "Op", t[4], t[5][i], t[1][i] } }, "Op")
+					r ..= ", " .. lua({ t[2], t[1][i], { tag = "Op", t[4], t[5][i], t[1][i] } }, "Op")
 				end
 				return r
 			end
 		end,
 		-- While{ expr block }
-		While = function(t)
-			return "while " .. lua(t[1]) .. " do" .. indent() .. lua(t[2]) .. unindent() .. "end"
+		While = (t)
+			return "while " .. lua(t[1]) .. " do" .. indent() .. namedLua("loop", t[2]) .. unindent() .. "end"
 		end,
 		-- Repeat{ block expr }
-		Repeat = function(t)
-			return "repeat".. indent() .. lua(t[1]) .. unindent() .. "until " .. lua(t[2])
+		Repeat = (t)
+			return "repeat".. indent() .. namedLua("loop", t[1]) .. unindent() .. "until " .. lua(t[2])
 		end,
 		-- If{ (expr block)+ block? }
-		If = function(t)
+		If = (t)
 			local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
 			for i=3, #t-1, 2 do
-				r = r .. "elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i+1]) .. unindent()
+				r ..= "elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i+1]) .. unindent()
 			end
 			if #t % 2 == 1 then
-				r = r .. "else" .. indent() .. lua(t[#t]) .. unindent()
+				r ..= "else" .. indent() .. lua(t[#t]) .. unindent()
 			end
 			return r .. "end"
 		end,
 		-- Fornum{ ident expr expr expr? block }
-		Fornum = function(t)
+		Fornum = (t)
 			local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3])
 			if #t == 5 then
 				return r .. ", " .. lua(t[4]) .. " do" .. indent() .. lua(t[5]) .. unindent() .. "end"
 			else
-				return r .. " do" .. indent() .. lua(t[4]) .. unindent() .. "end"
+				return r .. " do" .. indent() .. namedLua("loop", t[4]) .. unindent() .. "end"
 			end
 		end,
 		-- Forin{ {ident+} {expr+} block }
-		Forin = function(t)
-			return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. lua(t[3]) .. unindent() .. "end"
+		Forin = (t)
+			return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. namedLua("loop", t[3]) .. unindent() .. "end"
 		end,
 		-- Local{ {ident+} {expr+}? }
-		Local = function(t)
+		Local = (t)
 			local r = "local "..lua(t[1], "_lhs")
 			if t[2][1] then
-				r = r .. " = "..lua(t[2], "_lhs")
+				r ..= " = "..lua(t[2], "_lhs")
+			end
+			return r
+		end,
+		-- Let{ {ident+} {expr+}? }
+		Let = (t)
+			local nameList = lua(t[1], "_lhs")
+			local r = "local " .. nameList
+			if t[2][1] then
+				if any(t[2], { "Function", "Table", "Paren" }) then -- predeclaration doesn't matter otherwise
+					r ..= newline() .. nameList .. " = " .. lua(t[2], "_lhs")
+				else
+					r ..= " = " .. lua(t[2], "_lhs")
+				end
 			end
 			return r
 		end,
 		-- Localrec{ ident expr }
-		Localrec = function(t)
+		Localrec = (t)
 			return "local function "..lua(t[1][1])..lua(t[2][1], "_functionWithoutKeyword")
 		end,
 		-- Goto{ <string> }
-		Goto = function(t)
+		Goto = (t)
 			return "goto " .. lua(t[1], "Id")
 		end,
 		-- Label{ <string> }
-		Label = function(t)
+		Label = (t)
 			return "::" .. lua(t[1], "Id") .. "::"
 		end,
 		-- Return{ <expr*> }
-		Return = function(t)
+		Return = (t)
 			return "return "..lua(t, "_lhs")
 		end,
 		-- Break
-		Break = function()
+		Break = ()
+			return "break"
+		end,
+		-- Continue
+		Continue = ()
+			wrap("loop", "repeat", "until true")
 			return "break"
 		end,
 		-- apply (below)
@@ -167,27 +227,27 @@ return function(code, ast, options)
 		-- expr --
 
 		-- Nil
-		Nil = function()
+		Nil = ()
 			return "nil"
 		end,
 		-- Dots
-		Dots = function()
+		Dots = ()
 			return "..."
 		end,
 		-- Boolean{ <boolean> }
-		Boolean = function(t)
+		Boolean = (t)
 			return tostring(t[1])
 		end,
 		-- Number{ <number> }
-		Number = function(t)
+		Number = (t)
 			return tostring(t[1])
 		end,
 		-- String{ <string> }
-		String = function(t)
+		String = (t)
 			return ("%q"):format(t[1])
 		end,
 		-- Function{ { ( `ParPair{ Id expr } | `Id{ <string> } )* `Dots? } block }
-		_functionWithoutKeyword = function(t)
+		_functionWithoutKeyword = (t)
 			local r = "("
 			local decl = {}
 			if t[1][1] then
@@ -196,9 +256,9 @@ return function(code, ast, options)
 					indentLevel += 1
 					table.insert(decl, id .. " = " .. id .. " == nil and " .. lua(t[1][1][2]) .. " or " .. id)
 					indentLevel -= 1
-					r = r .. id
+					r ..= id
 				else
-					r = r .. lua(t[1][1])
+					r ..= lua(t[1][1])
 				end
 				for i=2, #t[1], 1 do
 					if t[1][i].tag == "ParPair" then
@@ -206,26 +266,26 @@ return function(code, ast, options)
 						indentLevel += 1
 						table.insert(decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][i][2]) .. " end")
 						indentLevel -= 1
-						r = r .. ", " ..id
+						r ..= ", " ..id
 					else
-						r = r .. ", " .. lua(t[1][i])
+						r ..= ", " .. lua(t[1][i])
 					end
 				end
 			end
-			r = r .. ")" .. indent()
+			r ..= ")" .. indent()
 			for _, d in ipairs(decl) do
-				r = r .. d .. newline()
+				r ..= d .. newline()
 			end
 			return r .. lua(t[2]) .. unindent() .. "end"
 		end,
-		Function = function(t)
+		Function = (t)
 			return "function" .. lua(t, "_functionWithoutKeyword")
 		end,
 		-- Table{ ( `Pair{ expr expr } | expr )* }
-		Pair = function(t)
+		Pair = (t)
 			return "[" .. lua(t[1]) .. "] = " .. lua(t[2])
 		end,
-		Table = function(t)
+		Table = (t)
 			if #t == 0 then
 				return "{}"
 			elseif #t == 1 then
@@ -235,7 +295,7 @@ return function(code, ast, options)
 			end
 		end,
 		-- Op{ opid expr expr? }
-		Op = function(t)
+		Op = (t)
 			local r
 			if #t == 2 then
 				if type(tags._opid[t[1]]) == "string" then
@@ -253,7 +313,7 @@ return function(code, ast, options)
 			return r
 		end,
 		-- Paren{ expr }
-		Paren = function(t)
+		Paren = (t)
 			return "(" .. lua(t[1]) .. ")"
 		end,
 		-- apply (below)
@@ -262,23 +322,23 @@ return function(code, ast, options)
 		-- apply --
 
 		-- Call{ expr expr* }
-		Call = function(t)
+		Call = (t)
 			return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")"
 		end,
 
 		-- Invoke{ expr `String{ <string> } expr* }
-		Invoke = function(t)
+		Invoke = (t)
 			return lua(t[1])..":"..lua(t[2], "Id").."("..lua(t, "_lhs", 3)..")"
 		end,
 
 		-- lhs --
-		_lhs = function(t, start)
+		_lhs = (t, start)
 			start = start or 1
 			local r
 			if t[start] then
 				r = lua(t[start])
 				for i=start+1, #t, 1 do
-					r = r .. ", "..lua(t[i])
+					r ..= ", "..lua(t[i])
 				end
 			else
 				r = ""
@@ -286,11 +346,11 @@ return function(code, ast, options)
 			return r
 		end,
 		-- Id{ <string> }
-		Id = function(t)
+		Id = (t)
 			return t[1]
 		end,
 		-- Index{ expr expr }
-		Index = function(t)
+		Index = (t)
 			return lua(t[1]).."["..lua(t[2]).."]"
 		end,
 
@@ -303,12 +363,13 @@ return function(code, ast, options)
 			["and"] = "and", ["or"] = "or", unm = "-", len = "#", bnot = "~", ["not"] = "not"
 		}
 	}, {
-		__index = function(self, key)
+		__index = (self, key)
 			error("don't know how to compile a "..tostring(key).." to Lua 5.3")
 		end
 	})
 
 	#placeholder("patch")
 
-	return requireStr .. lua(ast) .. newline()
+	local code = lua(ast) .. newline()
+	return requireStr .. code
 end
