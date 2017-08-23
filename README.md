@@ -32,7 +32,7 @@ end)
 ````
 
 #### Quick setup
-Install Candran automatically using LuaRocks: ```sudo luarocks install candran```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.4.0-1.rockspec```.
 
 Or manually install LPegLabel (```luarocks install LPegLabel```), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
@@ -128,6 +128,31 @@ end
 Anonymous function (functions values) can be created in a more concise way by omitting the ```function``` keyword.
 
 A ```:``` can prefix the parameters paranthesis to automatically add a ```self``` parameter.
+
+##### let variable declaration
+```lua
+let a = {
+	foo = function()
+		print(type(a)) -- table
+	end
+}
+```
+
+Similar to ```local```, but the variable will be declared *before* the assignemnt (i.e. it will compile into ```local a; a = value```), so you can access it from functions defined in the value.
+
+Can also be used as a shorter name for ```local```.
+
+##### continue keyword
+```lua
+for i=1, 10 do
+	if i % 2 == 0 then
+		continue
+	end
+	print(i) -- 1, 3, 5, 7, 9
+end
+```
+
+Will skip the current loop iteration.
 
 Compile targets
 ---------------

@@ -275,6 +275,28 @@ end
 return a(2, 3)
 ]], 5)
 
+-- let variable declaration
+test("let variable declaration", [[
+let a = {
+	foo = function()
+		return type(a)
+	end
+}
+return a.foo()
+]], "table")
+
+-- continue keyword
+test("continue keyword", [[
+local a = ""
+for i=1, 10 do
+	if i % 2 == 0 then
+		continue
+	end
+	a = a .. i
+end
+return a
+]], "13579")
+
 -- results
 local resultCounter = {}
 local testCounter = 0
