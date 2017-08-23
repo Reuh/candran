@@ -38,10 +38,13 @@ function candran.preprocess(input, options={})
 		i += 1
 		if line:match("^%s*#") and not line:match("^#!") then -- exclude shebang
 			preprocessor ..= line:gsub("^%s*#", "")
-		elseif options.mapLines then
-			preprocessor ..= ("write(%q)"):format(line:sub(1, -2) .. " -- "..options.chunkname..":" .. i) .. "\n"
 		else
-			preprocessor ..= ("write(%q)"):format(line:sub(1, -2)) .. "\n"
+			local l = line:sub(1, -2)
+			if options.mapLines and not l:match("%-%- (.-)%:(%d+)$") then
+				preprocessor ..= ("write(%q)"):format(l .. " -- "..options.chunkname..":" .. i) .. "\n"
+			else
+				preprocessor ..= ("write(%q)"):format(line:sub(1, -2)) .. "\n"
+			end
 		end
 	end
 	preprocessor ..= "return output"

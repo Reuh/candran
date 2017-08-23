@@ -1922,12 +1922,15 @@ for line in (input .. "\
 i = i + 1
 if line:match("^%s*#") and not line:match("^#!") then
 preprocessor = preprocessor .. line:gsub("^%s*#", "")
-elseif options["mapLines"] then
-preprocessor = preprocessor .. ("write(%q)"):format(line:sub(1, - 2) .. " -- " .. options["chunkname"] .. ":" .. i) .. "\
+else
+local l = line:sub(1, - 2)
+if options["mapLines"] and not l:match("%-%- (.-)%:(%d+)$") then
+preprocessor = preprocessor .. ("write(%q)"):format(l .. " -- " .. options["chunkname"] .. ":" .. i) .. "\
 "
 else
 preprocessor = preprocessor .. ("write(%q)"):format(line:sub(1, - 2)) .. "\
 "
+end
 end
 end
 preprocessor = preprocessor .. "return output"
