@@ -1,10 +1,12 @@
 #!/bin/lua
 local candran = require("candran")
 local cmdline = require("lib.cmdline")
+local parse = require("lib.lua-parser.parser").parse
+local pp = require("lib.lua-parser.pp")
 
 if #arg < 1 then
 	print("Candran compiler version "..candran.VERSION.." by Reuh")
-	print("Usage: "..arg[0].." [target=<target>] [dest=<destination directory>] [-print] [-preprocess] [-compile] [options] filename...")
+	print("Usage: "..arg[0].." [target=<target>] [dest=<destination directory>] [-print] [-preprocess] [-compile] [-ast] [options] filename...")
 	return
 end
 
@@ -24,6 +26,11 @@ for _, file in ipairs(args) do
 	if not inputFile then error("Error while opening input file: "..err) end
 	local input = inputFile:read("*a")
 	inputFile:close()
+
+	if args.ast then
+		pp.dump(parse(input))
+		return
+	end
 
 	if args.chunkname == nil then
 		args.chunkname = file

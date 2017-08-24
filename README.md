@@ -189,6 +189,8 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
 	You can choosed to run only the preprocessor or compile using the ```-preprocess``` and ```-compile``` flags.
 
+	The ```-ast``` flag is also available for debugging, and will disable preprocessing, compiling and file writing, and instead directly dump the AST generated from the input file(s) to stdout.
+
 	* example uses :
 
 		````canc foo.can````

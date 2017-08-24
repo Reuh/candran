@@ -205,6 +205,22 @@ a = "hello"
 a ..=.. " world " assert(a == "hello world hello", "..=..")
 ]], nil)
 
+test("left assigments operators priority", [[
+local a = 5
+a *= 2 + 3
+return a
+]], 25)
+test("right assigments operators priority", [[
+local a = 5
+a =/ 2 + 3
+return a
+]], 1)
+test("left+right assigments operators priority", [[
+local a = 5
+a *=/ 2 + 3
+return a
+]], 5)
+
 -- Default function parameters
 test("default parameters", [[
 local function test(hey, def="re", no, foo=("bar"):gsub("bar", "batru"))

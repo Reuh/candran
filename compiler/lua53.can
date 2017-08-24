@@ -124,22 +124,22 @@ return function(code, ast, options)
 				return lua(t[1], "_lhs") .. " = " .. lua(t[3], "_lhs")
 			elseif #t == 4 then
 				if t[3] == "=" then
-					local r = lua(t[1], "_lhs") .. " = " .. lua({ t[2], t[1][1], t[4][1] }, "Op")
+					local r = lua(t[1], "_lhs") .. " = " .. lua({ t[2], t[1][1], { tag = "Paren", t[4][1] } }, "Op")
 					for i=2, math.min(#t[4], #t[1]), 1 do
-						r ..= ", " .. lua({ t[2], t[1][i], t[4][i] }, "Op")
+						r ..= ", " .. lua({ t[2], t[1][i], { tag = "Paren", t[4][i] } }, "Op")
 					end
 					return r
 				else
-					local r = lua(t[1], "_lhs") .. " = " .. lua({ t[3], t[4][1], t[1][1] }, "Op")
+					local r = lua(t[1], "_lhs") .. " = " .. lua({ t[3], { tag = "Paren", t[4][1] }, t[1][1] }, "Op")
 					for i=2, math.min(#t[4], #t[1]), 1 do
-						r ..= ", " .. lua({ t[3], t[4][i], t[1][i] }, "Op")
+						r ..= ", " .. lua({ t[3], { tag = "Paren", t[4][i] }, t[1][i] }, "Op")
 					end
 					return r
 				end
 			else -- You are mad.
-				local r = lua(t[1], "_lhs") .. " = " .. lua({ t[2], t[1][1], { tag = "Op", t[4], t[5][1], t[1][1] } }, "Op")
+				local r = lua(t[1], "_lhs") .. " = " .. lua({ t[2], t[1][1], { tag = "Op", t[4], { tag = "Paren", t[5][1] }, t[1][1] } }, "Op")
 				for i=2, math.min(#t[5], #t[1]), 1 do
-					r ..= ", " .. lua({ t[2], t[1][i], { tag = "Op", t[4], t[5][i], t[1][i] } }, "Op")
+					r ..= ", " .. lua({ t[2], t[1][i], { tag = "Op", t[4], { tag = "Paren", t[5][i] }, t[1][i] } }, "Op")
 				end
 				return r
 			end

@@ -150,7 +150,7 @@ lastLine = tonumber(line)
 else
 for _ in code:sub(prevLinePos, lastInputPos):gmatch("\
 ") do
-lastLine = lastLine + 1
+lastLine = lastLine + (1)
 end
 end
 prevLinePos = lastInputPos
@@ -159,18 +159,18 @@ end
 return r
 end
 local function indent()
-indentLevel = indentLevel + 1
+indentLevel = indentLevel + (1)
 return newline()
 end
 local function unindent()
-indentLevel = indentLevel - 1
+indentLevel = indentLevel - (1)
 return newline()
 end
 local required = {}
 local requireStr = ""
 local function addRequire(mod, name, field)
 if not required[mod] then
-requireStr = requireStr .. "local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"]
+requireStr = requireStr .. ("local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"])
 required[mod] = true
 end
 end
@@ -215,10 +215,10 @@ tags = setmetatable({
 ["Block"] = function(t)
 local r = ""
 for i = 1, # t - 1, 1 do
-r = r .. lua(t[i]) .. newline()
+r = r .. (lua(t[i]) .. newline())
 end
 if t[# t] then
-r = r .. lua(t[# t])
+r = r .. (lua(t[# t]))
 end
 return r
 end, ["Do"] = function(t)
@@ -231,37 +231,49 @@ return lua(t[1], "_lhs") .. " = " .. lua(t[3], "_lhs")
 elseif # t == 4 then
 if t[3] == "=" then
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2], t[1][1], t[4][1]
+t[2], t[1][1], {
+["tag"] = "Paren", t[4][1]
+}
 }, "Op")
 for i = 2, math["min"](# t[4], # t[1]), 1 do
-r = r .. ", " .. lua({
-t[2], t[1][i], t[4][i]
-}, "Op")
+r = r .. (", " .. lua({
+t[2], t[1][i], {
+["tag"] = "Paren", t[4][i]
+}
+}, "Op"))
 end
 return r
 else
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[3], t[4][1], t[1][1]
+t[3], {
+["tag"] = "Paren", t[4][1]
+}, t[1][1]
 }, "Op")
 for i = 2, math["min"](# t[4], # t[1]), 1 do
-r = r .. ", " .. lua({
-t[3], t[4][i], t[1][i]
-}, "Op")
+r = r .. (", " .. lua({
+t[3], {
+["tag"] = "Paren", t[4][i]
+}, t[1][i]
+}, "Op"))
 end
 return r
 end
 else
 local r = lua(t[1], "_lhs") .. " = " .. lua({
 t[2], t[1][1], {
-["tag"] = "Op", t[4], t[5][1], t[1][1]
+["tag"] = "Op", t[4], {
+["tag"] = "Paren", t[5][1]
+}, t[1][1]
 }
 }, "Op")
 for i = 2, math["min"](# t[5], # t[1]), 1 do
-r = r .. ", " .. lua({
+r = r .. (", " .. lua({
 t[2], t[1][i], {
-["tag"] = "Op", t[4], t[5][i], t[1][i]
+["tag"] = "Op", t[4], {
+["tag"] = "Paren", t[5][i]
+}, t[1][i]
 }
-}, "Op")
+}, "Op"))
 end
 return r
 end
@@ -272,10 +284,10 @@ return "repeat" .. indent() .. namedLua("loop", t[1]) .. unindent() .. "until " 
 end, ["If"] = function(t)
 local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
 for i = 3, # t - 1, 2 do
-r = r .. "elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent()
+r = r .. ("elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent())
 end
 if # t % 2 == 1 then
-r = r .. "else" .. indent() .. lua(t[# t]) .. unindent()
+r = r .. ("else" .. indent() .. lua(t[# t]) .. unindent())
 end
 return r .. "end"
 end, ["Fornum"] = function(t)
@@ -290,7 +302,7 @@ return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. in
 end, ["Local"] = function(t)
 local r = "local " .. lua(t[1], "_lhs")
 if t[2][1] then
-r = r .. " = " .. lua(t[2], "_lhs")
+r = r .. (" = " .. lua(t[2], "_lhs"))
 end
 return r
 end, ["Let"] = function(t)
@@ -300,9 +312,9 @@ if t[2][1] then
 if any(t[2], {
 "Function", "Table", "Paren"
 }) then
-r = r .. newline() .. nameList .. " = " .. lua(t[2], "_lhs")
+r = r .. (newline() .. nameList .. " = " .. lua(t[2], "_lhs"))
 else
-r = r .. " = " .. lua(t[2], "_lhs")
+r = r .. (" = " .. lua(t[2], "_lhs"))
 end
 end
 return r
@@ -335,28 +347,28 @@ local decl = {}
 if t[1][1] then
 if t[1][1]["tag"] == "ParPair" then
 local id = lua(t[1][1][1])
-indentLevel = indentLevel + 1
+indentLevel = indentLevel + (1)
 table["insert"](decl, id .. " = " .. id .. " == nil and " .. lua(t[1][1][2]) .. " or " .. id)
-indentLevel = indentLevel - 1
-r = r .. id
+indentLevel = indentLevel - (1)
+r = r .. (id)
 else
-r = r .. lua(t[1][1])
+r = r .. (lua(t[1][1]))
 end
 for i = 2, # t[1], 1 do
 if t[1][i]["tag"] == "ParPair" then
 local id = lua(t[1][i][1])
-indentLevel = indentLevel + 1
+indentLevel = indentLevel + (1)
 table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][i][2]) .. " end")
-indentLevel = indentLevel - 1
-r = r .. ", " .. id
+indentLevel = indentLevel - (1)
+r = r .. (", " .. id)
 else
-r = r .. ", " .. lua(t[1][i])
+r = r .. (", " .. lua(t[1][i]))
 end
 end
 end
-r = r .. ")" .. indent()
+r = r .. (")" .. indent())
 for _, d in ipairs(decl) do
-r = r .. d .. newline()
+r = r .. (d .. newline())
 end
 return r .. lua(t[2]) .. unindent() .. "end"
 end, ["Function"] = function(t)
@@ -399,7 +411,7 @@ local r
 if t[start] then
 r = lua(t[start])
 for i = start + 1, # t, 1 do
-r = r .. ", " .. lua(t[i])
+r = r .. (", " .. lua(t[i]))
 end
 else
 r = ""
@@ -442,7 +454,7 @@ lastLine = tonumber(line)
 else
 for _ in code:sub(prevLinePos, lastInputPos):gmatch("\
 ") do
-lastLine = lastLine + 1
+lastLine = lastLine + (1)
 end
 end
 prevLinePos = lastInputPos
@@ -451,18 +463,18 @@ end
 return r
 end
 local function indent()
-indentLevel = indentLevel + 1
+indentLevel = indentLevel + (1)
 return newline()
 end
 local function unindent()
-indentLevel = indentLevel - 1
+indentLevel = indentLevel - (1)
 return newline()
 end
 local required = {}
 local requireStr = ""
 local function addRequire(mod, name, field)
 if not required[mod] then
-requireStr = requireStr .. "local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"]
+requireStr = requireStr .. ("local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"])
 required[mod] = true
 end
 end
@@ -507,10 +519,10 @@ tags = setmetatable({
 ["Block"] = function(t)
 local r = ""
 for i = 1, # t - 1, 1 do
-r = r .. lua(t[i]) .. newline()
+r = r .. (lua(t[i]) .. newline())
 end
 if t[# t] then
-r = r .. lua(t[# t])
+r = r .. (lua(t[# t]))
 end
 return r
 end, ["Do"] = function(t)
@@ -523,37 +535,49 @@ return lua(t[1], "_lhs") .. " = " .. lua(t[3], "_lhs")
 elseif # t == 4 then
 if t[3] == "=" then
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2], t[1][1], t[4][1]
+t[2], t[1][1], {
+["tag"] = "Paren", t[4][1]
+}
 }, "Op")
 for i = 2, math["min"](# t[4], # t[1]), 1 do
-r = r .. ", " .. lua({
-t[2], t[1][i], t[4][i]
-}, "Op")
+r = r .. (", " .. lua({
+t[2], t[1][i], {
+["tag"] = "Paren", t[4][i]
+}
+}, "Op"))
 end
 return r
 else
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[3], t[4][1], t[1][1]
+t[3], {
+["tag"] = "Paren", t[4][1]
+}, t[1][1]
 }, "Op")
 for i = 2, math["min"](# t[4], # t[1]), 1 do
-r = r .. ", " .. lua({
-t[3], t[4][i], t[1][i]
-}, "Op")
+r = r .. (", " .. lua({
+t[3], {
+["tag"] = "Paren", t[4][i]
+}, t[1][i]
+}, "Op"))
 end
 return r
 end
 else
 local r = lua(t[1], "_lhs") .. " = " .. lua({
 t[2], t[1][1], {
-["tag"] = "Op", t[4], t[5][1], t[1][1]
+["tag"] = "Op", t[4], {
+["tag"] = "Paren", t[5][1]
+}, t[1][1]
 }
 }, "Op")
 for i = 2, math["min"](# t[5], # t[1]), 1 do
-r = r .. ", " .. lua({
+r = r .. (", " .. lua({
 t[2], t[1][i], {
-["tag"] = "Op", t[4], t[5][i], t[1][i]
+["tag"] = "Op", t[4], {
+["tag"] = "Paren", t[5][i]
+}, t[1][i]
 }
-}, "Op")
+}, "Op"))
 end
 return r
 end
@@ -564,10 +588,10 @@ return "repeat" .. indent() .. namedLua("loop", t[1]) .. unindent() .. "until " 
 end, ["If"] = function(t)
 local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
 for i = 3, # t - 1, 2 do
-r = r .. "elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent()
+r = r .. ("elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent())
 end
 if # t % 2 == 1 then
-r = r .. "else" .. indent() .. lua(t[# t]) .. unindent()
+r = r .. ("else" .. indent() .. lua(t[# t]) .. unindent())
 end
 return r .. "end"
 end, ["Fornum"] = function(t)
@@ -582,7 +606,7 @@ return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. in
 end, ["Local"] = function(t)
 local r = "local " .. lua(t[1], "_lhs")
 if t[2][1] then
-r = r .. " = " .. lua(t[2], "_lhs")
+r = r .. (" = " .. lua(t[2], "_lhs"))
 end
 return r
 end, ["Let"] = function(t)
@@ -592,9 +616,9 @@ if t[2][1] then
 if any(t[2], {
 "Function", "Table", "Paren"
 }) then
-r = r .. newline() .. nameList .. " = " .. lua(t[2], "_lhs")
+r = r .. (newline() .. nameList .. " = " .. lua(t[2], "_lhs"))
 else
-r = r .. " = " .. lua(t[2], "_lhs")
+r = r .. (" = " .. lua(t[2], "_lhs"))
 end
 end
 return r
@@ -627,28 +651,28 @@ local decl = {}
 if t[1][1] then
 if t[1][1]["tag"] == "ParPair" then
 local id = lua(t[1][1][1])
-indentLevel = indentLevel + 1
+indentLevel = indentLevel + (1)
 table["insert"](decl, id .. " = " .. id .. " == nil and " .. lua(t[1][1][2]) .. " or " .. id)
-indentLevel = indentLevel - 1
-r = r .. id
+indentLevel = indentLevel - (1)
+r = r .. (id)
 else
-r = r .. lua(t[1][1])
+r = r .. (lua(t[1][1]))
 end
 for i = 2, # t[1], 1 do
 if t[1][i]["tag"] == "ParPair" then
 local id = lua(t[1][i][1])
-indentLevel = indentLevel + 1
+indentLevel = indentLevel + (1)
 table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][i][2]) .. " end")
-indentLevel = indentLevel - 1
-r = r .. ", " .. id
+indentLevel = indentLevel - (1)
+r = r .. (", " .. id)
 else
-r = r .. ", " .. lua(t[1][i])
+r = r .. (", " .. lua(t[1][i]))
 end
 end
 end
-r = r .. ")" .. indent()
+r = r .. (")" .. indent())
 for _, d in ipairs(decl) do
-r = r .. d .. newline()
+r = r .. (d .. newline())
 end
 return r .. lua(t[2]) .. unindent() .. "end"
 end, ["Function"] = function(t)
@@ -691,7 +715,7 @@ local r
 if t[start] then
 r = lua(t[start])
 for i = start + 1, # t, 1 do
-r = r .. ", " .. lua(t[i])
+r = r .. (", " .. lua(t[i]))
 end
 else
 r = ""
@@ -1919,21 +1943,21 @@ local i = 0
 for line in (input .. "\
 "):gmatch("(.-\
 )") do
-i = i + 1
+i = i + (1)
 if line:match("^%s*#") and not line:match("^#!") then
-preprocessor = preprocessor .. line:gsub("^%s*#", "")
+preprocessor = preprocessor .. (line:gsub("^%s*#", ""))
 else
 local l = line:sub(1, - 2)
 if options["mapLines"] and not l:match("%-%- (.-)%:(%d+)$") then
-preprocessor = preprocessor .. ("write(%q)"):format(l .. " -- " .. options["chunkname"] .. ":" .. i) .. "\
-"
+preprocessor = preprocessor .. (("write(%q)"):format(l .. " -- " .. options["chunkname"] .. ":" .. i) .. "\
+")
 else
-preprocessor = preprocessor .. ("write(%q)"):format(line:sub(1, - 2)) .. "\
-"
+preprocessor = preprocessor .. (("write(%q)"):format(line:sub(1, - 2)) .. "\
+")
 end
 end
 end
-preprocessor = preprocessor .. "return output"
+preprocessor = preprocessor .. ("return output")
 local env = util["merge"](_G, options)
 env["candran"] = candran
 env["output"] = ""
@@ -1967,8 +1991,8 @@ env["write"](f:read("*a"))
 f:close()
 end
 env["write"] = function(...)
-env["output"] = env["output"] .. table["concat"]({ ... }, "\9") .. "\
-"
+env["output"] = env["output"] .. (table["concat"]({ ... }, "\9") .. "\
+")
 end
 env["placeholder"] = function(name)
 if env[name] then
