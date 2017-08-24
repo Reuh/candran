@@ -273,11 +273,11 @@ local G = { V"Lua",
   Lua      = V"Shebang"^-1 * V"Skip" * V"Block" * expect(P(-1), "Extra");
   Shebang  = P"#!" * (P(1) - P"\n")^0;
 
-  Block       = tagC("Block", V"Stat"^0 * V"RetStat"^-1);
+  Block       = tagC("Block", V"Stat"^0 * (V"RetStat" + V"ImplicitRetStat")^-1);
   Stat        = V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat"
               + V"LocalStat" + V"LetStat" + V"FuncStat" + V"BreakStat" + V"ContinueStat" + V"LabelStat" + V"GoToStat"
               + V"FuncCall" + V"Assignment" + sym(";") + -V"BlockEnd" * throw("InvalidStat");
-  BlockEnd    = P"return" + "end" + "elseif" + "else" + "until" + -1;
+  BlockEnd    = P"return" + "end" + "elseif" + "else" + "until" + -1 + V"ImplicitRetStat";
 
   IfStat      = tagC("If", V"IfPart" * V"ElseIfPart"^0 * V"ElsePart"^-1 * expect(kw("end"), "EndIf"));
   IfPart      = kw("if") * expect(V"Expr", "ExprIf") * expect(kw("then"), "ThenIf") * V"Block";
@@ -319,11 +319,12 @@ local G = { V"Lua",
                 + V"Id";
   ParKey        = V"Id" * #("=" * -P"=");
 
-  LabelStat    = tagC("Label", sym("::") * expect(V"Name", "Label") * expect(sym("::"), "CloseLabel"));
-  GoToStat     = tagC("Goto", kw("goto") * expect(V"Name", "Goto"));
-  BreakStat    = tagC("Break", kw("break"));
-  ContinueStat = tagC("Continue", kw("continue"));
-  RetStat      = tagC("Return", kw("return") * commaSep(V"Expr", "RetList")^-1 * sym(";")^-1);
+  LabelStat       = tagC("Label", sym("::") * expect(V"Name", "Label") * expect(sym("::"), "CloseLabel"));
+  GoToStat        = tagC("Goto", kw("goto") * expect(V"Name", "Goto"));
+  BreakStat       = tagC("Break", kw("break"));
+  ContinueStat    = tagC("Continue", kw("continue"));
+  RetStat         = tagC("Return", kw("return") * commaSep(V"Expr", "RetList")^-1 * sym(";")^-1);
+  ImplicitRetStat = tagC("Return", commaSep(V"Expr", "RetList") * sym(";")^-1);
 
   NameList  = tagC("NameList", commaSep(V"Id"));
   VarList   = tagC("VarList", commaSep(V"VarExpr", "VarList"));
