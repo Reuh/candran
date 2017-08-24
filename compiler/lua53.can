@@ -316,6 +316,30 @@ return function(code, ast, options)
 		Paren = (t)
 			return "(" .. lua(t[1]) .. ")"
 		end,
+		-- DoExpr{ stat* }
+		DoExpr = (t)
+			return "(function()" .. indent() .. lua(t, "Do") .. unindent() .. "end)()"
+		end,
+		-- WhileExpr{ expr block }
+		WhileExpr = (t)
+			return "(function()" .. indent() .. lua(t, "While") .. unindent() .. "end)()"
+		end,
+		-- RepeatExpr{ expr block }
+		RepeatExpr = (t)
+			return "(function()" .. indent() .. lua(t, "Repeat") .. unindent() .. "end)()"
+		end,
+		-- IfExpr{ (expr block)+ block? }
+		IfExpr = (t)
+			return "(function()" .. indent() .. lua(t, "If") .. unindent() .. "end)()"
+		end,
+		-- FornumExpr{ ident expr expr expr? block }
+		FornumExpr = (t)
+			return "(function()" .. indent() .. lua(t, "Fornum") .. unindent() .. "end)()"
+		end,
+		-- Forin{ {ident+} {expr+} block }
+		ForninExpr = (t)
+			return "(function()" .. indent() .. lua(t, "Forin") .. unindent() .. "end)()"
+		end,
 		-- apply (below)
 		-- lhs (below)
 

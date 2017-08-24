@@ -20,7 +20,7 @@ Example rejected ideas:
 
 Of course, if you really thinks these would be useful or you found a clever way of making theses work, feel free to open an issue or pull request and discuss.
 
-Most of Candran's additions were inspired by MoonScript and CoffeeScript.
+Most of Candran's additions were inspired by MoonScript, CoffeeScript, and Lilia (https://love2d.org/forums/viewtopic.php?f=3&t=82650&sid=b6d9a8dec64afcc1c67806cb5ba65458).
 
 Please note that the following ideas are just random though and won't be necessarly implemented, and some won't even work together.
 
@@ -45,7 +45,7 @@ local a = [x for x in pairs(stuff)]
 local a = [x for x in pairs(stuff) if x == true]
 local a = [x for x in pairs(stuff) if x == true for...]
 local a = x for x in pairs(stuff)
-local a = for x in pairs(stuff) do x
+local a = for x in pairs(stuff) do x end
 local no_color = {k,v for k,v in pairs(thing) if k ~= "color"}
 
 local a = (x if x == true)
@@ -60,23 +60,6 @@ foo() while condition end
 end)()
 
 foo() if stuff > other end
-
-* block expressions
-local a = do
-    return true
-end
-->
-local a = (()
-    return true
-end)()
-
-local a = if x == true then
-    return a
-end
-
-With implicits returns?...
-
-local stuff = for ... (accumulate in a table)
 
 * try / except|catch / finally / else / other keywords
 try
@@ -125,7 +108,6 @@ And in implicit assignments:
 for i, {x, y} in ipairs(positions) do
 
 * Other potential inspiration
-https://love2d.org/forums/viewtopic.php?f=3&t=82650&sid=b6d9a8dec64afcc1c67806cb5ba65458
 https://www.ruby-lang.org/fr/
 
 Well done, you're at the end of the file!

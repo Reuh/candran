@@ -268,6 +268,11 @@ local function fixAnonymousMethodParams(t1, t2)
     return t1
 end
 
+local function statToExpr(t)
+    t.tag = t.tag .. "Expr"
+    return t
+end
+
 -- grammar
 local G = { V"Lua",
   Lua      = V"Shebang"^-1 * V"Skip" * V"Block" * expect(P(-1), "Extra");
@@ -353,7 +358,10 @@ local G = { V"Lua",
              + tagC("Dots", sym("..."))
              + V"FuncDef"
              + V"Table"
-             + V"SuffixedExpr";
+             + V"SuffixedExpr"
+             + V"StatExpr";
+
+  StatExpr = (V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat") / statToExpr;
 
   FuncCall  = Cmt(V"SuffixedExpr", function(s, i, exp) return exp.tag == "Call" or exp.tag == "Invoke", exp end);
   VarExpr   = Cmt(V"SuffixedExpr", function(s, i, exp) return exp.tag == "Id" or exp.tag == "Index", exp end);
