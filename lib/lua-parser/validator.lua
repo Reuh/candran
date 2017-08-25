@@ -86,6 +86,28 @@ local function traverse_function (env, exp)
   return true
 end
 
+local function traverse_tablecompr (env, exp)
+  new_function(env)
+  new_scope(env)
+  local status, msg = traverse_block(env, exp[1])
+  if not status then return status, msg end
+  end_scope(env)
+  end_function(env)
+  return true
+end
+
+local function traverse_statexpr (env, exp)
+  new_function(env)
+  new_scope(env)
+  exp.tag = exp.tag:gsub("Expr$", "")
+  local status, msg = traverse_stm(env, exp)
+  exp.tag = exp.tag .. "Expr"
+  if not status then return status, msg end
+  end_scope(env)
+  end_function(env)
+  return true
+end
+
 local function traverse_op (env, exp)
   local status, msg = traverse_exp(env, exp[2])
   if not status then return status, msg end
@@ -167,6 +189,12 @@ local function traverse_continue (env, stm)
     local msg = "<continue> not inside a loop"
     return nil, syntaxerror(env.errorinfo, stm.pos, msg)
   end
+  return true
+end
+
+local function traverse_push (env, stm)
+  local status, msg = traverse_explist(env, stm)
+  if not status then return status, msg end
   return true
 end
 
@@ -323,6 +351,10 @@ function traverse_exp (env, exp)
   elseif tag == "Id" or -- `Id{ <string> }
          tag == "Index" then -- `Index{ expr expr }
     return traverse_var(env, exp)
+  elseif tag == "TableCompr" then -- `TableCompr{ block }
+    return traverse_tablecompr(env, exp)
+  elseif tag:match("Expr$") then -- `StatExpr{ ... }
+    return traverse_statexpr(env, exp)
   else
     error("expecting an expression, but got a " .. tag)
   end
@@ -365,12 +397,14 @@ function traverse_stm (env, stm)
     return traverse_return(env, stm)
   elseif tag == "Break" then
     return traverse_break(env, stm)
-elseif tag == "Continue" then
-    return traverse_continue(env, stm)
   elseif tag == "Call" then -- `Call{ expr expr* }
     return traverse_call(env, stm)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
     return traverse_invoke(env, stm)
+  elseif tag == "Continue" then
+    return traverse_continue(env, stm)
+  elseif tag == "Push" then -- `Push{ <expr>* }
+    return traverse_push(env, stm)
   else
     error("expecting a statement, but got a " .. tag)
   end

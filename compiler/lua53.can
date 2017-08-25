@@ -56,27 +56,51 @@ return function(code, ast, options)
 	end
 
 	--- AST traversal helpers
-	-- Returns the first node from the list "list" which tag is in the list "tags", or nil if there were none.
-	local function any(list, tags)
+	local loop = { "While", "Repeat", "Fornum", "Forin" } -- loops tags
+	local func = { "Function", "TableCompr", "DoExpr", "WhileExpr", "RepeatExpr", "IfExpr", "FornumExpr", "ForinExpr" } -- function scope tags
+	-- Returns the first node or subnode from the list "list" which tag is in the list "tags", or nil if there were none.
+	-- Won't recursively follow nodes which have a tag in "nofollow".
+	local function any(list, tags, nofollow={})
 		local tagsCheck = {}
 		for _, tag in ipairs(tags) do
 			tagsCheck[tag] = true
 		end
+		local nofollowCheck = {}
+		for _, tag in ipairs(nofollow) do
+			nofollowCheck[tag] = true
+		end
 		for _, node in ipairs(list) do
-			if tagsCheck[node.tag] then
-				return node
+			if type(node) == "table" then
+				if tagsCheck[node.tag] then
+					return node
+				end
+				if not nofollowCheck[node.tag] then
+					local r = any(node, tags, nofollow)
+					if r then return r end
+				end
 			end
 		end
 		return nil
 	end
 
-	--- Modification helpers
-	local namedNodes = {} -- { ["name"] = ast, ... }
-	-- Wrap the compiled code of a named node with suffix and prefix.
-	local function wrap(name, prefix, suffix)
-		local node = namedNodes[name]
-		if not node then error("not inside a " .. name) end
-		node.prefix, node.suffix = prefix .. newline(), newline() .. suffix
+	--- State stacks
+	-- Used for context-sensitive syntax.
+	local states = {
+		push = {} -- push stack variable names
+	}
+	-- Push a new value on top of the stack "name". Returns an empty string for chaining.
+	local function push(name, state)
+		table.insert(states[name], state)
+		return ""
+	end
+	-- Remove the value on top of the stack "name". Returns an empty string for chaining.
+	local function pop(name)
+		table.remove(states[name])
+		return ""
+	end
+	-- Returns the value on top of the stack "name".
+	local function peek(name)
+		return states[name][#states[name]]
 	end
 
 	--- Lua compiler
@@ -88,24 +112,27 @@ return function(code, ast, options)
 		end
 		return tags[forceTag or ast.tag](ast, ...)
 	end
-	-- Same as lua(), but gives the AST node a name which can be used for further access & modification.
-	local function namedLua(name, ast, ...)
-		local old = namedNodes[name]
-		namedNodes[name] = ast
-		local code = lua(ast, ...)
-		namedNodes[name] = old
-		return (ast.prefix or "") .. code .. (ast.suffix or "")
-	end
 	-- Tag constructors
 	tags = setmetatable({
 		-- block: { stat* } --
 		Block = (t)
+			local hasPush = not peek("push") and any(t, { "Push" }, func) -- push in block and push context not yet defined
+			if hasPush and hasPush == t[#t] then -- if the first push is the last statement, it's just a return
+				hasPush.tag = "Return"
+				hasPush = false
+			end
 			local r = ""
+			if hasPush then
+				r ..= push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline()
+			end
 			for i=1, #t-1, 1 do
 				r ..= lua(t[i]) .. newline()
 			end
 			if t[#t] then
 				r ..= lua(t[#t])
+			end
+			if hasPush and (t[#t] and t[#t].tag ~= "Return") then -- add return only if needed
+				r ..= newline() .. "return unpack(__PUSH__)" .. pop("push")
 			end
 			return r
 		end,
@@ -146,11 +173,31 @@ return function(code, ast, options)
 		end,
 		-- While{ expr block }
 		While = (t)
-			return "while " .. lua(t[1]) .. " do" .. indent() .. namedLua("loop", t[2]) .. unindent() .. "end"
+			local hasContinue = any(t[2], { "Continue" }, loop)
+			local r = "while " .. lua(t[1]) .. " do" .. indent()
+			if hasContinue then
+				r ..= "repeat" .. indent()
+			end
+			r .. = lua(t[2])
+			if hasContinue then
+				r ..= unindent() .. "until true"
+			end
+			r ..= unindent() .. "end"
+			return r
 		end,
 		-- Repeat{ block expr }
 		Repeat = (t)
-			return "repeat".. indent() .. namedLua("loop", t[1]) .. unindent() .. "until " .. lua(t[2])
+			local hasContinue = any(t[2], { "Continue" }, loop)
+			local r = "repeat" .. indent()
+			if hasContinue then
+				r ..= "repeat" .. indent()
+			end
+			r .. = lua(t[1])
+			if hasContinue then
+				r ..= unindent() .. "until true"
+			end
+			r ..= unindent() .. "until " .. lua(t[2])
+			return r
 		end,
 		-- If{ (expr block)+ block? }
 		If = (t)
@@ -167,14 +214,41 @@ return function(code, ast, options)
 		Fornum = (t)
 			local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3])
 			if #t == 5 then
-				return r .. ", " .. lua(t[4]) .. " do" .. indent() .. lua(t[5]) .. unindent() .. "end"
+				local hasContinue = any(t[5], { "Continue" }, loop)
+				r ..= ", " .. lua(t[4]) .. " do" .. indent()
+				if hasContinue then
+					r ..= "repeat" .. indent()
+				end
+				r ..= lua(t[5])
+				if hasContinue then
+					r ..= "until true" .. unindent()
+				end
+				return r .. unindent() .. "end"
 			else
-				return r .. " do" .. indent() .. namedLua("loop", t[4]) .. unindent() .. "end"
+				local hasContinue = any(t[4], { "Continue" }, loop)
+				r ..= " do" .. indent()
+				if hasContinue then
+					r ..= "repeat" .. indent()
+				end
+				r ..= lua(t[4])
+				if hasContinue then
+					r ..= unindent() .. "until true"
+				end
+				return r .. unindent() .. "end"
 			end
 		end,
 		-- Forin{ {ident+} {expr+} block }
 		Forin = (t)
-			return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. namedLua("loop", t[3]) .. unindent() .. "end"
+			local hasContinue = any(t[3], { "Continue" }, loop)
+			local r = "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent()
+			if hasContinue then
+				r ..= "repeat" .. indent()
+			end
+			r ..= lua(t[3])
+			if hasContinue then
+				r ..= "until true" .. unindent()
+			end
+			return r .. unindent() .. "end"
 		end,
 		-- Local{ {ident+} {expr+}? }
 		Local = (t)
@@ -211,7 +285,21 @@ return function(code, ast, options)
 		end,
 		-- Return{ <expr*> }
 		Return = (t)
-			return "return "..lua(t, "_lhs")
+			local push = peek("push")
+			if push then
+				local r = ""
+				for _, val in ipairs(t) do
+					r ..= push .. "[#" .. push .. "+1] = " .. lua(val) .. newline()
+				end
+				return r .. "return unpack(" .. push .. ")"
+			else
+				return "return "..lua(t, "_lhs")
+			end
+		end,
+		-- Push{ <expr*> }
+		Push = (t)
+			local var = assert(peek("push"), "no context given for push")
+			return var .. "[#" .. var .. "+1] = " .. lua(t, "_lhs")
 		end,
 		-- Break
 		Break = ()
@@ -219,7 +307,6 @@ return function(code, ast, options)
 		end,
 		-- Continue
 		Continue = ()
-			wrap("loop", "repeat", "until true")
 			return "break"
 		end,
 		-- apply (below)
@@ -291,8 +378,12 @@ return function(code, ast, options)
 			elseif #t == 1 then
 				return "{ " .. lua(t, "_lhs") .. " }"
 			else
-				return "{" .. indent() .. lua(t, "_lhs") .. unindent() .. "}"
+				return "{" .. indent() .. lua(t, "_lhs", nil, true) .. unindent() .. "}"
 			end
+		end,
+		-- TableCompr{ block }
+		TableCompr = (t)
+			return push("push", "self") .. "(function()" .. indent() .. "local self = {}" .. newline() .. lua(t[1]) .. newline() .. "return self" .. unindent() .. "end)()" .. pop("push")
 		end,
 		-- Op{ opid expr expr? }
 		Op = (t)
@@ -316,32 +407,57 @@ return function(code, ast, options)
 		Paren = (t)
 			return "(" .. lua(t[1]) .. ")"
 		end,
+		-- statexpr (below)
+		-- apply (below)
+		-- lhs (below)
+
+		-- statexpr --
+		_statexpr = (t, stat)
+			local hasPush = any(t, { "Push" }, func)
+			local r = "(function()" .. indent()
+			if hasPush then
+				r ..= push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline()
+			end
+			r ..= lua(t, stat)
+			if hasPush then
+				r ..= newline() .. "return unpack(__PUSH__)" .. pop("push")
+			end
+			r ..= unindent() .. "end)()"
+			return r
+		end,
 		-- DoExpr{ stat* }
 		DoExpr = (t)
-			return "(function()" .. indent() .. lua(t, "Do") .. unindent() .. "end)()"
+			if t[#t].tag == "Push" then -- convert final push to return
+				t[#t].tag = "Return"
+			end
+			return lua(t, "_statexpr", "Do")
 		end,
 		-- WhileExpr{ expr block }
 		WhileExpr = (t)
-			return "(function()" .. indent() .. lua(t, "While") .. unindent() .. "end)()"
+			return lua(t, "_statexpr", "While")
 		end,
-		-- RepeatExpr{ expr block }
+		-- RepeatExpr{ block expr }
 		RepeatExpr = (t)
-			return "(function()" .. indent() .. lua(t, "Repeat") .. unindent() .. "end)()"
+			return lua(t, "_statexpr", "Repeat")
 		end,
 		-- IfExpr{ (expr block)+ block? }
 		IfExpr = (t)
-			return "(function()" .. indent() .. lua(t, "If") .. unindent() .. "end)()"
+			for i=2, #t do -- convert final pushes to returns
+				local block = t[i]
+				if block[#block].tag == "Push" then
+					block[#block].tag = "Return"
+				end
+			end
+			return lua(t, "_statexpr", "If")
 		end,
 		-- FornumExpr{ ident expr expr expr? block }
 		FornumExpr = (t)
-			return "(function()" .. indent() .. lua(t, "Fornum") .. unindent() .. "end)()"
+			return lua(t, "_statexpr", "Fornum")
 		end,
-		-- Forin{ {ident+} {expr+} block }
-		ForninExpr = (t)
-			return "(function()" .. indent() .. lua(t, "Forin") .. unindent() .. "end)()"
+		-- ForinExpr{ {ident+} {expr+} block }
+		ForinExpr = (t)
+			return lua(t, "_statexpr", "Forin")
 		end,
-		-- apply (below)
-		-- lhs (below)
 
 		-- apply --
 
@@ -356,13 +472,12 @@ return function(code, ast, options)
 		end,
 
 		-- lhs --
-		_lhs = (t, start)
-			start = start or 1
+		_lhs = (t, start=1, newlines)
 			local r
 			if t[start] then
 				r = lua(t[start])
 				for i=start+1, #t, 1 do
-					r ..= ", "..lua(t[i])
+					r ..= "," .. (newlines and newline() or " ") .. lua(t[i])
 				end
 			else
 				r = ""

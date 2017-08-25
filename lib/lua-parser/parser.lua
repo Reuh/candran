@@ -21,6 +21,7 @@ stat:
   | `Label{ <string> }                        -- ::str::
   | `Return{ <expr*> }                        -- return e1, e2...
   | `Break                                    -- break
+  | `Push{ <exper*> }                         -- push
   | `Continue                                 -- continue
   | apply
 
@@ -34,8 +35,18 @@ expr:
   | `Table{ ( `Pair{ expr expr } | expr )* }
   | `Op{ opid expr expr? }
   | `Paren{ expr }       -- significant to cut multiple values returns
+  | `TableCompr{ block }
+  | statexpr
   | apply
   | lhs
+
+statexpr:
+    `DoExpr{ stat* }
+  | `WhileExpr{ expr block }                    -- while e do b end
+  | `RepeatExpr{ block expr }                   -- repeat b until e
+  | `IfExpr{ (expr block)+ block? }             -- if e1 then b1 [elseif e2 then b2] ... [else bn] end
+  | `FornumExpr{ ident expr expr expr? block }  -- for ident = e, e[, e] do b end
+  | `ForinExpr{ {ident+} {expr+} block }        -- for i1, i2... in e1, e2... do b end
 
 apply:
     `Call{ expr expr* }
@@ -145,6 +156,8 @@ local labels = {
   { "ErrExprField", "expected an expression after '='" },
   { "ErrExprFKey", "expected an expression after '[' for the table key" },
   { "ErrCBracketFKey", "expected ']' to close the table key" },
+
+  { "ErrCBracketTableCompr", "expected ']' to close the table comprehension" },
 
   { "ErrDigitHex", "expected one or more hexadecimal digits after '0x'" },
   { "ErrDigitDeci", "expected one or more digits after the decimal point" },
@@ -278,11 +291,13 @@ local G = { V"Lua",
   Lua      = V"Shebang"^-1 * V"Skip" * V"Block" * expect(P(-1), "Extra");
   Shebang  = P"#!" * (P(1) - P"\n")^0;
 
-  Block       = tagC("Block", V"Stat"^0 * (V"RetStat" + V"ImplicitRetStat")^-1);
+  Block       = tagC("Block", V"Stat"^0 * (V"RetStat" + V"ImplicitPushStat")^-1);
   Stat        = V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat"
-              + V"LocalStat" + V"LetStat" + V"FuncStat" + V"BreakStat" + V"ContinueStat" + V"LabelStat" + V"GoToStat"
-              + V"FuncCall" + V"Assignment" + sym(";") + -V"BlockEnd" * throw("InvalidStat");
-  BlockEnd    = P"return" + "end" + "elseif" + "else" + "until" + -1 + V"ImplicitRetStat";
+              + V"LocalStat" + V"FuncStat" + V"BreakStat" + V"LabelStat" + V"GoToStat"
+              + V"FuncCall" + V"Assignment"
+              + V"LetStat" + V"ContinueStat" + V"PushStat"
+              + sym(";") + -V"BlockEnd" * throw("InvalidStat");
+  BlockEnd    = P"return" + "end" + "elseif" + "else" + "until" + "]" + -1 + V"ImplicitPushStat";
 
   IfStat      = tagC("If", V"IfPart" * V"ElseIfPart"^0 * V"ElsePart"^-1 * expect(kw("end"), "EndIf"));
   IfPart      = kw("if") * expect(V"Expr", "ExprIf") * expect(kw("then"), "ThenIf") * V"Block";
@@ -329,7 +344,9 @@ local G = { V"Lua",
   BreakStat       = tagC("Break", kw("break"));
   ContinueStat    = tagC("Continue", kw("continue"));
   RetStat         = tagC("Return", kw("return") * commaSep(V"Expr", "RetList")^-1 * sym(";")^-1);
-  ImplicitRetStat = tagC("Return", commaSep(V"Expr", "RetList") * sym(";")^-1);
+
+  PushStat         = tagC("Push", kw("push") * commaSep(V"Expr", "RetList")^-1 * sym(";")^-1);
+  ImplicitPushStat = tagC("Push", commaSep(V"Expr", "RetList") * sym(";")^-1);
 
   NameList  = tagC("NameList", commaSep(V"Id"));
   VarList   = tagC("VarList", commaSep(V"VarExpr", "VarList"));
@@ -359,6 +376,7 @@ local G = { V"Lua",
              + V"FuncDef"
              + V"Table"
              + V"SuffixedExpr"
+             + V"TableCompr"
              + V"StatExpr";
 
   StatExpr = (V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat") / statToExpr;
@@ -392,6 +410,8 @@ local G = { V"Lua",
   FieldKey   = sym("[" * -P(S"=[")) * expect(V"Expr", "ExprFKey") * expect(sym("]"), "CBracketFKey")
              + V"StrId" * #("=" * -P"=");
   FieldSep   = sym(",") + sym(";");
+
+  TableCompr = tagC("TableCompr", sym("[") * V"Block" * expect(sym("]"), "CBracketTableCompr"));
 
   SelfId = tagC("Id", sym"@" / "self");
   Id     = tagC("Id", V"Name") + V"SelfId";

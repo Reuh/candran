@@ -2,7 +2,8 @@ local function _()
 local util = {}
 util["search"] = function(modpath, exts)
 if exts == nil then exts = {
-"can", "lua"
+"can",
+"lua"
 } end
 for _, ext in ipairs(exts) do
 for path in package["path"]:gmatch("[^;]+") do
@@ -177,25 +178,58 @@ end
 local function getRequire(name)
 return options["requirePrefix"] .. name
 end
-local function any(list, tags)
+local loop = {
+"While",
+"Repeat",
+"Fornum",
+"Forin"
+}
+local func = {
+"Function",
+"TableCompr",
+"DoExpr",
+"WhileExpr",
+"RepeatExpr",
+"IfExpr",
+"FornumExpr",
+"ForinExpr"
+}
+local function any(list, tags, nofollow)
+if nofollow == nil then nofollow = {} end
 local tagsCheck = {}
 for _, tag in ipairs(tags) do
 tagsCheck[tag] = true
 end
+local nofollowCheck = {}
+for _, tag in ipairs(nofollow) do
+nofollowCheck[tag] = true
+end
 for _, node in ipairs(list) do
+if type(node) == "table" then
 if tagsCheck[node["tag"]] then
 return node
+end
+if not nofollowCheck[node["tag"]] then
+local r = any(node, tags, nofollow)
+if r then
+return r
+end
+end
 end
 end
 return nil
 end
-local namedNodes = {}
-local function wrap(name, prefix, suffix)
-local node = namedNodes[name]
-if not node then
-error("not inside a " .. name)
+local states = { ["push"] = {} }
+local function push(name, state)
+table["insert"](states[name], state)
+return ""
 end
-node["prefix"], node["suffix"] = prefix .. newline(), newline() .. suffix
+local function pop(name)
+table["remove"](states[name])
+return ""
+end
+local function peek(name)
+return states[name][# states[name]]
 end
 local tags
 local function lua(ast, forceTag, ...)
@@ -204,26 +238,32 @@ lastInputPos = ast["pos"]
 end
 return tags[forceTag or ast["tag"]](ast, ...)
 end
-local function namedLua(name, ast, ...)
-local old = namedNodes[name]
-namedNodes[name] = ast
-local code = lua(ast, ...)
-namedNodes[name] = old
-return (ast["prefix"] or "") .. code .. (ast["suffix"] or "")
-end
 tags = setmetatable({
 ["Block"] = function(t)
+local hasPush = not peek("push") and any(t, { "Push" }, func)
+if hasPush and hasPush == t[# t] then
+hasPush["tag"] = "Return"
+hasPush = false
+end
 local r = ""
+if hasPush then
+r = r .. (push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline())
+end
 for i = 1, # t - 1, 1 do
 r = r .. (lua(t[i]) .. newline())
 end
 if t[# t] then
 r = r .. (lua(t[# t]))
 end
+if hasPush and (t[# t] and t[# t]["tag"] ~= "Return") then
+r = r .. (newline() .. "return unpack(__PUSH__)" .. pop("push"))
+end
 return r
-end, ["Do"] = function(t)
+end,
+["Do"] = function(t)
 return "do" .. indent() .. lua(t, "Block") .. unindent() .. "end"
-end, ["Set"] = function(t)
+end,
+["Set"] = function(t)
 if # t == 2 then
 return lua(t[1], "_lhs") .. " = " .. lua(t[2], "_lhs")
 elseif # t == 3 then
@@ -231,57 +271,104 @@ return lua(t[1], "_lhs") .. " = " .. lua(t[3], "_lhs")
 elseif # t == 4 then
 if t[3] == "=" then
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2], t[1][1], {
-["tag"] = "Paren", t[4][1]
+t[2],
+t[1][1],
+{
+["tag"] = "Paren",
+t[4][1]
 }
 }, "Op")
 for i = 2, math["min"](# t[4], # t[1]), 1 do
 r = r .. (", " .. lua({
-t[2], t[1][i], {
-["tag"] = "Paren", t[4][i]
+t[2],
+t[1][i],
+{
+["tag"] = "Paren",
+t[4][i]
 }
 }, "Op"))
 end
 return r
 else
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[3], {
-["tag"] = "Paren", t[4][1]
-}, t[1][1]
+t[3],
+{
+["tag"] = "Paren",
+t[4][1]
+},
+t[1][1]
 }, "Op")
 for i = 2, math["min"](# t[4], # t[1]), 1 do
 r = r .. (", " .. lua({
-t[3], {
-["tag"] = "Paren", t[4][i]
-}, t[1][i]
+t[3],
+{
+["tag"] = "Paren",
+t[4][i]
+},
+t[1][i]
 }, "Op"))
 end
 return r
 end
 else
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2], t[1][1], {
-["tag"] = "Op", t[4], {
-["tag"] = "Paren", t[5][1]
-}, t[1][1]
+t[2],
+t[1][1],
+{
+["tag"] = "Op",
+t[4],
+{
+["tag"] = "Paren",
+t[5][1]
+},
+t[1][1]
 }
 }, "Op")
 for i = 2, math["min"](# t[5], # t[1]), 1 do
 r = r .. (", " .. lua({
-t[2], t[1][i], {
-["tag"] = "Op", t[4], {
-["tag"] = "Paren", t[5][i]
-}, t[1][i]
+t[2],
+t[1][i],
+{
+["tag"] = "Op",
+t[4],
+{
+["tag"] = "Paren",
+t[5][i]
+},
+t[1][i]
 }
 }, "Op"))
 end
 return r
 end
-end, ["While"] = function(t)
-return "while " .. lua(t[1]) .. " do" .. indent() .. namedLua("loop", t[2]) .. unindent() .. "end"
-end, ["Repeat"] = function(t)
-return "repeat" .. indent() .. namedLua("loop", t[1]) .. unindent() .. "until " .. lua(t[2])
-end, ["If"] = function(t)
+end,
+["While"] = function(t)
+local hasContinue = any(t[2], { "Continue" }, loop)
+local r = "while " .. lua(t[1]) .. " do" .. indent()
+if hasContinue then
+r = r .. ("repeat" .. indent())
+end
+r = r .. (lua(t[2]))
+if hasContinue then
+r = r .. (unindent() .. "until true")
+end
+r = r .. (unindent() .. "end")
+return r
+end,
+["Repeat"] = function(t)
+local hasContinue = any(t[2], { "Continue" }, loop)
+local r = "repeat" .. indent()
+if hasContinue then
+r = r .. ("repeat" .. indent())
+end
+r = r .. (lua(t[1]))
+if hasContinue then
+r = r .. (unindent() .. "until true")
+end
+r = r .. (unindent() .. "until " .. lua(t[2]))
+return r
+end,
+["If"] = function(t)
 local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
 for i = 3, # t - 1, 2 do
 r = r .. ("elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent())
@@ -290,27 +377,60 @@ if # t % 2 == 1 then
 r = r .. ("else" .. indent() .. lua(t[# t]) .. unindent())
 end
 return r .. "end"
-end, ["Fornum"] = function(t)
+end,
+["Fornum"] = function(t)
 local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3])
 if # t == 5 then
-return r .. ", " .. lua(t[4]) .. " do" .. indent() .. lua(t[5]) .. unindent() .. "end"
-else
-return r .. " do" .. indent() .. namedLua("loop", t[4]) .. unindent() .. "end"
+local hasContinue = any(t[5], { "Continue" }, loop)
+r = r .. (", " .. lua(t[4]) .. " do" .. indent())
+if hasContinue then
+r = r .. ("repeat" .. indent())
 end
-end, ["Forin"] = function(t)
-return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. namedLua("loop", t[3]) .. unindent() .. "end"
-end, ["Local"] = function(t)
+r = r .. (lua(t[5]))
+if hasContinue then
+r = r .. ("until true" .. unindent())
+end
+return r .. unindent() .. "end"
+else
+local hasContinue = any(t[4], { "Continue" }, loop)
+r = r .. (" do" .. indent())
+if hasContinue then
+r = r .. ("repeat" .. indent())
+end
+r = r .. (lua(t[4]))
+if hasContinue then
+r = r .. (unindent() .. "until true")
+end
+return r .. unindent() .. "end"
+end
+end,
+["Forin"] = function(t)
+local hasContinue = any(t[3], { "Continue" }, loop)
+local r = "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent()
+if hasContinue then
+r = r .. ("repeat" .. indent())
+end
+r = r .. (lua(t[3]))
+if hasContinue then
+r = r .. ("until true" .. unindent())
+end
+return r .. unindent() .. "end"
+end,
+["Local"] = function(t)
 local r = "local " .. lua(t[1], "_lhs")
 if t[2][1] then
 r = r .. (" = " .. lua(t[2], "_lhs"))
 end
 return r
-end, ["Let"] = function(t)
+end,
+["Let"] = function(t)
 local nameList = lua(t[1], "_lhs")
 local r = "local " .. nameList
 if t[2][1] then
 if any(t[2], {
-"Function", "Table", "Paren"
+"Function",
+"Table",
+"Paren"
 }) then
 r = r .. (newline() .. nameList .. " = " .. lua(t[2], "_lhs"))
 else
@@ -318,30 +438,54 @@ r = r .. (" = " .. lua(t[2], "_lhs"))
 end
 end
 return r
-end, ["Localrec"] = function(t)
+end,
+["Localrec"] = function(t)
 return "local function " .. lua(t[1][1]) .. lua(t[2][1], "_functionWithoutKeyword")
-end, ["Goto"] = function(t)
+end,
+["Goto"] = function(t)
 return "goto " .. lua(t[1], "Id")
-end, ["Label"] = function(t)
+end,
+["Label"] = function(t)
 return "::" .. lua(t[1], "Id") .. "::"
-end, ["Return"] = function(t)
+end,
+["Return"] = function(t)
+local push = peek("push")
+if push then
+local r = ""
+for _, val in ipairs(t) do
+r = r .. (push .. "[#" .. push .. "+1] = " .. lua(val) .. newline())
+end
+return r .. "return unpack(" .. push .. ")"
+else
 return "return " .. lua(t, "_lhs")
-end, ["Break"] = function()
+end
+end,
+["Push"] = function(t)
+local var = assert(peek("push"), "no context given for push")
+return var .. "[#" .. var .. "+1] = " .. lua(t, "_lhs")
+end,
+["Break"] = function()
 return "break"
-end, ["Continue"] = function()
-wrap("loop", "repeat", "until true")
+end,
+["Continue"] = function()
 return "break"
-end, ["Nil"] = function()
+end,
+["Nil"] = function()
 return "nil"
-end, ["Dots"] = function()
+end,
+["Dots"] = function()
 return "..."
-end, ["Boolean"] = function(t)
+end,
+["Boolean"] = function(t)
 return tostring(t[1])
-end, ["Number"] = function(t)
+end,
+["Number"] = function(t)
 return tostring(t[1])
-end, ["String"] = function(t)
+end,
+["String"] = function(t)
 return ("%q"):format(t[1])
-end, ["_functionWithoutKeyword"] = function(t)
+end,
+["_functionWithoutKeyword"] = function(t)
 local r = "("
 local decl = {}
 if t[1][1] then
@@ -371,19 +515,26 @@ for _, d in ipairs(decl) do
 r = r .. (d .. newline())
 end
 return r .. lua(t[2]) .. unindent() .. "end"
-end, ["Function"] = function(t)
+end,
+["Function"] = function(t)
 return "function" .. lua(t, "_functionWithoutKeyword")
-end, ["Pair"] = function(t)
+end,
+["Pair"] = function(t)
 return "[" .. lua(t[1]) .. "] = " .. lua(t[2])
-end, ["Table"] = function(t)
+end,
+["Table"] = function(t)
 if # t == 0 then
 return "{}"
 elseif # t == 1 then
 return "{ " .. lua(t, "_lhs") .. " }"
 else
-return "{" .. indent() .. lua(t, "_lhs") .. unindent() .. "}"
+return "{" .. indent() .. lua(t, "_lhs", nil, true) .. unindent() .. "}"
 end
-end, ["Op"] = function(t)
+end,
+["TableCompr"] = function(t)
+return push("push", "self") .. "(function()" .. indent() .. "local self = {}" .. newline() .. lua(t[1]) .. newline() .. "return self" .. unindent() .. "end)()" .. pop("push")
+end,
+["Op"] = function(t)
 local r
 if # t == 2 then
 if type(tags["_opid"][t[1]]) == "string" then
@@ -399,42 +550,101 @@ r = tags["_opid"][t[1]](t[2], t[3])
 end
 end
 return r
-end, ["Paren"] = function(t)
+end,
+["Paren"] = function(t)
 return "(" .. lua(t[1]) .. ")"
-end, ["DoExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "Do") .. unindent() .. "end)()"
-end, ["WhileExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "While") .. unindent() .. "end)()"
-end, ["RepeatExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "Repeat") .. unindent() .. "end)()"
-end, ["IfExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "If") .. unindent() .. "end)()"
-end, ["FornumExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "Fornum") .. unindent() .. "end)()"
-end, ["ForninExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "Forin") .. unindent() .. "end)()"
-end, ["Call"] = function(t)
+end,
+["_statexpr"] = function(t, stat)
+local hasPush = any(t, { "Push" }, func)
+local r = "(function()" .. indent()
+if hasPush then
+r = r .. (push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline())
+end
+r = r .. (lua(t, stat))
+if hasPush then
+r = r .. (newline() .. "return unpack(__PUSH__)" .. pop("push"))
+end
+r = r .. (unindent() .. "end)()")
+return r
+end,
+["DoExpr"] = function(t)
+if t[# t]["tag"] == "Push" then
+t[# t]["tag"] = "Return"
+end
+return lua(t, "_statexpr", "Do")
+end,
+["WhileExpr"] = function(t)
+return lua(t, "_statexpr", "While")
+end,
+["RepeatExpr"] = function(t)
+return lua(t, "_statexpr", "Repeat")
+end,
+["IfExpr"] = function(t)
+for i = 2, # t do
+local block = t[i]
+if block[# block]["tag"] == "Push" then
+block[# block]["tag"] = "Return"
+end
+end
+return lua(t, "_statexpr", "If")
+end,
+["FornumExpr"] = function(t)
+return lua(t, "_statexpr", "Fornum")
+end,
+["ForinExpr"] = function(t)
+return lua(t, "_statexpr", "Forin")
+end,
+["Call"] = function(t)
 return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")"
-end, ["Invoke"] = function(t)
+end,
+["Invoke"] = function(t)
 return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")"
-end, ["_lhs"] = function(t, start)
-start = start or 1
+end,
+["_lhs"] = function(t, start, newlines)
+if start == nil then start = 1 end
 local r
 if t[start] then
 r = lua(t[start])
 for i = start + 1, # t, 1 do
-r = r .. (", " .. lua(t[i]))
+r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i]))
 end
 else
 r = ""
 end
 return r
-end, ["Id"] = function(t)
+end,
+["Id"] = function(t)
 return t[1]
-end, ["Index"] = function(t)
+end,
+["Index"] = function(t)
 return lua(t[1]) .. "[" .. lua(t[2]) .. "]"
-end, ["_opid"] = {
-["add"] = "+", ["sub"] = "-", ["mul"] = "*", ["div"] = "/", ["idiv"] = "//", ["mod"] = "%", ["pow"] = "^", ["concat"] = "..", ["band"] = "&", ["bor"] = "|", ["bxor"] = "~", ["shl"] = "<<", ["shr"] = ">>", ["eq"] = "==", ["ne"] = "~=", ["lt"] = "<", ["gt"] = ">", ["le"] = "<=", ["ge"] = ">=", ["and"] = "and", ["or"] = "or", ["unm"] = "-", ["len"] = "#", ["bnot"] = "~", ["not"] = "not"
+end,
+["_opid"] = {
+["add"] = "+",
+["sub"] = "-",
+["mul"] = "*",
+["div"] = "/",
+["idiv"] = "//",
+["mod"] = "%",
+["pow"] = "^",
+["concat"] = "..",
+["band"] = "&",
+["bor"] = "|",
+["bxor"] = "~",
+["shl"] = "<<",
+["shr"] = ">>",
+["eq"] = "==",
+["ne"] = "~=",
+["lt"] = "<",
+["gt"] = ">",
+["le"] = "<=",
+["ge"] = ">=",
+["and"] = "and",
+["or"] = "or",
+["unm"] = "-",
+["len"] = "#",
+["bnot"] = "~",
+["not"] = "not"
 }
 }, { ["__index"] = function(self, key)
 error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3")
@@ -493,25 +703,58 @@ end
 local function getRequire(name)
 return options["requirePrefix"] .. name
 end
-local function any(list, tags)
+local loop = {
+"While",
+"Repeat",
+"Fornum",
+"Forin"
+}
+local func = {
+"Function",
+"TableCompr",
+"DoExpr",
+"WhileExpr",
+"RepeatExpr",
+"IfExpr",
+"FornumExpr",
+"ForinExpr"
+}
+local function any(list, tags, nofollow)
+if nofollow == nil then nofollow = {} end
 local tagsCheck = {}
 for _, tag in ipairs(tags) do
 tagsCheck[tag] = true
 end
+local nofollowCheck = {}
+for _, tag in ipairs(nofollow) do
+nofollowCheck[tag] = true
+end
 for _, node in ipairs(list) do
+if type(node) == "table" then
 if tagsCheck[node["tag"]] then
 return node
+end
+if not nofollowCheck[node["tag"]] then
+local r = any(node, tags, nofollow)
+if r then
+return r
+end
+end
 end
 end
 return nil
 end
-local namedNodes = {}
-local function wrap(name, prefix, suffix)
-local node = namedNodes[name]
-if not node then
-error("not inside a " .. name)
+local states = { ["push"] = {} }
+local function push(name, state)
+table["insert"](states[name], state)
+return ""
 end
-node["prefix"], node["suffix"] = prefix .. newline(), newline() .. suffix
+local function pop(name)
+table["remove"](states[name])
+return ""
+end
+local function peek(name)
+return states[name][# states[name]]
 end
 local tags
 local function lua(ast, forceTag, ...)
@@ -520,26 +763,32 @@ lastInputPos = ast["pos"]
 end
 return tags[forceTag or ast["tag"]](ast, ...)
 end
-local function namedLua(name, ast, ...)
-local old = namedNodes[name]
-namedNodes[name] = ast
-local code = lua(ast, ...)
-namedNodes[name] = old
-return (ast["prefix"] or "") .. code .. (ast["suffix"] or "")
-end
 tags = setmetatable({
 ["Block"] = function(t)
+local hasPush = not peek("push") and any(t, { "Push" }, func)
+if hasPush and hasPush == t[# t] then
+hasPush["tag"] = "Return"
+hasPush = false
+end
 local r = ""
+if hasPush then
+r = r .. (push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline())
+end
 for i = 1, # t - 1, 1 do
 r = r .. (lua(t[i]) .. newline())
 end
 if t[# t] then
 r = r .. (lua(t[# t]))
 end
+if hasPush and (t[# t] and t[# t]["tag"] ~= "Return") then
+r = r .. (newline() .. "return unpack(__PUSH__)" .. pop("push"))
+end
 return r
-end, ["Do"] = function(t)
+end,
+["Do"] = function(t)
 return "do" .. indent() .. lua(t, "Block") .. unindent() .. "end"
-end, ["Set"] = function(t)
+end,
+["Set"] = function(t)
 if # t == 2 then
 return lua(t[1], "_lhs") .. " = " .. lua(t[2], "_lhs")
 elseif # t == 3 then
@@ -547,57 +796,104 @@ return lua(t[1], "_lhs") .. " = " .. lua(t[3], "_lhs")
 elseif # t == 4 then
 if t[3] == "=" then
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2], t[1][1], {
-["tag"] = "Paren", t[4][1]
+t[2],
+t[1][1],
+{
+["tag"] = "Paren",
+t[4][1]
 }
 }, "Op")
 for i = 2, math["min"](# t[4], # t[1]), 1 do
 r = r .. (", " .. lua({
-t[2], t[1][i], {
-["tag"] = "Paren", t[4][i]
+t[2],
+t[1][i],
+{
+["tag"] = "Paren",
+t[4][i]
 }
 }, "Op"))
 end
 return r
 else
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[3], {
-["tag"] = "Paren", t[4][1]
-}, t[1][1]
+t[3],
+{
+["tag"] = "Paren",
+t[4][1]
+},
+t[1][1]
 }, "Op")
 for i = 2, math["min"](# t[4], # t[1]), 1 do
 r = r .. (", " .. lua({
-t[3], {
-["tag"] = "Paren", t[4][i]
-}, t[1][i]
+t[3],
+{
+["tag"] = "Paren",
+t[4][i]
+},
+t[1][i]
 }, "Op"))
 end
 return r
 end
 else
 local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2], t[1][1], {
-["tag"] = "Op", t[4], {
-["tag"] = "Paren", t[5][1]
-}, t[1][1]
+t[2],
+t[1][1],
+{
+["tag"] = "Op",
+t[4],
+{
+["tag"] = "Paren",
+t[5][1]
+},
+t[1][1]
 }
 }, "Op")
 for i = 2, math["min"](# t[5], # t[1]), 1 do
 r = r .. (", " .. lua({
-t[2], t[1][i], {
-["tag"] = "Op", t[4], {
-["tag"] = "Paren", t[5][i]
-}, t[1][i]
+t[2],
+t[1][i],
+{
+["tag"] = "Op",
+t[4],
+{
+["tag"] = "Paren",
+t[5][i]
+},
+t[1][i]
 }
 }, "Op"))
 end
 return r
 end
-end, ["While"] = function(t)
-return "while " .. lua(t[1]) .. " do" .. indent() .. namedLua("loop", t[2]) .. unindent() .. "end"
-end, ["Repeat"] = function(t)
-return "repeat" .. indent() .. namedLua("loop", t[1]) .. unindent() .. "until " .. lua(t[2])
-end, ["If"] = function(t)
+end,
+["While"] = function(t)
+local hasContinue = any(t[2], { "Continue" }, loop)
+local r = "while " .. lua(t[1]) .. " do" .. indent()
+if hasContinue then
+r = r .. ("repeat" .. indent())
+end
+r = r .. (lua(t[2]))
+if hasContinue then
+r = r .. (unindent() .. "until true")
+end
+r = r .. (unindent() .. "end")
+return r
+end,
+["Repeat"] = function(t)
+local hasContinue = any(t[2], { "Continue" }, loop)
+local r = "repeat" .. indent()
+if hasContinue then
+r = r .. ("repeat" .. indent())
+end
+r = r .. (lua(t[1]))
+if hasContinue then
+r = r .. (unindent() .. "until true")
+end
+r = r .. (unindent() .. "until " .. lua(t[2]))
+return r
+end,
+["If"] = function(t)
 local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
 for i = 3, # t - 1, 2 do
 r = r .. ("elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent())
@@ -606,27 +902,60 @@ if # t % 2 == 1 then
 r = r .. ("else" .. indent() .. lua(t[# t]) .. unindent())
 end
 return r .. "end"
-end, ["Fornum"] = function(t)
+end,
+["Fornum"] = function(t)
 local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3])
 if # t == 5 then
-return r .. ", " .. lua(t[4]) .. " do" .. indent() .. lua(t[5]) .. unindent() .. "end"
-else
-return r .. " do" .. indent() .. namedLua("loop", t[4]) .. unindent() .. "end"
+local hasContinue = any(t[5], { "Continue" }, loop)
+r = r .. (", " .. lua(t[4]) .. " do" .. indent())
+if hasContinue then
+r = r .. ("repeat" .. indent())
 end
-end, ["Forin"] = function(t)
-return "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() .. namedLua("loop", t[3]) .. unindent() .. "end"
-end, ["Local"] = function(t)
+r = r .. (lua(t[5]))
+if hasContinue then
+r = r .. ("until true" .. unindent())
+end
+return r .. unindent() .. "end"
+else
+local hasContinue = any(t[4], { "Continue" }, loop)
+r = r .. (" do" .. indent())
+if hasContinue then
+r = r .. ("repeat" .. indent())
+end
+r = r .. (lua(t[4]))
+if hasContinue then
+r = r .. (unindent() .. "until true")
+end
+return r .. unindent() .. "end"
+end
+end,
+["Forin"] = function(t)
+local hasContinue = any(t[3], { "Continue" }, loop)
+local r = "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent()
+if hasContinue then
+r = r .. ("repeat" .. indent())
+end
+r = r .. (lua(t[3]))
+if hasContinue then
+r = r .. ("until true" .. unindent())
+end
+return r .. unindent() .. "end"
+end,
+["Local"] = function(t)
 local r = "local " .. lua(t[1], "_lhs")
 if t[2][1] then
 r = r .. (" = " .. lua(t[2], "_lhs"))
 end
 return r
-end, ["Let"] = function(t)
+end,
+["Let"] = function(t)
 local nameList = lua(t[1], "_lhs")
 local r = "local " .. nameList
 if t[2][1] then
 if any(t[2], {
-"Function", "Table", "Paren"
+"Function",
+"Table",
+"Paren"
 }) then
 r = r .. (newline() .. nameList .. " = " .. lua(t[2], "_lhs"))
 else
@@ -634,30 +963,54 @@ r = r .. (" = " .. lua(t[2], "_lhs"))
 end
 end
 return r
-end, ["Localrec"] = function(t)
+end,
+["Localrec"] = function(t)
 return "local function " .. lua(t[1][1]) .. lua(t[2][1], "_functionWithoutKeyword")
-end, ["Goto"] = function(t)
+end,
+["Goto"] = function(t)
 return "goto " .. lua(t[1], "Id")
-end, ["Label"] = function(t)
+end,
+["Label"] = function(t)
 return "::" .. lua(t[1], "Id") .. "::"
-end, ["Return"] = function(t)
+end,
+["Return"] = function(t)
+local push = peek("push")
+if push then
+local r = ""
+for _, val in ipairs(t) do
+r = r .. (push .. "[#" .. push .. "+1] = " .. lua(val) .. newline())
+end
+return r .. "return unpack(" .. push .. ")"
+else
 return "return " .. lua(t, "_lhs")
-end, ["Break"] = function()
+end
+end,
+["Push"] = function(t)
+local var = assert(peek("push"), "no context given for push")
+return var .. "[#" .. var .. "+1] = " .. lua(t, "_lhs")
+end,
+["Break"] = function()
 return "break"
-end, ["Continue"] = function()
-wrap("loop", "repeat", "until true")
+end,
+["Continue"] = function()
 return "break"
-end, ["Nil"] = function()
+end,
+["Nil"] = function()
 return "nil"
-end, ["Dots"] = function()
+end,
+["Dots"] = function()
 return "..."
-end, ["Boolean"] = function(t)
+end,
+["Boolean"] = function(t)
 return tostring(t[1])
-end, ["Number"] = function(t)
+end,
+["Number"] = function(t)
 return tostring(t[1])
-end, ["String"] = function(t)
+end,
+["String"] = function(t)
 return ("%q"):format(t[1])
-end, ["_functionWithoutKeyword"] = function(t)
+end,
+["_functionWithoutKeyword"] = function(t)
 local r = "("
 local decl = {}
 if t[1][1] then
@@ -687,19 +1040,26 @@ for _, d in ipairs(decl) do
 r = r .. (d .. newline())
 end
 return r .. lua(t[2]) .. unindent() .. "end"
-end, ["Function"] = function(t)
+end,
+["Function"] = function(t)
 return "function" .. lua(t, "_functionWithoutKeyword")
-end, ["Pair"] = function(t)
+end,
+["Pair"] = function(t)
 return "[" .. lua(t[1]) .. "] = " .. lua(t[2])
-end, ["Table"] = function(t)
+end,
+["Table"] = function(t)
 if # t == 0 then
 return "{}"
 elseif # t == 1 then
 return "{ " .. lua(t, "_lhs") .. " }"
 else
-return "{" .. indent() .. lua(t, "_lhs") .. unindent() .. "}"
+return "{" .. indent() .. lua(t, "_lhs", nil, true) .. unindent() .. "}"
 end
-end, ["Op"] = function(t)
+end,
+["TableCompr"] = function(t)
+return push("push", "self") .. "(function()" .. indent() .. "local self = {}" .. newline() .. lua(t[1]) .. newline() .. "return self" .. unindent() .. "end)()" .. pop("push")
+end,
+["Op"] = function(t)
 local r
 if # t == 2 then
 if type(tags["_opid"][t[1]]) == "string" then
@@ -715,42 +1075,101 @@ r = tags["_opid"][t[1]](t[2], t[3])
 end
 end
 return r
-end, ["Paren"] = function(t)
+end,
+["Paren"] = function(t)
 return "(" .. lua(t[1]) .. ")"
-end, ["DoExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "Do") .. unindent() .. "end)()"
-end, ["WhileExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "While") .. unindent() .. "end)()"
-end, ["RepeatExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "Repeat") .. unindent() .. "end)()"
-end, ["IfExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "If") .. unindent() .. "end)()"
-end, ["FornumExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "Fornum") .. unindent() .. "end)()"
-end, ["ForninExpr"] = function(t)
-return "(function()" .. indent() .. lua(t, "Forin") .. unindent() .. "end)()"
-end, ["Call"] = function(t)
+end,
+["_statexpr"] = function(t, stat)
+local hasPush = any(t, { "Push" }, func)
+local r = "(function()" .. indent()
+if hasPush then
+r = r .. (push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline())
+end
+r = r .. (lua(t, stat))
+if hasPush then
+r = r .. (newline() .. "return unpack(__PUSH__)" .. pop("push"))
+end
+r = r .. (unindent() .. "end)()")
+return r
+end,
+["DoExpr"] = function(t)
+if t[# t]["tag"] == "Push" then
+t[# t]["tag"] = "Return"
+end
+return lua(t, "_statexpr", "Do")
+end,
+["WhileExpr"] = function(t)
+return lua(t, "_statexpr", "While")
+end,
+["RepeatExpr"] = function(t)
+return lua(t, "_statexpr", "Repeat")
+end,
+["IfExpr"] = function(t)
+for i = 2, # t do
+local block = t[i]
+if block[# block]["tag"] == "Push" then
+block[# block]["tag"] = "Return"
+end
+end
+return lua(t, "_statexpr", "If")
+end,
+["FornumExpr"] = function(t)
+return lua(t, "_statexpr", "Fornum")
+end,
+["ForinExpr"] = function(t)
+return lua(t, "_statexpr", "Forin")
+end,
+["Call"] = function(t)
 return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")"
-end, ["Invoke"] = function(t)
+end,
+["Invoke"] = function(t)
 return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")"
-end, ["_lhs"] = function(t, start)
-start = start or 1
+end,
+["_lhs"] = function(t, start, newlines)
+if start == nil then start = 1 end
 local r
 if t[start] then
 r = lua(t[start])
 for i = start + 1, # t, 1 do
-r = r .. (", " .. lua(t[i]))
+r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i]))
 end
 else
 r = ""
 end
 return r
-end, ["Id"] = function(t)
+end,
+["Id"] = function(t)
 return t[1]
-end, ["Index"] = function(t)
+end,
+["Index"] = function(t)
 return lua(t[1]) .. "[" .. lua(t[2]) .. "]"
-end, ["_opid"] = {
-["add"] = "+", ["sub"] = "-", ["mul"] = "*", ["div"] = "/", ["idiv"] = "//", ["mod"] = "%", ["pow"] = "^", ["concat"] = "..", ["band"] = "&", ["bor"] = "|", ["bxor"] = "~", ["shl"] = "<<", ["shr"] = ">>", ["eq"] = "==", ["ne"] = "~=", ["lt"] = "<", ["gt"] = ">", ["le"] = "<=", ["ge"] = ">=", ["and"] = "and", ["or"] = "or", ["unm"] = "-", ["len"] = "#", ["bnot"] = "~", ["not"] = "not"
+end,
+["_opid"] = {
+["add"] = "+",
+["sub"] = "-",
+["mul"] = "*",
+["div"] = "/",
+["idiv"] = "//",
+["mod"] = "%",
+["pow"] = "^",
+["concat"] = "..",
+["band"] = "&",
+["bor"] = "|",
+["bxor"] = "~",
+["shl"] = "<<",
+["shr"] = ">>",
+["eq"] = "==",
+["ne"] = "~=",
+["lt"] = "<",
+["gt"] = ">",
+["le"] = "<=",
+["ge"] = ">=",
+["and"] = "and",
+["or"] = "or",
+["unm"] = "-",
+["len"] = "#",
+["bnot"] = "~",
+["not"] = "not"
 }
 }, { ["__index"] = function(self, key)
 error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3")
@@ -886,7 +1305,8 @@ local scope = env["scope"]
 local l = env[scope]["label"][label]
 if not l then
 env[scope]["label"][label] = {
-["name"] = label, ["pos"] = pos
+["name"] = label,
+["pos"] = pos
 }
 return true
 else
@@ -935,6 +1355,30 @@ if not status then
 return status, msg
 end
 status, msg = traverse_block(env, exp[2])
+if not status then
+return status, msg
+end
+end_scope(env)
+end_function(env)
+return true
+end
+local function traverse_tablecompr(env, exp)
+new_function(env)
+new_scope(env)
+local status, msg = traverse_block(env, exp[1])
+if not status then
+return status, msg
+end
+end_scope(env)
+end_function(env)
+return true
+end
+local function traverse_statexpr(env, exp)
+new_function(env)
+new_scope(env)
+exp["tag"] = exp["tag"]:gsub("Expr$", "")
+local status, msg = traverse_stm(env, exp)
+exp["tag"] = exp["tag"] .. "Expr"
 if not status then
 return status, msg
 end
@@ -1038,6 +1482,13 @@ local function traverse_continue(env, stm)
 if not insideloop(env) then
 local msg = "<continue> not inside a loop"
 return nil, syntaxerror(env["errorinfo"], stm["pos"], msg)
+end
+return true
+end
+local function traverse_push(env, stm)
+local status, msg = traverse_explist(env, stm)
+if not status then
+return status, msg
 end
 return true
 end
@@ -1226,6 +1677,10 @@ elseif tag == "Invoke" then
 return traverse_invoke(env, exp)
 elseif tag == "Id" or tag == "Index" then
 return traverse_var(env, exp)
+elseif tag == "TableCompr" then
+return traverse_tablecompr(env, exp)
+elseif tag:match("Expr$") then
+return traverse_statexpr(env, exp)
 else
 error("expecting an expression, but got a " .. tag)
 end
@@ -1267,12 +1722,14 @@ elseif tag == "Return" then
 return traverse_return(env, stm)
 elseif tag == "Break" then
 return traverse_break(env, stm)
-elseif tag == "Continue" then
-return traverse_continue(env, stm)
 elseif tag == "Call" then
 return traverse_call(env, stm)
 elseif tag == "Invoke" then
 return traverse_invoke(env, stm)
+elseif tag == "Continue" then
+return traverse_continue(env, stm)
+elseif tag == "Push" then
+return traverse_push(env, stm)
 else
 error("expecting a statement, but got a " .. tag)
 end
@@ -1293,7 +1750,8 @@ local function traverse(ast, errorinfo)
 assert(type(ast) == "table")
 assert(type(errorinfo) == "table")
 local env = {
-["errorinfo"] = errorinfo, ["function"] = {}
+["errorinfo"] = errorinfo,
+["function"] = {}
 }
 new_function(env)
 set_vararg(env, true)
@@ -1309,7 +1767,8 @@ end
 return ast
 end
 return {
-["validate"] = traverse, ["syntaxerror"] = syntaxerror
+["validate"] = traverse,
+["syntaxerror"] = syntaxerror
 }
 end
 local validator = _() or validator
@@ -1651,157 +2110,312 @@ local xdigit = lpeg["xdigit"]
 local space = lpeg["space"]
 local labels = {
 {
-"ErrExtra", "unexpected character(s), expected EOF"
-}, {
-"ErrInvalidStat", "unexpected token, invalid start of statement"
-}, {
-"ErrEndIf", "expected 'end' to close the if statement"
-}, {
-"ErrExprIf", "expected a condition after 'if'"
-}, {
-"ErrThenIf", "expected 'then' after the condition"
-}, {
-"ErrExprEIf", "expected a condition after 'elseif'"
-}, {
-"ErrThenEIf", "expected 'then' after the condition"
-}, {
-"ErrEndDo", "expected 'end' to close the do block"
-}, {
-"ErrExprWhile", "expected a condition after 'while'"
-}, {
-"ErrDoWhile", "expected 'do' after the condition"
-}, {
-"ErrEndWhile", "expected 'end' to close the while loop"
-}, {
-"ErrUntilRep", "expected 'until' at the end of the repeat loop"
-}, {
-"ErrExprRep", "expected a conditions after 'until'"
-}, {
-"ErrForRange", "expected a numeric or generic range after 'for'"
-}, {
-"ErrEndFor", "expected 'end' to close the for loop"
-}, {
-"ErrExprFor1", "expected a starting expression for the numeric range"
-}, {
-"ErrCommaFor", "expected ',' to split the start and end of the range"
-}, {
-"ErrExprFor2", "expected an ending expression for the numeric range"
-}, {
-"ErrExprFor3", "expected a step expression for the numeric range after ','"
-}, {
-"ErrInFor", "expected '=' or 'in' after the variable(s)"
-}, {
-"ErrEListFor", "expected one or more expressions after 'in'"
-}, {
-"ErrDoFor", "expected 'do' after the range of the for loop"
-}, {
-"ErrDefLocal", "expected a function definition or assignment after local"
-}, {
-"ErrDefLet", "expected a function definition or assignment after let"
-}, {
-"ErrNameLFunc", "expected a function name after 'function'"
-}, {
-"ErrEListLAssign", "expected one or more expressions after '='"
-}, {
-"ErrEListAssign", "expected one or more expressions after '='"
-}, {
-"ErrFuncName", "expected a function name after 'function'"
-}, {
-"ErrNameFunc1", "expected a function name after '.'"
-}, {
-"ErrNameFunc2", "expected a method name after ':'"
-}, {
-"ErrOParenPList", "expected '(' for the parameter list"
-}, {
-"ErrCParenPList", "expected ')' to close the parameter list"
-}, {
-"ErrEndFunc", "expected 'end' to close the function body"
-}, {
-"ErrParList", "expected a variable name or '...' after ','"
-}, {
-"ErrLabel", "expected a label name after '::'"
-}, {
-"ErrCloseLabel", "expected '::' after the label"
-}, {
-"ErrGoto", "expected a label after 'goto'"
-}, {
-"ErrRetList", "expected an expression after ',' in the return statement"
-}, {
-"ErrVarList", "expected a variable name after ','"
-}, {
-"ErrExprList", "expected an expression after ','"
-}, {
-"ErrOrExpr", "expected an expression after 'or'"
-}, {
-"ErrAndExpr", "expected an expression after 'and'"
-}, {
-"ErrRelExpr", "expected an expression after the relational operator"
-}, {
-"ErrBOrExpr", "expected an expression after '|'"
-}, {
-"ErrBXorExpr", "expected an expression after '~'"
-}, {
-"ErrBAndExpr", "expected an expression after '&'"
-}, {
-"ErrShiftExpr", "expected an expression after the bit shift"
-}, {
-"ErrConcatExpr", "expected an expression after '..'"
-}, {
-"ErrAddExpr", "expected an expression after the additive operator"
-}, {
-"ErrMulExpr", "expected an expression after the multiplicative operator"
-}, {
-"ErrUnaryExpr", "expected an expression after the unary operator"
-}, {
-"ErrPowExpr", "expected an expression after '^'"
-}, {
-"ErrExprParen", "expected an expression after '('"
-}, {
-"ErrCParenExpr", "expected ')' to close the expression"
-}, {
-"ErrNameIndex", "expected a field name after '.'"
-}, {
-"ErrExprIndex", "expected an expression after '['"
-}, {
-"ErrCBracketIndex", "expected ']' to close the indexing expression"
-}, {
-"ErrNameMeth", "expected a method name after ':'"
-}, {
-"ErrMethArgs", "expected some arguments for the method call (or '()')"
-}, {
-"ErrArgList", "expected an expression after ',' in the argument list"
-}, {
-"ErrCParenArgs", "expected ')' to close the argument list"
-}, {
-"ErrCBraceTable", "expected '}' to close the table constructor"
-}, {
-"ErrEqField", "expected '=' after the table key"
-}, {
-"ErrExprField", "expected an expression after '='"
-}, {
-"ErrExprFKey", "expected an expression after '[' for the table key"
-}, {
-"ErrCBracketFKey", "expected ']' to close the table key"
-}, {
-"ErrDigitHex", "expected one or more hexadecimal digits after '0x'"
-}, {
-"ErrDigitDeci", "expected one or more digits after the decimal point"
-}, {
-"ErrDigitExpo", "expected one or more digits for the exponent"
-}, {
-"ErrQuote", "unclosed string"
-}, {
-"ErrHexEsc", "expected exactly two hexadecimal digits after '\\x'"
-}, {
-"ErrOBraceUEsc", "expected '{' after '\\u'"
-}, {
-"ErrDigitUEsc", "expected one or more hexadecimal digits for the UTF-8 code point"
-}, {
-"ErrCBraceUEsc", "expected '}' after the code point"
-}, {
-"ErrEscSeq", "invalid escape sequence"
-}, {
-"ErrCloseLStr", "unclosed long string"
+"ErrExtra",
+"unexpected character(s), expected EOF"
+},
+{
+"ErrInvalidStat",
+"unexpected token, invalid start of statement"
+},
+{
+"ErrEndIf",
+"expected 'end' to close the if statement"
+},
+{
+"ErrExprIf",
+"expected a condition after 'if'"
+},
+{
+"ErrThenIf",
+"expected 'then' after the condition"
+},
+{
+"ErrExprEIf",
+"expected a condition after 'elseif'"
+},
+{
+"ErrThenEIf",
+"expected 'then' after the condition"
+},
+{
+"ErrEndDo",
+"expected 'end' to close the do block"
+},
+{
+"ErrExprWhile",
+"expected a condition after 'while'"
+},
+{
+"ErrDoWhile",
+"expected 'do' after the condition"
+},
+{
+"ErrEndWhile",
+"expected 'end' to close the while loop"
+},
+{
+"ErrUntilRep",
+"expected 'until' at the end of the repeat loop"
+},
+{
+"ErrExprRep",
+"expected a conditions after 'until'"
+},
+{
+"ErrForRange",
+"expected a numeric or generic range after 'for'"
+},
+{
+"ErrEndFor",
+"expected 'end' to close the for loop"
+},
+{
+"ErrExprFor1",
+"expected a starting expression for the numeric range"
+},
+{
+"ErrCommaFor",
+"expected ',' to split the start and end of the range"
+},
+{
+"ErrExprFor2",
+"expected an ending expression for the numeric range"
+},
+{
+"ErrExprFor3",
+"expected a step expression for the numeric range after ','"
+},
+{
+"ErrInFor",
+"expected '=' or 'in' after the variable(s)"
+},
+{
+"ErrEListFor",
+"expected one or more expressions after 'in'"
+},
+{
+"ErrDoFor",
+"expected 'do' after the range of the for loop"
+},
+{
+"ErrDefLocal",
+"expected a function definition or assignment after local"
+},
+{
+"ErrDefLet",
+"expected a function definition or assignment after let"
+},
+{
+"ErrNameLFunc",
+"expected a function name after 'function'"
+},
+{
+"ErrEListLAssign",
+"expected one or more expressions after '='"
+},
+{
+"ErrEListAssign",
+"expected one or more expressions after '='"
+},
+{
+"ErrFuncName",
+"expected a function name after 'function'"
+},
+{
+"ErrNameFunc1",
+"expected a function name after '.'"
+},
+{
+"ErrNameFunc2",
+"expected a method name after ':'"
+},
+{
+"ErrOParenPList",
+"expected '(' for the parameter list"
+},
+{
+"ErrCParenPList",
+"expected ')' to close the parameter list"
+},
+{
+"ErrEndFunc",
+"expected 'end' to close the function body"
+},
+{
+"ErrParList",
+"expected a variable name or '...' after ','"
+},
+{
+"ErrLabel",
+"expected a label name after '::'"
+},
+{
+"ErrCloseLabel",
+"expected '::' after the label"
+},
+{
+"ErrGoto",
+"expected a label after 'goto'"
+},
+{
+"ErrRetList",
+"expected an expression after ',' in the return statement"
+},
+{
+"ErrVarList",
+"expected a variable name after ','"
+},
+{
+"ErrExprList",
+"expected an expression after ','"
+},
+{
+"ErrOrExpr",
+"expected an expression after 'or'"
+},
+{
+"ErrAndExpr",
+"expected an expression after 'and'"
+},
+{
+"ErrRelExpr",
+"expected an expression after the relational operator"
+},
+{
+"ErrBOrExpr",
+"expected an expression after '|'"
+},
+{
+"ErrBXorExpr",
+"expected an expression after '~'"
+},
+{
+"ErrBAndExpr",
+"expected an expression after '&'"
+},
+{
+"ErrShiftExpr",
+"expected an expression after the bit shift"
+},
+{
+"ErrConcatExpr",
+"expected an expression after '..'"
+},
+{
+"ErrAddExpr",
+"expected an expression after the additive operator"
+},
+{
+"ErrMulExpr",
+"expected an expression after the multiplicative operator"
+},
+{
+"ErrUnaryExpr",
+"expected an expression after the unary operator"
+},
+{
+"ErrPowExpr",
+"expected an expression after '^'"
+},
+{
+"ErrExprParen",
+"expected an expression after '('"
+},
+{
+"ErrCParenExpr",
+"expected ')' to close the expression"
+},
+{
+"ErrNameIndex",
+"expected a field name after '.'"
+},
+{
+"ErrExprIndex",
+"expected an expression after '['"
+},
+{
+"ErrCBracketIndex",
+"expected ']' to close the indexing expression"
+},
+{
+"ErrNameMeth",
+"expected a method name after ':'"
+},
+{
+"ErrMethArgs",
+"expected some arguments for the method call (or '()')"
+},
+{
+"ErrArgList",
+"expected an expression after ',' in the argument list"
+},
+{
+"ErrCParenArgs",
+"expected ')' to close the argument list"
+},
+{
+"ErrCBraceTable",
+"expected '}' to close the table constructor"
+},
+{
+"ErrEqField",
+"expected '=' after the table key"
+},
+{
+"ErrExprField",
+"expected an expression after '='"
+},
+{
+"ErrExprFKey",
+"expected an expression after '[' for the table key"
+},
+{
+"ErrCBracketFKey",
+"expected ']' to close the table key"
+},
+{
+"ErrCBracketTableCompr",
+"expected ']' to close the table comprehension"
+},
+{
+"ErrDigitHex",
+"expected one or more hexadecimal digits after '0x'"
+},
+{
+"ErrDigitDeci",
+"expected one or more digits after the decimal point"
+},
+{
+"ErrDigitExpo",
+"expected one or more digits for the exponent"
+},
+{
+"ErrQuote",
+"unclosed string"
+},
+{
+"ErrHexEsc",
+"expected exactly two hexadecimal digits after '\\x'"
+},
+{
+"ErrOBraceUEsc",
+"expected '{' after '\\u'"
+},
+{
+"ErrDigitUEsc",
+"expected one or more hexadecimal digits for the UTF-8 code point"
+},
+{
+"ErrCBraceUEsc",
+"expected '}' after the code point"
+},
+{
+"ErrEscSeq",
+"invalid escape sequence"
+},
+{
+"ErrCloseLStr",
+"unclosed long string"
 }
 }
 local function throw(label)
@@ -1830,7 +2444,10 @@ return Ct(Cg(Cp(), "pos") * Cg(Cc(tag), "tag") * patt)
 end
 local function unaryOp(op, e)
 return {
-["tag"] = "Op", ["pos"] = e["pos"], [1] = op, [2] = e
+["tag"] = "Op",
+["pos"] = e["pos"],
+[1] = op,
+[2] = e
 }
 end
 local function binaryOp(e1, op, e2)
@@ -1838,7 +2455,11 @@ if not op then
 return e1
 else
 return {
-["tag"] = "Op", ["pos"] = e1["pos"], [1] = op, [2] = e1, [3] = e2
+["tag"] = "Op",
+["pos"] = e1["pos"],
+[1] = op,
+[2] = e1,
+[3] = e2
 }
 end
 end
@@ -1862,7 +2483,8 @@ end
 local function fixFuncStat(func)
 if func[1]["is_method"] then
 table["insert"](func[2][1], 1, {
-["tag"] = "Id", [1] = "self"
+["tag"] = "Id",
+[1] = "self"
 })
 end
 func[1] = { func[1] }
@@ -1877,13 +2499,20 @@ return params
 end
 local function insertIndex(t, index)
 return {
-["tag"] = "Index", ["pos"] = t["pos"], [1] = t, [2] = index
+["tag"] = "Index",
+["pos"] = t["pos"],
+[1] = t,
+[2] = index
 }
 end
 local function markMethod(t, method)
 if method then
 return {
-["tag"] = "Index", ["pos"] = t["pos"], ["is_method"] = true, [1] = t, [2] = method
+["tag"] = "Index",
+["pos"] = t["pos"],
+["is_method"] = true,
+[1] = t,
+[2] = method
 }
 end
 return t
@@ -1891,7 +2520,9 @@ end
 local function makeIndexOrCall(t1, t2)
 if t2["tag"] == "Call" or t2["tag"] == "Invoke" then
 local t = {
-["tag"] = t2["tag"], ["pos"] = t1["pos"], [1] = t1
+["tag"] = t2["tag"],
+["pos"] = t1["pos"],
+[1] = t1
 }
 for k, v in ipairs(t2) do
 table["insert"](t, v)
@@ -1899,14 +2530,18 @@ end
 return t
 end
 return {
-["tag"] = "Index", ["pos"] = t1["pos"], [1] = t1, [2] = t2[1]
+["tag"] = "Index",
+["pos"] = t1["pos"],
+[1] = t1,
+[2] = t2[1]
 }
 end
 local function fixAnonymousMethodParams(t1, t2)
 if t1 == ":" then
 t1 = t2
 table["insert"](t1, 1, {
-["tag"] = "Id", "self"
+["tag"] = "Id",
+"self"
 })
 end
 return t1
@@ -1916,26 +2551,140 @@ t["tag"] = t["tag"] .. "Expr"
 return t
 end
 local G = {
-V("Lua"), ["Lua"] = V("Shebang") ^ - 1 * V("Skip") * V("Block") * expect(P(- 1), "Extra"), ["Shebang"] = P("#!") * (P(1) - P("\
-")) ^ 0, ["Block"] = tagC("Block", V("Stat") ^ 0 * (V("RetStat") + V("ImplicitRetStat")) ^ - 1), ["Stat"] = V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat") + V("LocalStat") + V("LetStat") + V("FuncStat") + V("BreakStat") + V("ContinueStat") + V("LabelStat") + V("GoToStat") + V("FuncCall") + V("Assignment") + sym(";") + - V("BlockEnd") * throw("InvalidStat"), ["BlockEnd"] = P("return") + "end" + "elseif" + "else" + "until" + - 1 + V("ImplicitRetStat"), ["IfStat"] = tagC("If", V("IfPart") * V("ElseIfPart") ^ 0 * V("ElsePart") ^ - 1 * expect(kw("end"), "EndIf")), ["IfPart"] = kw("if") * expect(V("Expr"), "ExprIf") * expect(kw("then"), "ThenIf") * V("Block"), ["ElseIfPart"] = kw("elseif") * expect(V("Expr"), "ExprEIf") * expect(kw("then"), "ThenEIf") * V("Block"), ["ElsePart"] = kw("else") * V("Block"), ["DoStat"] = kw("do") * V("Block") * expect(kw("end"), "EndDo") / tagDo, ["WhileStat"] = tagC("While", kw("while") * expect(V("Expr"), "ExprWhile") * V("WhileBody")), ["WhileBody"] = expect(kw("do"), "DoWhile") * V("Block") * expect(kw("end"), "EndWhile"), ["RepeatStat"] = tagC("Repeat", kw("repeat") * V("Block") * expect(kw("until"), "UntilRep") * expect(V("Expr"), "ExprRep")), ["ForStat"] = kw("for") * expect(V("ForNum") + V("ForIn"), "ForRange") * expect(kw("end"), "EndFor"), ["ForNum"] = tagC("Fornum", V("Id") * sym("=") * V("NumRange") * V("ForBody")), ["NumRange"] = expect(V("Expr"), "ExprFor1") * expect(sym(","), "CommaFor") * expect(V("Expr"), "ExprFor2") * (sym(",") * expect(V("Expr"), "ExprFor3")) ^ - 1, ["ForIn"] = tagC("Forin", V("NameList") * expect(kw("in"), "InFor") * expect(V("ExprList"), "EListFor") * V("ForBody")), ["ForBody"] = expect(kw("do"), "DoFor") * V("Block"), ["LocalStat"] = kw("local") * expect(V("LocalFunc") + V("LocalAssign"), "DefLocal"), ["LocalFunc"] = tagC("Localrec", kw("function") * expect(V("Id"), "NameLFunc") * V("FuncBody")) / fixFuncStat, ["LocalAssign"] = tagC("Local", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))), ["LetStat"] = kw("let") * expect(V("LetAssign"), "DefLet"), ["LetAssign"] = tagC("Let", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))), ["Assignment"] = tagC("Set", V("VarList") * V("BinOp") ^ - 1 * (sym("=") / "=") * V("BinOp") ^ - 1 * expect(V("ExprList"), "EListAssign")), ["FuncStat"] = tagC("Set", kw("function") * expect(V("FuncName"), "FuncName") * V("FuncBody")) / fixFuncStat, ["FuncName"] = Cf(V("Id") * (sym(".") * expect(V("StrId"), "NameFunc1")) ^ 0, insertIndex) * (sym(":") * expect(V("StrId"), "NameFunc2")) ^ - 1 / markMethod, ["FuncBody"] = tagC("Function", V("FuncParams") * V("Block") * expect(kw("end"), "EndFunc")), ["FuncParams"] = expect(sym("("), "OParenPList") * V("ParList") * expect(sym(")"), "CParenPList"), ["ParList"] = V("NamedParList") * (sym(",") * expect(tagC("Dots", sym("...")), "ParList")) ^ - 1 / addDots + Ct(tagC("Dots", sym("..."))) + Ct(Cc()), ["NamedParList"] = tagC("NamedParList", commaSep(V("NamedPar"))), ["NamedPar"] = tagC("ParPair", V("ParKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Id"), ["ParKey"] = V("Id") * # ("=" * - P("=")), ["LabelStat"] = tagC("Label", sym("::") * expect(V("Name"), "Label") * expect(sym("::"), "CloseLabel")), ["GoToStat"] = tagC("Goto", kw("goto") * expect(V("Name"), "Goto")), ["BreakStat"] = tagC("Break", kw("break")), ["ContinueStat"] = tagC("Continue", kw("continue")), ["RetStat"] = tagC("Return", kw("return") * commaSep(V("Expr"), "RetList") ^ - 1 * sym(";") ^ - 1), ["ImplicitRetStat"] = tagC("Return", commaSep(V("Expr"), "RetList") * sym(";") ^ - 1), ["NameList"] = tagC("NameList", commaSep(V("Id"))), ["VarList"] = tagC("VarList", commaSep(V("VarExpr"), "VarList")), ["ExprList"] = tagC("ExpList", commaSep(V("Expr"), "ExprList")), ["Expr"] = V("OrExpr"), ["OrExpr"] = chainOp(V("AndExpr"), V("OrOp"), "OrExpr"), ["AndExpr"] = chainOp(V("RelExpr"), V("AndOp"), "AndExpr"), ["RelExpr"] = chainOp(V("BOrExpr"), V("RelOp"), "RelExpr"), ["BOrExpr"] = chainOp(V("BXorExpr"), V("BOrOp"), "BOrExpr"), ["BXorExpr"] = chainOp(V("BAndExpr"), V("BXorOp"), "BXorExpr"), ["BAndExpr"] = chainOp(V("ShiftExpr"), V("BAndOp"), "BAndExpr"), ["ShiftExpr"] = chainOp(V("ConcatExpr"), V("ShiftOp"), "ShiftExpr"), ["ConcatExpr"] = V("AddExpr") * (V("ConcatOp") * expect(V("ConcatExpr"), "ConcatExpr")) ^ - 1 / binaryOp, ["AddExpr"] = chainOp(V("MulExpr"), V("AddOp"), "AddExpr"), ["MulExpr"] = chainOp(V("UnaryExpr"), V("MulOp"), "MulExpr"), ["UnaryExpr"] = V("UnaryOp") * expect(V("UnaryExpr"), "UnaryExpr") / unaryOp + V("PowExpr"), ["PowExpr"] = V("SimpleExpr") * (V("PowOp") * expect(V("UnaryExpr"), "PowExpr")) ^ - 1 / binaryOp, ["SimpleExpr"] = tagC("Number", V("Number")) + tagC("String", V("String")) + tagC("Nil", kw("nil")) + tagC("Boolean", kw("false") * Cc(false)) + tagC("Boolean", kw("true") * Cc(true)) + tagC("Dots", sym("...")) + V("FuncDef") + V("Table") + V("SuffixedExpr") + V("StatExpr"), ["StatExpr"] = (V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat")) / statToExpr, ["FuncCall"] = Cmt(V("SuffixedExpr"), function(s, i, exp)
+V("Lua"),
+["Lua"] = V("Shebang") ^ - 1 * V("Skip") * V("Block") * expect(P(- 1), "Extra"),
+["Shebang"] = P("#!") * (P(1) - P("\
+")) ^ 0,
+["Block"] = tagC("Block", V("Stat") ^ 0 * (V("RetStat") + V("ImplicitPushStat")) ^ - 1),
+["Stat"] = V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat") + V("LocalStat") + V("FuncStat") + V("BreakStat") + V("LabelStat") + V("GoToStat") + V("FuncCall") + V("Assignment") + V("LetStat") + V("ContinueStat") + V("PushStat") + sym(";") + - V("BlockEnd") * throw("InvalidStat"),
+["BlockEnd"] = P("return") + "end" + "elseif" + "else" + "until" + "]" + - 1 + V("ImplicitPushStat"),
+["IfStat"] = tagC("If", V("IfPart") * V("ElseIfPart") ^ 0 * V("ElsePart") ^ - 1 * expect(kw("end"), "EndIf")),
+["IfPart"] = kw("if") * expect(V("Expr"), "ExprIf") * expect(kw("then"), "ThenIf") * V("Block"),
+["ElseIfPart"] = kw("elseif") * expect(V("Expr"), "ExprEIf") * expect(kw("then"), "ThenEIf") * V("Block"),
+["ElsePart"] = kw("else") * V("Block"),
+["DoStat"] = kw("do") * V("Block") * expect(kw("end"), "EndDo") / tagDo,
+["WhileStat"] = tagC("While", kw("while") * expect(V("Expr"), "ExprWhile") * V("WhileBody")),
+["WhileBody"] = expect(kw("do"), "DoWhile") * V("Block") * expect(kw("end"), "EndWhile"),
+["RepeatStat"] = tagC("Repeat", kw("repeat") * V("Block") * expect(kw("until"), "UntilRep") * expect(V("Expr"), "ExprRep")),
+["ForStat"] = kw("for") * expect(V("ForNum") + V("ForIn"), "ForRange") * expect(kw("end"), "EndFor"),
+["ForNum"] = tagC("Fornum", V("Id") * sym("=") * V("NumRange") * V("ForBody")),
+["NumRange"] = expect(V("Expr"), "ExprFor1") * expect(sym(","), "CommaFor") * expect(V("Expr"), "ExprFor2") * (sym(",") * expect(V("Expr"), "ExprFor3")) ^ - 1,
+["ForIn"] = tagC("Forin", V("NameList") * expect(kw("in"), "InFor") * expect(V("ExprList"), "EListFor") * V("ForBody")),
+["ForBody"] = expect(kw("do"), "DoFor") * V("Block"),
+["LocalStat"] = kw("local") * expect(V("LocalFunc") + V("LocalAssign"), "DefLocal"),
+["LocalFunc"] = tagC("Localrec", kw("function") * expect(V("Id"), "NameLFunc") * V("FuncBody")) / fixFuncStat,
+["LocalAssign"] = tagC("Local", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))),
+["LetStat"] = kw("let") * expect(V("LetAssign"), "DefLet"),
+["LetAssign"] = tagC("Let", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))),
+["Assignment"] = tagC("Set", V("VarList") * V("BinOp") ^ - 1 * (sym("=") / "=") * V("BinOp") ^ - 1 * expect(V("ExprList"), "EListAssign")),
+["FuncStat"] = tagC("Set", kw("function") * expect(V("FuncName"), "FuncName") * V("FuncBody")) / fixFuncStat,
+["FuncName"] = Cf(V("Id") * (sym(".") * expect(V("StrId"), "NameFunc1")) ^ 0, insertIndex) * (sym(":") * expect(V("StrId"), "NameFunc2")) ^ - 1 / markMethod,
+["FuncBody"] = tagC("Function", V("FuncParams") * V("Block") * expect(kw("end"), "EndFunc")),
+["FuncParams"] = expect(sym("("), "OParenPList") * V("ParList") * expect(sym(")"), "CParenPList"),
+["ParList"] = V("NamedParList") * (sym(",") * expect(tagC("Dots", sym("...")), "ParList")) ^ - 1 / addDots + Ct(tagC("Dots", sym("..."))) + Ct(Cc()),
+["NamedParList"] = tagC("NamedParList", commaSep(V("NamedPar"))),
+["NamedPar"] = tagC("ParPair", V("ParKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Id"),
+["ParKey"] = V("Id") * # ("=" * - P("=")),
+["LabelStat"] = tagC("Label", sym("::") * expect(V("Name"), "Label") * expect(sym("::"), "CloseLabel")),
+["GoToStat"] = tagC("Goto", kw("goto") * expect(V("Name"), "Goto")),
+["BreakStat"] = tagC("Break", kw("break")),
+["ContinueStat"] = tagC("Continue", kw("continue")),
+["RetStat"] = tagC("Return", kw("return") * commaSep(V("Expr"), "RetList") ^ - 1 * sym(";") ^ - 1),
+["PushStat"] = tagC("Push", kw("push") * commaSep(V("Expr"), "RetList") ^ - 1 * sym(";") ^ - 1),
+["ImplicitPushStat"] = tagC("Push", commaSep(V("Expr"), "RetList") * sym(";") ^ - 1),
+["NameList"] = tagC("NameList", commaSep(V("Id"))),
+["VarList"] = tagC("VarList", commaSep(V("VarExpr"), "VarList")),
+["ExprList"] = tagC("ExpList", commaSep(V("Expr"), "ExprList")),
+["Expr"] = V("OrExpr"),
+["OrExpr"] = chainOp(V("AndExpr"), V("OrOp"), "OrExpr"),
+["AndExpr"] = chainOp(V("RelExpr"), V("AndOp"), "AndExpr"),
+["RelExpr"] = chainOp(V("BOrExpr"), V("RelOp"), "RelExpr"),
+["BOrExpr"] = chainOp(V("BXorExpr"), V("BOrOp"), "BOrExpr"),
+["BXorExpr"] = chainOp(V("BAndExpr"), V("BXorOp"), "BXorExpr"),
+["BAndExpr"] = chainOp(V("ShiftExpr"), V("BAndOp"), "BAndExpr"),
+["ShiftExpr"] = chainOp(V("ConcatExpr"), V("ShiftOp"), "ShiftExpr"),
+["ConcatExpr"] = V("AddExpr") * (V("ConcatOp") * expect(V("ConcatExpr"), "ConcatExpr")) ^ - 1 / binaryOp,
+["AddExpr"] = chainOp(V("MulExpr"), V("AddOp"), "AddExpr"),
+["MulExpr"] = chainOp(V("UnaryExpr"), V("MulOp"), "MulExpr"),
+["UnaryExpr"] = V("UnaryOp") * expect(V("UnaryExpr"), "UnaryExpr") / unaryOp + V("PowExpr"),
+["PowExpr"] = V("SimpleExpr") * (V("PowOp") * expect(V("UnaryExpr"), "PowExpr")) ^ - 1 / binaryOp,
+["SimpleExpr"] = tagC("Number", V("Number")) + tagC("String", V("String")) + tagC("Nil", kw("nil")) + tagC("Boolean", kw("false") * Cc(false)) + tagC("Boolean", kw("true") * Cc(true)) + tagC("Dots", sym("...")) + V("FuncDef") + V("Table") + V("SuffixedExpr") + V("TableCompr") + V("StatExpr"),
+["StatExpr"] = (V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat")) / statToExpr,
+["FuncCall"] = Cmt(V("SuffixedExpr"), function(s, i, exp)
 return exp["tag"] == "Call" or exp["tag"] == "Invoke", exp
-end), ["VarExpr"] = Cmt(V("SuffixedExpr"), function(s, i, exp)
+end),
+["VarExpr"] = Cmt(V("SuffixedExpr"), function(s, i, exp)
 return exp["tag"] == "Id" or exp["tag"] == "Index", exp
-end), ["SuffixedExpr"] = Cf(V("PrimaryExpr") * (V("Index") + V("Call")) ^ 0, makeIndexOrCall), ["PrimaryExpr"] = V("SelfId") * (V("SelfCall") + V("SelfIndex")) + V("Id") + tagC("Paren", sym("(") * expect(V("Expr"), "ExprParen") * expect(sym(")"), "CParenExpr")), ["Index"] = tagC("DotIndex", sym("." * - P(".")) * expect(V("StrId"), "NameIndex")) + tagC("ArrayIndex", sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprIndex") * expect(sym("]"), "CBracketIndex")), ["Call"] = tagC("Invoke", Cg(sym(":" * - P(":")) * expect(V("StrId"), "NameMeth") * expect(V("FuncArgs"), "MethArgs"))) + tagC("Call", V("FuncArgs")), ["SelfIndex"] = tagC("DotIndex", V("StrId")), ["SelfCall"] = tagC("Invoke", Cg(V("StrId") * V("FuncArgs"))), ["ShortFuncDef"] = tagC("Function", V("ShortFuncParams") * V("Block") * expect(kw("end"), "EndFunc")), ["ShortFuncParams"] = (sym(":") / ":") ^ - 1 * sym("(") * V("ParList") * sym(")") / fixAnonymousMethodParams, ["FuncDef"] = (kw("function") * V("FuncBody")) + V("ShortFuncDef"), ["FuncArgs"] = sym("(") * commaSep(V("Expr"), "ArgList") ^ - 1 * expect(sym(")"), "CParenArgs") + V("Table") + tagC("String", V("String")), ["Table"] = tagC("Table", sym("{") * V("FieldList") ^ - 1 * expect(sym("}"), "CBraceTable")), ["FieldList"] = sepBy(V("Field"), V("FieldSep")) * V("FieldSep") ^ - 1, ["Field"] = tagC("Pair", V("FieldKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Expr"), ["FieldKey"] = sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprFKey") * expect(sym("]"), "CBracketFKey") + V("StrId") * # ("=" * - P("=")), ["FieldSep"] = sym(",") + sym(";"), ["SelfId"] = tagC("Id", sym("@") / "self"), ["Id"] = tagC("Id", V("Name")) + V("SelfId"), ["StrId"] = tagC("String", V("Name")), ["Skip"] = (V("Space") + V("Comment")) ^ 0, ["Space"] = space ^ 1, ["Comment"] = P("--") * V("LongStr") / function()
+end),
+["SuffixedExpr"] = Cf(V("PrimaryExpr") * (V("Index") + V("Call")) ^ 0, makeIndexOrCall),
+["PrimaryExpr"] = V("SelfId") * (V("SelfCall") + V("SelfIndex")) + V("Id") + tagC("Paren", sym("(") * expect(V("Expr"), "ExprParen") * expect(sym(")"), "CParenExpr")),
+["Index"] = tagC("DotIndex", sym("." * - P(".")) * expect(V("StrId"), "NameIndex")) + tagC("ArrayIndex", sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprIndex") * expect(sym("]"), "CBracketIndex")),
+["Call"] = tagC("Invoke", Cg(sym(":" * - P(":")) * expect(V("StrId"), "NameMeth") * expect(V("FuncArgs"), "MethArgs"))) + tagC("Call", V("FuncArgs")),
+["SelfIndex"] = tagC("DotIndex", V("StrId")),
+["SelfCall"] = tagC("Invoke", Cg(V("StrId") * V("FuncArgs"))),
+["ShortFuncDef"] = tagC("Function", V("ShortFuncParams") * V("Block") * expect(kw("end"), "EndFunc")),
+["ShortFuncParams"] = (sym(":") / ":") ^ - 1 * sym("(") * V("ParList") * sym(")") / fixAnonymousMethodParams,
+["FuncDef"] = (kw("function") * V("FuncBody")) + V("ShortFuncDef"),
+["FuncArgs"] = sym("(") * commaSep(V("Expr"), "ArgList") ^ - 1 * expect(sym(")"), "CParenArgs") + V("Table") + tagC("String", V("String")),
+["Table"] = tagC("Table", sym("{") * V("FieldList") ^ - 1 * expect(sym("}"), "CBraceTable")),
+["FieldList"] = sepBy(V("Field"), V("FieldSep")) * V("FieldSep") ^ - 1,
+["Field"] = tagC("Pair", V("FieldKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Expr"),
+["FieldKey"] = sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprFKey") * expect(sym("]"), "CBracketFKey") + V("StrId") * # ("=" * - P("=")),
+["FieldSep"] = sym(",") + sym(";"),
+["TableCompr"] = tagC("TableCompr", sym("[") * V("Block") * expect(sym("]"), "CBracketTableCompr")),
+["SelfId"] = tagC("Id", sym("@") / "self"),
+["Id"] = tagC("Id", V("Name")) + V("SelfId"),
+["StrId"] = tagC("String", V("Name")),
+["Skip"] = (V("Space") + V("Comment")) ^ 0,
+["Space"] = space ^ 1,
+["Comment"] = P("--") * V("LongStr") / function()
 return 
 end + P("--") * (P(1) - P("\
-")) ^ 0, ["Name"] = token(- V("Reserved") * C(V("Ident"))), ["Reserved"] = V("Keywords") * - V("IdRest"), ["Keywords"] = P("and") + "break" + "do" + "elseif" + "else" + "end" + "false" + "for" + "function" + "goto" + "if" + "in" + "local" + "nil" + "not" + "or" + "repeat" + "return" + "then" + "true" + "until" + "while", ["Ident"] = V("IdStart") * V("IdRest") ^ 0, ["IdStart"] = alpha + P("_"), ["IdRest"] = alnum + P("_"), ["Number"] = token((V("Hex") + V("Float") + V("Int")) / tonumber), ["Hex"] = (P("0x") + "0X") * expect(xdigit ^ 1, "DigitHex"), ["Float"] = V("Decimal") * V("Expo") ^ - 1 + V("Int") * V("Expo"), ["Decimal"] = digit ^ 1 * "." * digit ^ 0 + P(".") * - P(".") * expect(digit ^ 1, "DigitDeci"), ["Expo"] = S("eE") * S("+-") ^ - 1 * expect(digit ^ 1, "DigitExpo"), ["Int"] = digit ^ 1, ["String"] = token(V("ShortStr") + V("LongStr")), ["ShortStr"] = P("\"") * Cs((V("EscSeq") + (P(1) - S("\"\
+")) ^ 0,
+["Name"] = token(- V("Reserved") * C(V("Ident"))),
+["Reserved"] = V("Keywords") * - V("IdRest"),
+["Keywords"] = P("and") + "break" + "do" + "elseif" + "else" + "end" + "false" + "for" + "function" + "goto" + "if" + "in" + "local" + "nil" + "not" + "or" + "repeat" + "return" + "then" + "true" + "until" + "while",
+["Ident"] = V("IdStart") * V("IdRest") ^ 0,
+["IdStart"] = alpha + P("_"),
+["IdRest"] = alnum + P("_"),
+["Number"] = token((V("Hex") + V("Float") + V("Int")) / tonumber),
+["Hex"] = (P("0x") + "0X") * expect(xdigit ^ 1, "DigitHex"),
+["Float"] = V("Decimal") * V("Expo") ^ - 1 + V("Int") * V("Expo"),
+["Decimal"] = digit ^ 1 * "." * digit ^ 0 + P(".") * - P(".") * expect(digit ^ 1, "DigitDeci"),
+["Expo"] = S("eE") * S("+-") ^ - 1 * expect(digit ^ 1, "DigitExpo"),
+["Int"] = digit ^ 1,
+["String"] = token(V("ShortStr") + V("LongStr")),
+["ShortStr"] = P("\"") * Cs((V("EscSeq") + (P(1) - S("\"\
 "))) ^ 0) * expect(P("\""), "Quote") + P("'") * Cs((V("EscSeq") + (P(1) - S("'\
-"))) ^ 0) * expect(P("'"), "Quote"), ["EscSeq"] = P("\\") / "" * (P("a") / "\7" + P("b") / "\8" + P("f") / "\12" + P("n") / "\
+"))) ^ 0) * expect(P("'"), "Quote"),
+["EscSeq"] = P("\\") / "" * (P("a") / "\7" + P("b") / "\8" + P("f") / "\12" + P("n") / "\
 " + P("r") / "\13" + P("t") / "\9" + P("v") / "\11" + P("\
 ") / "\
 " + P("\13") / "\
-" + P("\\") / "\\" + P("\"") / "\"" + P("'") / "'" + P("z") * space ^ 0 / "" + digit * digit ^ - 2 / tonumber / string["char"] + P("x") * expect(C(xdigit * xdigit), "HexEsc") * Cc(16) / tonumber / string["char"] + P("u") * expect("{", "OBraceUEsc") * expect(C(xdigit ^ 1), "DigitUEsc") * Cc(16) * expect("}", "CBraceUEsc") / tonumber / (utf8 and utf8["char"] or string["char"]) + throw("EscSeq")), ["LongStr"] = V("Open") * C((P(1) - V("CloseEq")) ^ 0) * expect(V("Close"), "CloseLStr") / function(s, eqs)
+" + P("\\") / "\\" + P("\"") / "\"" + P("'") / "'" + P("z") * space ^ 0 / "" + digit * digit ^ - 2 / tonumber / string["char"] + P("x") * expect(C(xdigit * xdigit), "HexEsc") * Cc(16) / tonumber / string["char"] + P("u") * expect("{", "OBraceUEsc") * expect(C(xdigit ^ 1), "DigitUEsc") * Cc(16) * expect("}", "CBraceUEsc") / tonumber / (utf8 and utf8["char"] or string["char"]) + throw("EscSeq")),
+["LongStr"] = V("Open") * C((P(1) - V("CloseEq")) ^ 0) * expect(V("Close"), "CloseLStr") / function(s, eqs)
 return s
-end, ["Open"] = "[" * Cg(V("Equals"), "openEq") * "[" * P("\
-") ^ - 1, ["Close"] = "]" * C(V("Equals")) * "]", ["Equals"] = P("=") ^ 0, ["CloseEq"] = Cmt(V("Close") * Cb("openEq"), function(s, i, closeEq, openEq)
+end,
+["Open"] = "[" * Cg(V("Equals"), "openEq") * "[" * P("\
+") ^ - 1,
+["Close"] = "]" * C(V("Equals")) * "]",
+["Equals"] = P("=") ^ 0,
+["CloseEq"] = Cmt(V("Close") * Cb("openEq"), function(s, i, closeEq, openEq)
 return # openEq == # closeEq
-end), ["OrOp"] = kw("or") / "or", ["AndOp"] = kw("and") / "and", ["RelOp"] = sym("~=") / "ne" + sym("==") / "eq" + sym("<=") / "le" + sym(">=") / "ge" + sym("<") / "lt" + sym(">") / "gt", ["BOrOp"] = sym("|") / "bor", ["BXorOp"] = sym("~" * - P("=")) / "bxor", ["BAndOp"] = sym("&") / "band", ["ShiftOp"] = sym("<<") / "shl" + sym(">>") / "shr", ["ConcatOp"] = sym("..") / "concat", ["AddOp"] = sym("+") / "add" + sym("-") / "sub", ["MulOp"] = sym("*") / "mul" + sym("//") / "idiv" + sym("/") / "div" + sym("%") / "mod", ["UnaryOp"] = kw("not") / "not" + sym("-") / "unm" + sym("#") / "len" + sym("~") / "bnot", ["PowOp"] = sym("^") / "pow", ["BinOp"] = V("OrOp") + V("AndOp") + V("BOrOp") + V("BXorOp") + V("BAndOp") + V("ShiftOp") + V("ConcatOp") + V("AddOp") + V("MulOp") + V("PowOp")
+end),
+["OrOp"] = kw("or") / "or",
+["AndOp"] = kw("and") / "and",
+["RelOp"] = sym("~=") / "ne" + sym("==") / "eq" + sym("<=") / "le" + sym(">=") / "ge" + sym("<") / "lt" + sym(">") / "gt",
+["BOrOp"] = sym("|") / "bor",
+["BXorOp"] = sym("~" * - P("=")) / "bxor",
+["BAndOp"] = sym("&") / "band",
+["ShiftOp"] = sym("<<") / "shl" + sym(">>") / "shr",
+["ConcatOp"] = sym("..") / "concat",
+["AddOp"] = sym("+") / "add" + sym("-") / "sub",
+["MulOp"] = sym("*") / "mul" + sym("//") / "idiv" + sym("/") / "div" + sym("%") / "mod",
+["UnaryOp"] = kw("not") / "not" + sym("-") / "unm" + sym("#") / "len" + sym("~") / "bnot",
+["PowOp"] = sym("^") / "pow",
+["BinOp"] = V("OrOp") + V("AndOp") + V("BOrOp") + V("BXorOp") + V("BAndOp") + V("ShiftOp") + V("ConcatOp") + V("AddOp") + V("MulOp") + V("PowOp")
 }
 local parser = {}
 local validator = require("lib.lua-parser.validator")
@@ -1943,7 +2692,8 @@ local validate = validator["validate"]
 local syntaxerror = validator["syntaxerror"]
 parser["parse"] = function(subject, filename)
 local errorinfo = {
-["subject"] = subject, ["filename"] = filename
+["subject"] = subject,
+["filename"] = filename
 }
 lpeg["setmaxstack"](1000)
 local ast, label, sfail = lpeg["match"](G, subject, nil, errorinfo)
@@ -1960,8 +2710,14 @@ local parser = _() or parser
 package["loaded"]["lib.lua-parser.parser"] = parser or true
 local candran = { ["VERSION"] = "0.4.0" }
 local default = {
-["target"] = "lua53", ["indentation"] = "", ["newline"] = "\
-", ["requirePrefix"] = "CANDRAN_", ["mapLines"] = true, ["chunkname"] = "nil", ["rewriteErrors"] = true
+["target"] = "lua53",
+["indentation"] = "",
+["newline"] = "\
+",
+["requirePrefix"] = "CANDRAN_",
+["mapLines"] = true,
+["chunkname"] = "nil",
+["rewriteErrors"] = true
 }
 candran["preprocess"] = function(input, options)
 if options == nil then options = {} end
@@ -1997,7 +2753,9 @@ if not f then
 error("Can't open the module file to import")
 end
 margs = util["merge"](options, {
-["chunkname"] = filepath, ["loadLocal"] = true, ["loadPackage"] = true
+["chunkname"] = filepath,
+["loadLocal"] = true,
+["loadPackage"] = true
 }, margs)
 local modcontent = candran["preprocess"](f:read("*a"), margs)
 f:close()

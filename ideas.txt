@@ -40,27 +40,6 @@ local a = new Thing()
 ->
 (TODO: define how classes work. May even use ClassCommons)
 
-* list comprehension
-local a = [x for x in pairs(stuff)]
-local a = [x for x in pairs(stuff) if x == true]
-local a = [x for x in pairs(stuff) if x == true for...]
-local a = x for x in pairs(stuff)
-local a = for x in pairs(stuff) do x end
-local no_color = {k,v for k,v in pairs(thing) if k ~= "color"}
-
-local a = (x if x == true)
-
-* expressions flow decorators
-foo() while condition end
-->
-(function()
-    while condition do
-        return foo()
-    end
-end)()
-
-foo() if stuff > other end
-
 * try / except|catch / finally / else / other keywords
 try
     error("hey")

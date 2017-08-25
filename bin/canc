@@ -28,7 +28,7 @@ for _, file in ipairs(args) do
 	inputFile:close()
 
 	if args.ast then
-		pp.dump(parse(input))
+		pp.dump(assert(parse(input)))
 		return
 	end
 
