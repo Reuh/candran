@@ -1,27 +1,34 @@
-tags._opid.idiv = function(left, right)
+UNPACK = (list, i, j)
+	return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
+end
+APPEND = (t, toAppend)
+	return "do" .. indent() .. "local a, p = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #a do" .. indent() .. t .. "[p] = a[i]" .. newline() .. "p = p + 1" .. unindent() .. "end" .. unindent() .. "end"
+end
+
+tags._opid.idiv = (left, right)
 	return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")"
 end
-tags._opid.band = function(left, right)
+tags._opid.band = (left, right)
 	addRequire("bit", "band", "band")
 	return getRequire("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
-tags._opid.bor = function(left, right)
+tags._opid.bor = (left, right)
 	addRequire("bit", "bor", "bor")
 	return getRequire("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
-tags._opid.bxor = function(left, right)
+tags._opid.bxor = (left, right)
 	addRequire("bit", "bxor", "bxor")
 	return getRequire("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
-tags._opid.shl = function(left, right)
+tags._opid.shl = (left, right)
 	addRequire("bit", "lshift", "lshift")
 	return getRequire("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
-tags._opid.shr = function(left, right)
+tags._opid.shr = (left, right)
 	addRequire("bit", "rshift", "rshift")
 	return getRequire("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
-tags._opid.bnot = function(right)
+tags._opid.bnot = (right)
 	addRequire("bit", "bnot", "bnot")
 	return getRequire("bnot") .. "(" .. lua(right) .. ")"
 end

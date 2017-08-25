@@ -171,12 +171,12 @@ local required = {}
 local requireStr = ""
 local function addRequire(mod, name, field)
 if not required[mod] then
-requireStr = requireStr .. ("local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"])
+requireStr = requireStr .. ("local " .. options["variablePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"])
 required[mod] = true
 end
 end
-local function getRequire(name)
-return options["requirePrefix"] .. name
+local function var(name)
+return options["variablePrefix"] .. name
 end
 local loop = {
 "While",
@@ -238,16 +238,22 @@ lastInputPos = ast["pos"]
 end
 return tags[forceTag or ast["tag"]](ast, ...)
 end
+local UNPACK = function(list, i, j)
+return "table.unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
+end
+local APPEND = function(t, toAppend)
+return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end"
+end
 tags = setmetatable({
 ["Block"] = function(t)
-local hasPush = not peek("push") and any(t, { "Push" }, func)
+local hasPush = peek("push") == nil and any(t, { "Push" }, func)
 if hasPush and hasPush == t[# t] then
 hasPush["tag"] = "Return"
 hasPush = false
 end
 local r = ""
 if hasPush then
-r = r .. (push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline())
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
 end
 for i = 1, # t - 1, 1 do
 r = r .. (lua(t[i]) .. newline())
@@ -256,7 +262,7 @@ if t[# t] then
 r = r .. (lua(t[# t]))
 end
 if hasPush and (t[# t] and t[# t]["tag"] ~= "Return") then
-r = r .. (newline() .. "return unpack(__PUSH__)" .. pop("push"))
+r = r .. (newline() .. "return " .. UNPACK(var("push")) .. pop("push"))
 end
 return r
 end,
@@ -455,14 +461,25 @@ local r = ""
 for _, val in ipairs(t) do
 r = r .. (push .. "[#" .. push .. "+1] = " .. lua(val) .. newline())
 end
-return r .. "return unpack(" .. push .. ")"
+return r .. "return " .. UNPACK(push)
 else
 return "return " .. lua(t, "_lhs")
 end
 end,
 ["Push"] = function(t)
 local var = assert(peek("push"), "no context given for push")
-return var .. "[#" .. var .. "+1] = " .. lua(t, "_lhs")
+r = ""
+for i = 1, # t - 1, 1 do
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[i]) .. newline())
+end
+if t[# t] then
+if t[# t]["tag"] == "Call" or t[# t]["tag"] == "Invoke" then
+r = r .. (APPEND(var, lua(t[# t])))
+else
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[# t]))
+end
+end
+return r
 end,
 ["Break"] = function()
 return "break"
@@ -514,7 +531,21 @@ r = r .. (")" .. indent())
 for _, d in ipairs(decl) do
 r = r .. (d .. newline())
 end
-return r .. lua(t[2]) .. unindent() .. "end"
+if t[2][# t[2]] and t[2][# t[2]]["tag"] == "Push" then
+t[2][# t[2]]["tag"] = "Return"
+end
+local hasPush = any(t[2], { "Push" }, func)
+if hasPush then
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
+else
+push("push", false)
+end
+r = r .. (lua(t[2]))
+if hasPush then
+r = r .. (newline() .. "return " .. UNPACK(var("push")))
+end
+pop("push")
+return r .. unindent() .. "end"
 end,
 ["Function"] = function(t)
 return "function" .. lua(t, "_functionWithoutKeyword")
@@ -558,12 +589,15 @@ end,
 local hasPush = any(t, { "Push" }, func)
 local r = "(function()" .. indent()
 if hasPush then
-r = r .. (push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline())
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
+else
+push("push", false)
 end
 r = r .. (lua(t, stat))
 if hasPush then
-r = r .. (newline() .. "return unpack(__PUSH__)" .. pop("push"))
+r = r .. (newline() .. "return " .. UNPACK(var("push")))
 end
+pop("push")
 r = r .. (unindent() .. "end)()")
 return r
 end,
@@ -696,12 +730,12 @@ local required = {}
 local requireStr = ""
 local function addRequire(mod, name, field)
 if not required[mod] then
-requireStr = requireStr .. ("local " .. options["requirePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"])
+requireStr = requireStr .. ("local " .. options["variablePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"])
 required[mod] = true
 end
 end
-local function getRequire(name)
-return options["requirePrefix"] .. name
+local function var(name)
+return options["variablePrefix"] .. name
 end
 local loop = {
 "While",
@@ -763,16 +797,22 @@ lastInputPos = ast["pos"]
 end
 return tags[forceTag or ast["tag"]](ast, ...)
 end
+local UNPACK = function(list, i, j)
+return "table.unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
+end
+local APPEND = function(t, toAppend)
+return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end"
+end
 tags = setmetatable({
 ["Block"] = function(t)
-local hasPush = not peek("push") and any(t, { "Push" }, func)
+local hasPush = peek("push") == nil and any(t, { "Push" }, func)
 if hasPush and hasPush == t[# t] then
 hasPush["tag"] = "Return"
 hasPush = false
 end
 local r = ""
 if hasPush then
-r = r .. (push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline())
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
 end
 for i = 1, # t - 1, 1 do
 r = r .. (lua(t[i]) .. newline())
@@ -781,7 +821,7 @@ if t[# t] then
 r = r .. (lua(t[# t]))
 end
 if hasPush and (t[# t] and t[# t]["tag"] ~= "Return") then
-r = r .. (newline() .. "return unpack(__PUSH__)" .. pop("push"))
+r = r .. (newline() .. "return " .. UNPACK(var("push")) .. pop("push"))
 end
 return r
 end,
@@ -980,14 +1020,25 @@ local r = ""
 for _, val in ipairs(t) do
 r = r .. (push .. "[#" .. push .. "+1] = " .. lua(val) .. newline())
 end
-return r .. "return unpack(" .. push .. ")"
+return r .. "return " .. UNPACK(push)
 else
 return "return " .. lua(t, "_lhs")
 end
 end,
 ["Push"] = function(t)
 local var = assert(peek("push"), "no context given for push")
-return var .. "[#" .. var .. "+1] = " .. lua(t, "_lhs")
+r = ""
+for i = 1, # t - 1, 1 do
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[i]) .. newline())
+end
+if t[# t] then
+if t[# t]["tag"] == "Call" or t[# t]["tag"] == "Invoke" then
+r = r .. (APPEND(var, lua(t[# t])))
+else
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[# t]))
+end
+end
+return r
 end,
 ["Break"] = function()
 return "break"
@@ -1039,7 +1090,21 @@ r = r .. (")" .. indent())
 for _, d in ipairs(decl) do
 r = r .. (d .. newline())
 end
-return r .. lua(t[2]) .. unindent() .. "end"
+if t[2][# t[2]] and t[2][# t[2]]["tag"] == "Push" then
+t[2][# t[2]]["tag"] = "Return"
+end
+local hasPush = any(t[2], { "Push" }, func)
+if hasPush then
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
+else
+push("push", false)
+end
+r = r .. (lua(t[2]))
+if hasPush then
+r = r .. (newline() .. "return " .. UNPACK(var("push")))
+end
+pop("push")
+return r .. unindent() .. "end"
 end,
 ["Function"] = function(t)
 return "function" .. lua(t, "_functionWithoutKeyword")
@@ -1083,12 +1148,15 @@ end,
 local hasPush = any(t, { "Push" }, func)
 local r = "(function()" .. indent()
 if hasPush then
-r = r .. (push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline())
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
+else
+push("push", false)
 end
 r = r .. (lua(t, stat))
 if hasPush then
-r = r .. (newline() .. "return unpack(__PUSH__)" .. pop("push"))
+r = r .. (newline() .. "return " .. UNPACK(var("push")))
 end
+pop("push")
 r = r .. (unindent() .. "end)()")
 return r
 end,
@@ -1174,6 +1242,12 @@ end,
 }, { ["__index"] = function(self, key)
 error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3")
 end })
+UNPACK = function(list, i, j)
+return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
+end
+APPEND = function(t, toAppend)
+return "do" .. indent() .. "local a, p = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #a do" .. indent() .. t .. "[p] = a[i]" .. newline() .. "p = p + 1" .. unindent() .. "end" .. unindent() .. "end"
+end
 tags["_opid"]["idiv"] = function(left, right)
 return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")"
 end
@@ -1465,7 +1539,7 @@ local status, msg = traverse_varlist(env, stm[1])
 if not status then
 return status, msg
 end
-status, msg = traverse_explist(env, stm[2])
+status, msg = traverse_explist(env, stm[# stm])
 if not status then
 return status, msg
 end
@@ -2708,13 +2782,13 @@ return parser
 end
 local parser = _() or parser
 package["loaded"]["lib.lua-parser.parser"] = parser or true
-local candran = { ["VERSION"] = "0.4.0" }
+local candran = { ["VERSION"] = "0.5.0" }
 local default = {
 ["target"] = "lua53",
 ["indentation"] = "",
 ["newline"] = "\
 ",
-["requirePrefix"] = "CANDRAN_",
+["variablePrefix"] = "__CAN_",
 ["mapLines"] = true,
 ["chunkname"] = "nil",
 ["rewriteErrors"] = true

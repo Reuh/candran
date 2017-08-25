@@ -10,7 +10,7 @@
 #import("lib.lua-parser.parser")
 
 local candran = {
-	VERSION = "0.4.0"
+	VERSION = "0.5.0"
 }
 
 --- Default options.
@@ -18,7 +18,7 @@ local default = {
 	target = "lua53",
 	indentation = "",
 	newline = "\n",
-	requirePrefix = "CANDRAN_",
+	variablePrefix = "__CAN_",
 	mapLines = true,
 	chunkname = "nil",
 	rewriteErrors = true

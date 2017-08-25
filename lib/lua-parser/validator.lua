@@ -171,7 +171,7 @@ end
 local function traverse_assignment (env, stm)
   local status, msg = traverse_varlist(env, stm[1])
   if not status then return status, msg end
-  status, msg = traverse_explist(env, stm[2])
+  status, msg = traverse_explist(env, stm[#stm])
   if not status then return status, msg end
   return true
 end
@@ -372,7 +372,7 @@ function traverse_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then -- `Do{ stat* }
     return traverse_block(env, stm)
-  elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
+  elseif tag == "Set" then -- `Set{ {lhs+} (opid? = opid?)? {expr+} }
     return traverse_assignment(env, stm)
   elseif tag == "While" then -- `While{ expr block }
     return traverse_while(env, stm)

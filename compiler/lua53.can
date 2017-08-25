@@ -46,13 +46,15 @@ return function(code, ast, options)
 	-- Add the module "mod" to the list of modules to require, and load its field "field" (or the whole module if nil) into the variable "name".
 	local function addRequire(mod, name, field)
 		if not required[mod] then
-			requireStr ..= "local " .. options.requirePrefix .. name .. (" = require(%q)"):format(mod) .. (field and "."..field or "") .. options.newline
+			requireStr ..= "local " .. options.variablePrefix .. name .. (" = require(%q)"):format(mod) .. (field and "."..field or "") .. options.newline
 			required[mod] = true
 		end
 	end
-	-- Returns the required module variable name.
-	local function getRequire(name)
-		return options.requirePrefix .. name
+
+	--- Variable management
+	-- Returns the prefixed variable name.
+	local function var(name)
+		return options.variablePrefix .. name
 	end
 
 	--- AST traversal helpers
@@ -112,18 +114,27 @@ return function(code, ast, options)
 		end
 		return tags[forceTag or ast.tag](ast, ...)
 	end
-	-- Tag constructors
+
+	--- Lua function calls writer
+	local UNPACK = (list, i, j) -- table.unpack
+		return "table.unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
+	end
+	local APPEND = (t, toAppend) -- append values "toAppend" (multiple values possible) to t
+		return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end"
+	end
+
+	--- Tag constructors
 	tags = setmetatable({
 		-- block: { stat* } --
 		Block = (t)
-			local hasPush = not peek("push") and any(t, { "Push" }, func) -- push in block and push context not yet defined
+			local hasPush = peek("push") == nil and any(t, { "Push" }, func) -- push in block and push context not yet defined
 			if hasPush and hasPush == t[#t] then -- if the first push is the last statement, it's just a return
 				hasPush.tag = "Return"
 				hasPush = false
 			end
 			local r = ""
 			if hasPush then
-				r ..= push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline()
+				r ..= push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()
 			end
 			for i=1, #t-1, 1 do
 				r ..= lua(t[i]) .. newline()
@@ -132,7 +143,7 @@ return function(code, ast, options)
 				r ..= lua(t[#t])
 			end
 			if hasPush and (t[#t] and t[#t].tag ~= "Return") then -- add return only if needed
-				r ..= newline() .. "return unpack(__PUSH__)" .. pop("push")
+				r ..= newline() .. "return " .. UNPACK(var("push")) .. pop("push")
 			end
 			return r
 		end,
@@ -291,7 +302,7 @@ return function(code, ast, options)
 				for _, val in ipairs(t) do
 					r ..= push .. "[#" .. push .. "+1] = " .. lua(val) .. newline()
 				end
-				return r .. "return unpack(" .. push .. ")"
+				return r .. "return " .. UNPACK(push)
 			else
 				return "return "..lua(t, "_lhs")
 			end
@@ -299,7 +310,18 @@ return function(code, ast, options)
 		-- Push{ <expr*> }
 		Push = (t)
 			local var = assert(peek("push"), "no context given for push")
-			return var .. "[#" .. var .. "+1] = " .. lua(t, "_lhs")
+			r = ""
+			for i=1, #t-1, 1 do
+				r ..= var .. "[#" .. var .. "+1] = " .. lua(t[i]) .. newline()
+			end
+			if t[#t] then
+				if t[#t].tag == "Call" or t[#t].tag == "Invoke" then
+					r ..= APPEND(var, lua(t[#t]))
+				else
+					r ..= var .. "[#" .. var .. "+1] = " .. lua(t[#t])
+				end
+			end
+			return r
 		end,
 		-- Break
 		Break = ()
@@ -363,7 +385,21 @@ return function(code, ast, options)
 			for _, d in ipairs(decl) do
 				r ..= d .. newline()
 			end
-			return r .. lua(t[2]) .. unindent() .. "end"
+			if t[2][#t[2]] and t[2][#t[2]].tag == "Push" then -- convert final push to return
+				t[2][#t[2]].tag = "Return"
+			end
+			local hasPush = any(t[2], { "Push" }, func)
+			if hasPush then
+				r ..= push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()
+			else
+				push("push", false) -- no push here (make sure higher push don't affect us)
+			end
+			r ..= lua(t[2])
+			if hasPush then
+				r ..= newline() .. "return " .. UNPACK(var("push"))
+			end
+			pop("push")
+			return r .. unindent() .. "end"
 		end,
 		Function = (t)
 			return "function" .. lua(t, "_functionWithoutKeyword")
@@ -416,12 +452,15 @@ return function(code, ast, options)
 			local hasPush = any(t, { "Push" }, func)
 			local r = "(function()" .. indent()
 			if hasPush then
-				r ..= push("push", "__PUSH__") .. "local __PUSH__ = {}" .. newline()
+				r ..= push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()
+			else
+				push("push", false) -- no push here (make sure higher push don't affect us)
 			end
 			r ..= lua(t, stat)
 			if hasPush then
-				r ..= newline() .. "return unpack(__PUSH__)" .. pop("push")
+				r ..= newline() .. "return " .. UNPACK(var("push"))
 			end
+			pop("push")
 			r ..= unindent() .. "end)()"
 			return r
 		end,
