@@ -541,7 +541,7 @@ else
 push("push", false)
 end
 r = r .. (lua(t[2]))
-if hasPush then
+if hasPush and (t[2][# t[2]] and t[2][# t[2]]["tag"] ~= "Return") then
 r = r .. (newline() .. "return " .. UNPACK(var("push")))
 end
 pop("push")
@@ -1100,7 +1100,7 @@ else
 push("push", false)
 end
 r = r .. (lua(t[2]))
-if hasPush then
+if hasPush and (t[2][# t[2]] and t[2][# t[2]]["tag"] ~= "Return") then
 r = r .. (newline() .. "return " .. UNPACK(var("push")))
 end
 pop("push")
@@ -2667,7 +2667,7 @@ V("Lua"),
 ["PushStat"] = tagC("Push", kw("push") * commaSep(V("Expr"), "RetList") ^ - 1 * sym(";") ^ - 1),
 ["ImplicitPushStat"] = tagC("Push", commaSep(V("Expr"), "RetList") * sym(";") ^ - 1),
 ["NameList"] = tagC("NameList", commaSep(V("Id"))),
-["VarList"] = tagC("VarList", commaSep(V("VarExpr"), "VarList")),
+["VarList"] = tagC("VarList", commaSep(V("VarExpr"))),
 ["ExprList"] = tagC("ExpList", commaSep(V("Expr"), "ExprList")),
 ["Expr"] = V("OrExpr"),
 ["OrExpr"] = chainOp(V("AndExpr"), V("OrOp"), "OrExpr"),

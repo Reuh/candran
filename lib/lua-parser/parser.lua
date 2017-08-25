@@ -349,7 +349,7 @@ local G = { V"Lua",
   ImplicitPushStat = tagC("Push", commaSep(V"Expr", "RetList") * sym(";")^-1);
 
   NameList  = tagC("NameList", commaSep(V"Id"));
-  VarList   = tagC("VarList", commaSep(V"VarExpr", "VarList"));
+  VarList   = tagC("VarList", commaSep(V"VarExpr"));
   ExprList  = tagC("ExpList", commaSep(V"Expr", "ExprList"));
 
   Expr        = V"OrExpr";

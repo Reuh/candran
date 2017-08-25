@@ -313,6 +313,99 @@ end
 return a
 ]], "13579")
 
+-- push keyword
+test("push keyword", [[
+function a()
+	for i=1, 5 do
+		push i, "next"
+	end
+	return "done"
+end
+return table.concat({a()})
+]], "1next2next3next4next5nextdone")
+test("push keyword variable length", [[
+function v()
+	return "hey", "hop"
+end
+function w()
+	return "foo", "bar"
+end
+function a()
+	push 5, v(), w()
+	return
+end
+return table.concat({a()})
+]], "5heyfoobar")
+
+-- implicit push
+test("implicit push", [[
+function a()
+	for i=1, 5 do
+		i, "next"
+	end
+	return "done"
+end
+return table.concat({a()})
+]], "1next2next3next4next5nextdone")
+test("implicit push variable length", [[
+function v()
+	return "hey", "hop"
+end
+function w()
+	return "foo", "bar"
+end
+function a()
+	if true then
+		5, v(), w()
+	end
+end
+return table.concat({a()})
+]], "5heyfoobar")
+
+-- statement expressions
+test("if statement expressions", [[
+a = if false then
+	"foo" -- i.e. push "foo", i.e. return "foo"
+else
+	"bar"
+end
+return a
+]], "bar")
+test("do statement expressions", [[
+a = do
+	"bar"
+end
+return a
+]], "bar")
+test("while statement expressions", [[
+i=0
+a, b, c = while i<2 do i=i+1; i end
+return table.concat({a, b, tostring(c)})
+]], "12nil")
+test("repeat statement expressions", [[
+local i = 0
+a, b, c = repeat i=i+1; i until i==2
+return table.concat({a, b, tostring(c)})
+]], "12nil")
+test("for statement expressions", [[
+a, b, c = for i=1,2 do i end
+return table.concat({a, b, tostring(c)})
+]], "12nil")
+
+-- table comprehension
+test("table comprehension sequence", [[
+return table.concat([for i=1,10 do i end])
+]], "12345678910")
+test("table comprehension associative/self", [[
+a = [for i=1, 10 do @[i] = true end]
+return a[1] and a[10]
+]], true)
+test("table comprehension variable length", [[
+t1 = {"hey", "hop"}
+t2 = {"foo", "bar"}
+return table.concat([push unpack(t1); push unpack(t2)])
+]], "heyhopfoobar")
+
 -- results
 local resultCounter = {}
 local testCounter = 0

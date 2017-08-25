@@ -395,7 +395,7 @@ return function(code, ast, options)
 				push("push", false) -- no push here (make sure higher push don't affect us)
 			end
 			r ..= lua(t[2])
-			if hasPush then
+			if hasPush and (t[2][#t[2]] and t[2][#t[2]].tag ~= "Return") then -- add return only if needed
 				r ..= newline() .. "return " .. UNPACK(var("push"))
 			end
 			pop("push")
