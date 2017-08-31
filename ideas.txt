@@ -8,13 +8,11 @@ To be implemented, theese need to:
 * be significantly useful compared to existing Candran/Lua code.
 * be useful without having to rewrite APIs specifically for Candran. Candran intends to make Lua easier, not supersede it.
 
-Example rejected ideas:
+Example currently rejected ideas:
 * Python-style function decorators (implemented in Candran 0.1.0):
     Useless 95% of the time because most Lua APIs applying something to a function are used like applySomething(someArg,func) instead of func=applySomething(someArg)(func).
     This could be adapted, but this will mean unecessary named functions in the environment and it will only works when the decorator returns the functions.
     In this state, these didn't provide anothing useful over short anonymous functions.
-* Making then and do optional:
-    This actually doesn't work because if condition then (doStuff)() end would become ambigous ("condition(doStuff)() then" or "condition then doStuff()"?).
 * Whitespace significance.
     Doesn't fit with Lua's verbose keywords.
 

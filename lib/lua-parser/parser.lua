@@ -16,7 +16,7 @@ stat:
   | `Forin{ {ident+} {expr+} block }          -- for i1, i2... in e1, e2... do b end
   | `Local{ {ident+} {expr+}? }               -- local i1, i2... = e1, e2...
   | `Let{ {ident+} {expr+}? }                 -- let i1, i2... = e1, e2...
-  | `Localrec{ ident expr }                   -- only used for 'local function'
+  | `Localrec{ {ident} {expr} }               -- only used for 'local function'
   | `Goto{ <string> }                         -- goto str
   | `Label{ <string> }                        -- ::str::
   | `Return{ <expr*> }                        -- return e1, e2...
@@ -29,7 +29,7 @@ expr:
     `Nil
   | `Dots
   | `Boolean{ <boolean> }
-  | `Number{ <number> }
+  | `Number{ <string> }  -- we don't use convert to number to avoid losing precision when tostring()-ing it later
   | `String{ <string> }
   | `Function{ { ( `ParPair{ Id expr } | `Id{ <string> } )* `Dots? } block }
   | `Table{ ( `Pair{ expr expr } | expr )* }
@@ -69,7 +69,7 @@ lpeg.locale(lpeg)
 local P, S, V = lpeg.P, lpeg.S, lpeg.V
 local C, Carg, Cb, Cc = lpeg.C, lpeg.Carg, lpeg.Cb, lpeg.Cc
 local Cf, Cg, Cmt, Cp, Cs, Ct = lpeg.Cf, lpeg.Cg, lpeg.Cmt, lpeg.Cp, lpeg.Cs, lpeg.Ct
-local Lc, T = lpeg.Lc, lpeg.T
+local Rec, T = lpeg.Rec, lpeg.T
 
 local alpha, digit, alnum = lpeg.alpha, lpeg.digit, lpeg.alnum
 local xdigit = lpeg.xdigit
@@ -273,48 +273,199 @@ local function makeIndexOrCall (t1, t2)
   return { tag = "Index", pos = t1.pos, [1] = t1, [2] = t2[1] }
 end
 
-local function fixAnonymousMethodParams(t1, t2)
-    if t1 == ":" then
-        t1 = t2
-        table.insert(t1, 1, { tag = "Id", "self" })
+local function fixShortFunc(t)
+    if t[1] == ":" then -- self method
+        table.insert(t[2], 1, { tag = "Id", "self" })
+        table.remove(t, 1)
+        t.is_method = true
     end
-    return t1
+    t.is_short = true
+    return t
 end
 
-local function statToExpr(t)
+local function statToExpr(t) -- tag a StatExpr
     t.tag = t.tag .. "Expr"
     return t
 end
 
+local function fixStructure(t) -- fix the AST structure if needed
+    local i = 1
+    while i <= #t do
+        if type(t[i]) == "table" then
+            fixStructure(t[i])
+            for j=#t[i], 1, -1 do
+                local stat = t[i][j]
+                if type(stat) == "table" and stat.move_up_block and stat.move_up_block > 0 then
+                    table.remove(t[i], j)
+                    table.insert(t, i+1, stat)
+                    if t.tag == "Block" or t.tag == "Do" then
+                        stat.move_up_block = stat.move_up_block - 1
+                    end
+                end
+            end
+        end
+        i = i + 1
+    end
+    return t
+end
+
+local function searchEndRec(block, isRecCall) -- recursively search potential "end" keyword wrongly consumed by a short anonymous function on stat end (yeah, too late to change the syntax to something easier to parse)
+    for i, stat in ipairs(block) do
+        -- Non recursive statements
+        if stat.tag == "Set" or stat.tag == "Push" or stat.tag == "Return" or stat.tag == "Local" or stat.tag == "Let" or stat.tag == "Localrec" then
+            local exprlist
+
+            if stat.tag == "Set" or stat.tag == "Local" or stat.tag == "Let" or stat.tag == "Localrec" then
+                exprlist = stat[#stat]
+            elseif stat.tag == "Push" or stat.tag == "Return" then
+                exprlist = stat
+            end
+
+            local last = exprlist[#exprlist] -- last value in ExprList
+
+            -- Stuff parse shittily only for short function declaration which are not method and whith strictly one variable name between the parenthesis.
+            -- Otherwise it's invalid Lua anyway, so not my problem.
+            if last.tag == "Function" and last.is_short and not last.is_method and #last[1] == 1 then
+                local p = i
+                for j, fstat in ipairs(last[2]) do
+                    p = i + j
+                    table.insert(block, p, fstat) -- copy stats from func body to block
+
+                    if stat.move_up_block then -- extracted stats inherit move_up_block from statement
+                        fstat.move_up_block = (fstat.move_up_block or 0) + stat.move_up_block
+                    end
+
+                    if block.is_singlestatblock then -- if it's a single stat block, mark them to move them outside of the block
+                        fstat.move_up_block = (fstat.move_up_block or 0) + 1
+                    end
+                end
+
+                exprlist[#exprlist] = last[1] -- replace func with paren and expressions
+                exprlist[#exprlist].tag = "Paren"
+
+                if not isRecCall then -- if superfluous statements won't be moved in a next recursion, let fixStructure handle things
+                    for j=p+1, #block, 1 do
+                        block[j].move_up_block = (block[j].move_up_block or 0) + 1
+                    end
+                end
+
+                return block, i
+
+            -- I lied, stuff can also be recursive here (StatExpr & Function)
+            elseif last.tag:match("Expr$") then
+                local r = searchEndRec({ last })
+                if r then
+                    for j=2, #r, 1 do
+                        table.insert(block, i+j-1, r[j]) -- move back superflous statements from our new table to our real block
+                    end
+                    return block, i
+                end
+            elseif last.tag == "Function" then
+                local r = searchEndRec(last[2])
+                if r then
+                    return block, i
+                end
+            end
+
+        -- Recursive statements
+        elseif stat.tag:match("^If") or stat.tag:match("^While") or stat.tag:match("^Repeat") or stat.tag:match("^Do") or stat.tag:match("^Fornum") or stat.tag:match("^Forin") then
+            local blocks
+
+            if stat.tag:match("^If") or stat.tag:match("^While") or stat.tag:match("^Repeat") or stat.tag:match("^Fornum") or stat.tag:match("^Forin") then
+                blocks = stat
+            elseif stat.tag:match("^Do") then
+                blocks = { stat }
+            end
+
+            for _, iblock in ipairs(blocks) do
+                if iblock.tag == "Block" then -- blocks
+                    local oldLen = #iblock
+                    local newiBlock, newEnd = searchEndRec(iblock, true)
+                    if newiBlock then -- if end in the block
+                        local p = i
+                        for j=newEnd+(#iblock-oldLen)+1, #iblock, 1 do -- move all statements after the newely added statements to the parent block
+                            p = p + 1
+                            table.insert(block, p, iblock[j])
+                            iblock[j] = nil
+                        end
+
+                        if not isRecCall then -- if superfluous statements won't be moved in a next recursion, let fixStructure handle things
+                            for j=p+1, #block, 1 do
+                                block[j].move_up_block = (block[j].move_up_block or 0) + 1
+                            end
+                        end
+
+                        return block, i
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function searchEnd(s, p, t) -- match time capture which try to restructure the AST to free an "end" for us
+    local r = searchEndRec(fixStructure(t))
+    if not r then
+        return false
+    end
+    return true, r
+end
+
+local function expectBlockOrSingleStatWithStartEnd(start, startLabel, stopLabel, canFollow) -- will try a SingleStat if start doesn't match
+    if canFollow then
+        return (-start * V"SingleStatBlock" * canFollow^-1)
+             + (expect(start, startLabel) * ((V"Block" * (canFollow + kw("end")))
+                                           + (Cmt(V"Block", searchEnd) + throw(stopLabel))))
+    else
+        return (-start * V"SingleStatBlock")
+             + (expect(start, startLabel) * ((V"Block" * kw("end"))
+                                           + (Cmt(V"Block", searchEnd) + throw(stopLabel))))
+    end
+end
+
+local function expectBlockWithEnd(label) -- can't work *optionnaly* with SingleStat unfortunatly
+    return (V"Block" * kw("end"))
+         + (Cmt(V"Block", searchEnd) + throw(label))
+end
+
+local function maybeBlockWithEnd() -- same as above but don't error if it doesn't match
+    return (V"BlockNoErr" * kw("end"))
+         + Cmt(V"BlockNoErr", searchEnd)
+end
+
 -- grammar
 local G = { V"Lua",
-  Lua      = V"Shebang"^-1 * V"Skip" * V"Block" * expect(P(-1), "Extra");
+  Lua      = (V"Shebang"^-1 * V"Skip" * V"Block" * expect(P(-1), "Extra")) / fixStructure;
   Shebang  = P"#!" * (P(1) - P"\n")^0;
 
-  Block       = tagC("Block", V"Stat"^0 * (V"RetStat" + V"ImplicitPushStat")^-1);
+  Block       = tagC("Block", (V"Stat" + -V"BlockEnd" * throw("InvalidStat"))^0 * ((V"RetStat" + V"ImplicitPushStat") * sym(";")^-1)^-1);
   Stat        = V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat"
               + V"LocalStat" + V"FuncStat" + V"BreakStat" + V"LabelStat" + V"GoToStat"
               + V"FuncCall" + V"Assignment"
               + V"LetStat" + V"ContinueStat" + V"PushStat"
-              + sym(";") + -V"BlockEnd" * throw("InvalidStat");
-  BlockEnd    = P"return" + "end" + "elseif" + "else" + "until" + "]" + -1 + V"ImplicitPushStat";
+              + sym(";");
+  BlockEnd    = P"return" + "end" + "elseif" + "else" + "until" + "]" + -1 + V"ImplicitPushStat" + V"Assignment";
 
-  IfStat      = tagC("If", V"IfPart" * V"ElseIfPart"^0 * V"ElsePart"^-1 * expect(kw("end"), "EndIf"));
-  IfPart      = kw("if") * expect(V"Expr", "ExprIf") * expect(kw("then"), "ThenIf") * V"Block";
-  ElseIfPart  = kw("elseif") * expect(V"Expr", "ExprEIf") * expect(kw("then"), "ThenEIf") * V"Block";
-  ElsePart    = kw("else") * V"Block";
+  SingleStatBlock = tagC("Block", V"Stat" + V"RetStat" + V"ImplicitPushStat") / function(t) t.is_singlestatblock = true return t end;
+  BlockNoErr      = tagC("Block", V"Stat"^0 * ((V"RetStat" + V"ImplicitPushStat") * sym(";")^-1)^-1); -- used to check if something a valid block without throwing an error
 
-  DoStat      = kw("do") * V"Block" * expect(kw("end"), "EndDo") / tagDo;
+  IfStat      = tagC("If", V"IfPart");
+  IfPart      = kw("if") * expect(V"Expr", "ExprIf") * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenIf", "EndIf", V"ElseIfPart" + V"ElsePart");
+  ElseIfPart  = kw("elseif") * expect(V"Expr", "ExprEIf") * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenEIf", "EndIf", V"ElseIfPart" + V"ElsePart");
+  ElsePart    = kw("else") * expectBlockWithEnd("EndIf");
+
+  DoStat      = kw("do") * expectBlockWithEnd("EndDo") / tagDo;
   WhileStat   = tagC("While", kw("while") * expect(V"Expr", "ExprWhile") * V"WhileBody");
-  WhileBody   = expect(kw("do"), "DoWhile") * V"Block" * expect(kw("end"), "EndWhile");
+  WhileBody   = expectBlockOrSingleStatWithStartEnd(kw("do"), "DoWhile", "EndWhile");
   RepeatStat  = tagC("Repeat", kw("repeat") * V"Block" * expect(kw("until"), "UntilRep") * expect(V"Expr", "ExprRep"));
 
-  ForStat   = kw("for") * expect(V"ForNum" + V"ForIn", "ForRange") * expect(kw("end"), "EndFor");
+  ForStat   = kw("for") * expect(V"ForNum" + V"ForIn", "ForRange");
   ForNum    = tagC("Fornum", V"Id" * sym("=") * V"NumRange" * V"ForBody");
   NumRange  = expect(V"Expr", "ExprFor1") * expect(sym(","), "CommaFor") *expect(V"Expr", "ExprFor2")
             * (sym(",") * expect(V"Expr", "ExprFor3"))^-1;
   ForIn     = tagC("Forin", V"NameList" * expect(kw("in"), "InFor") * expect(V"ExprList", "EListFor") * V"ForBody");
-  ForBody   = expect(kw("do"), "DoFor") * V"Block";
+  ForBody   = expectBlockOrSingleStatWithStartEnd(kw("do"), "DoFor", "EndFor");
 
   LocalStat    = kw("local") * expect(V"LocalFunc" + V"LocalAssign", "DefLocal");
   LocalFunc    = tagC("Localrec", kw("function") * expect(V"Id", "NameLFunc") * V"FuncBody") / fixFuncStat;
@@ -323,16 +474,19 @@ local G = { V"Lua",
   LetStat      = kw("let") * expect(V"LetAssign", "DefLet");
   LetAssign    = tagC("Let", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())));
 
-  Assignment   = tagC("Set", V"VarList" * V"BinOp"^-1 * (sym("=") / "=") * V"BinOp"^-1 * expect(V"ExprList", "EListAssign"));
+  Assignment   = tagC("Set", V"VarList" * V"BinOp"^-1 * (P"=" / "=") * V"BinOp"^-1 * V"Skip" * expect(V"ExprList", "EListAssign"));
 
   FuncStat    = tagC("Set", kw("function") * expect(V"FuncName", "FuncName") * V"FuncBody") / fixFuncStat;
   FuncName    = Cf(V"Id" * (sym(".") * expect(V"StrId", "NameFunc1"))^0, insertIndex)
               * (sym(":") * expect(V"StrId", "NameFunc2"))^-1 / markMethod;
-  FuncBody    = tagC("Function", V"FuncParams" * V"Block" * expect(kw("end"), "EndFunc"));
+  FuncBody    = tagC("Function", V"FuncParams" * expectBlockWithEnd("EndFunc"));
   FuncParams  = expect(sym("("), "OParenPList") * V"ParList" * expect(sym(")"), "CParenPList");
   ParList     = V"NamedParList" * (sym(",") * expect(tagC("Dots", sym("...")), "ParList"))^-1 / addDots
               + Ct(tagC("Dots", sym("...")))
               + Ct(Cc()); -- Cc({}) generates a bug since the {} would be shared across parses
+
+  ShortFuncDef    = tagC("Function", V"ShortFuncParams" * maybeBlockWithEnd()) / fixShortFunc;
+  ShortFuncParams = (sym(":") / ":")^-1 * sym("(") * V"ParList" * sym(")");
 
   NamedParList  = tagC("NamedParList", commaSep(V"NamedPar"));
   NamedPar      = tagC("ParPair", V"ParKey" * expect(sym("="), "EqField") * expect(V"Expr", "ExprField"))
@@ -343,10 +497,10 @@ local G = { V"Lua",
   GoToStat        = tagC("Goto", kw("goto") * expect(V"Name", "Goto"));
   BreakStat       = tagC("Break", kw("break"));
   ContinueStat    = tagC("Continue", kw("continue"));
-  RetStat         = tagC("Return", kw("return") * commaSep(V"Expr", "RetList")^-1 * sym(";")^-1);
+  RetStat         = tagC("Return", kw("return") * commaSep(V"Expr", "RetList")^-1);
 
-  PushStat         = tagC("Push", kw("push") * commaSep(V"Expr", "RetList")^-1 * sym(";")^-1);
-  ImplicitPushStat = tagC("Push", commaSep(V"Expr", "RetList") * sym(";")^-1);
+  PushStat         = tagC("Push", kw("push") * commaSep(V"Expr", "RetList")^-1);
+  ImplicitPushStat = tagC("Push", commaSep(V"Expr", "RetList"));
 
   NameList  = tagC("NameList", commaSep(V"Id"));
   VarList   = tagC("VarList", commaSep(V"VarExpr"));
@@ -375,6 +529,7 @@ local G = { V"Lua",
              + tagC("Dots", sym("..."))
              + V"FuncDef"
              + V"Table"
+             + V"ShortFuncDef"
              + V"SuffixedExpr"
              + V"TableCompr"
              + V"StatExpr";
@@ -395,10 +550,7 @@ local G = { V"Lua",
   SelfIndex     = tagC("DotIndex", V"StrId");
   SelfCall      = tagC("Invoke", Cg(V"StrId" * V"FuncArgs"));
 
-  ShortFuncDef     = tagC("Function", V"ShortFuncParams" * V"Block" * expect(kw("end"), "EndFunc"));
-  ShortFuncParams  = (sym(":") / ":")^-1 * sym("(") * V"ParList" * sym(")") / fixAnonymousMethodParams;
-
-  FuncDef   = (kw("function") * V"FuncBody") + V"ShortFuncDef";
+  FuncDef   = (kw("function") * V"FuncBody");
   FuncArgs  = sym("(") * commaSep(V"Expr", "ArgList")^-1 * expect(sym(")"), "CParenArgs")
             + V"Table"
             + tagC("String", V"String");
@@ -433,13 +585,15 @@ local G = { V"Lua",
   IdStart   = alpha + P"_";
   IdRest    = alnum + P"_";
 
-  Number   = token((V"Hex" + V"Float" + V"Int") / tonumber);
-  Hex      = (P"0x" + "0X") * expect(xdigit^1, "DigitHex");
+  Number   = token(C(V"Hex" + V"Float" + V"Int"));
+  Hex      = (P"0x" + "0X") * ((xdigit^0 * V"DeciHex") + (expect(xdigit^1, "DigitHex") * V"DeciHex"^-1)) * V"ExpoHex"^-1;
   Float    = V"Decimal" * V"Expo"^-1
            + V"Int" * V"Expo";
   Decimal  = digit^1 * "." * digit^0
            + P"." * -P"." * expect(digit^1, "DigitDeci");
+  DeciHex  = P"." * xdigit^0;
   Expo     = S"eE" * S"+-"^-1 * expect(digit^1, "DigitExpo");
+  ExpoHex  = S"pP" * S"+-"^-1 * expect(xdigit^1, "DigitExpo");
   Int      = digit^1;
 
   String    = token(V"ShortStr" + V"LongStr");

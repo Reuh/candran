@@ -2,7 +2,7 @@ return function(code, ast, options)
 	--- Line mapping
 	local lastInputPos = 1 -- last token position in the input code
 	local prevLinePos = 1 -- last token position in the previous line of code in the input code
-	local lastSource = "nil" -- last found code source name (from the original file)
+	local lastSource = options.chunkname or "nil" -- last found code source name (from the original file)
 	local lastLine = 1 -- last found line number (from the original file)
 
 	--- Newline management
@@ -282,17 +282,17 @@ return function(code, ast, options)
 			end
 			return r
 		end,
-		-- Localrec{ ident expr }
+		-- Localrec{ {ident} {expr} }
 		Localrec = (t)
 			return "local function "..lua(t[1][1])..lua(t[2][1], "_functionWithoutKeyword")
 		end,
 		-- Goto{ <string> }
 		Goto = (t)
-			return "goto " .. lua(t[1], "Id")
+			return "goto " .. lua(t, "Id")
 		end,
 		-- Label{ <string> }
 		Label = (t)
-			return "::" .. lua(t[1], "Id") .. "::"
+			return "::" .. lua(t, "Id") .. "::"
 		end,
 		-- Return{ <expr*> }
 		Return = (t)
@@ -347,7 +347,7 @@ return function(code, ast, options)
 		Boolean = (t)
 			return tostring(t[1])
 		end,
-		-- Number{ <number> }
+		-- Number{ <string> }
 		Number = (t)
 			return tostring(t[1])
 		end,
@@ -363,7 +363,7 @@ return function(code, ast, options)
 				if t[1][1].tag == "ParPair" then
 					local id = lua(t[1][1][1])
 					indentLevel += 1
-					table.insert(decl, id .. " = " .. id .. " == nil and " .. lua(t[1][1][2]) .. " or " .. id)
+					table.insert(decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][1][2]) .. " end")
 					indentLevel -= 1
 					r ..= id
 				else
@@ -483,7 +483,7 @@ return function(code, ast, options)
 		IfExpr = (t)
 			for i=2, #t do -- convert final pushes to returns
 				local block = t[i]
-				if block[#block].tag == "Push" then
+				if block[#block] and block[#block].tag == "Push" then
 					block[#block].tag = "Return"
 				end
 			end

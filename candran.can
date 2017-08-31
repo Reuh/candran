@@ -10,7 +10,7 @@
 #import("lib.lua-parser.parser")
 
 local candran = {
-	VERSION = "0.5.0"
+	VERSION = "0.6.0"
 }
 
 --- Default options.
@@ -124,7 +124,7 @@ end
 function candran.compile(input, options={})
 	options = util.merge(default, options)
 
-	local ast, errmsg = parser.parse(input, "candran")
+	local ast, errmsg = parser.parse(input, options.chunkname)
 
 	if not ast then
 		error("Compiler: error while parsing file: "..errmsg)

@@ -27,13 +27,11 @@ for _, file in ipairs(args) do
 	local input = inputFile:read("*a")
 	inputFile:close()
 
-	if args.ast then
-		pp.dump(assert(parse(input)))
-		return
-	end
+	args.chunkname = file
 
-	if args.chunkname == nil then
-		args.chunkname = file
+	if args.ast then
+		pp.dump(assert(parse(input, args.chunkname)))
+		return
 	end
 
 	local out = input

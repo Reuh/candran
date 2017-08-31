@@ -5,8 +5,8 @@ version = "scm-1"
 description = {
 	summary = "A simple Lua dialect and preprocessor.",
 	detailed = [[
-		Candran is a dialect of the Lua 5.3 programming language which compiles to Lua 5.3 and Lua 5.1/LuaJit. It adds a preprocessor and several useful syntax additions.
-		Unlike Moonscript, Candran tries to stay close to the Lua syntax.
+		Candran is a dialect of the Lua 5.3 programming language which compiles to Lua 5.3 and Lua 5.1/LuaJit. It adds several useful syntax additions which aims to make Lua faster and easier to write, and a simple preprocessor.
+		Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing Lua code can run on Candran unmodified.
 	]],
 	license = "MIT",
 	homepage = "https://github.com/Reuh/candran",
