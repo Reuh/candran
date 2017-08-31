@@ -38,9 +38,11 @@ local list = [ -- table comprehension (kind of)
 		if i%2 == 0 then
 			continue -- continue keyword
 		end
-		i
+		i -- implicit push
 	end
 ]
+
+local count = [for i=1,10 i] -- single line statements
 
 local a = if condition then "one" else "two" end -- statement as expressions
 
@@ -85,6 +87,8 @@ For example, a ````var += nb```` assignment will be compiled into ````var = var 
 All theses operators can also be put right of the assigment operator, in which case ```var =+ nb``` will be compiled into ```var = nb + var```.
 
 If you feel like writing hard to understand code, right and left operator can be used at the same time.
+
+**Please note** that the Lua code `a=-1` will be compiled into `a = 1 - a` and not `a = -1`! Write good code, write spaced code: `a = -1` works as expected.
 
 ##### Default function parameters
 ```lua
@@ -170,7 +174,7 @@ Add one or more value to the returned value list. If you use a `return` afterwar
 
 This keyword is mainly useful when used through implicit `push` with table comprehension and statement expressions.
 
-**Please note** that, in order to stay compatible with vanilla Lua syntax, any `push` immediatly followed by a `"string expression"`, `{table expression}` or `(paranthesis)` will be interpreted as a function call. Preferably use implicit `push` in these cases.
+**Please note** that, in order to stay compatible with vanilla Lua syntax, any `push` immediatly followed by a `"string expression"`, `{table expression}` or `(paranthesis)` will be interpreted as a function call. Preferably use implicit `push` when you can.
 
 ##### Implicit `push`
 ```lua
@@ -231,6 +235,22 @@ You can write *any* code you want between `[` and `]`, this code will be run as 
 Values returned by the function will be inserted in the generated table in the order they were returned. This way, each time you `push` value(s), they will be added to the table.
 
 The table generation function also have access to the `self` (or its alias `@`) variable, which is the table which is being created, so you can set arbitrary fields of the table.
+
+##### One line statements
+```lua
+if condition()
+	a()
+elseif foo()
+	b()
+
+if other()
+	a()
+else -- "end" is always needed for else!
+	c()
+end
+```
+
+`if`, `elseif`, `for`, and `while` statements can be writtent without `do`, `then` or `end`, in which case they contain a single statement.
 
 ### Preprocessor
 Before compiling, Candran's preprocessor is run. It execute every line starting with a _#_ (ignoring whitespace) as Candran code.

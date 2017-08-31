@@ -290,6 +290,70 @@ local a = :(arg1)
 end
 return a(2, 3)
 ]], 5)
+test("short anonymous method parsing edge cases", [[
+-- Taken from the file I used when solving this horror, too tired to make separate tests.
+x = ""
+function a(s)
+	x = x .. tostring(s or "+")
+end
+k=true
+while k do
+	k=false
+	cap = {[0] = op, a}
+	a(tostring(h))
+	if true then
+		a()
+		if false then
+			a = x, (a)
+			c()
+		end
+		a()
+	end
+	a()
+end
+a()
+a("l")
+let h = (h)
+	a("h")
+end
+h()
+a("lol")
+if false then exit() end
+a("pmo")
+if true then
+	if false
+		a = (h)
+
+	a()
+	a("pom")
+end
+a("lo")
+a("kol")
+if false then
+	j()
+	p()
+end
+do
+	b = [
+	k = () end
+	if false
+		k = (lol)
+			error("niet")
+		end
+
+	k()
+	a()]
+end
+if a() then h() end
+local function f (...)
+  if select('#', ...) == 1 then
+    return (...)
+  else
+    return "***"
+  end
+end
+return f(x)
+]], "nil++++lhlolpmo+pomlokol++")
 
 -- let variable declaration
 test("let variable declaration", [[
@@ -405,6 +469,36 @@ t1 = {"hey", "hop"}
 t2 = {"foo", "bar"}
 return table.concat([push unpack(t1); push unpack(t2)])
 ]], "heyhopfoobar")
+
+-- one line statements
+test("one line if", [[
+a = 5
+if false
+	a = 0
+return a
+]], 5)
+test("one line if-elseif", [[
+a = 5
+if false
+	a = 0
+elseif true
+	a = 3
+elseif false
+	a = -1
+return a
+]], 3)
+test("one line for", [[
+a = 0
+for i=1,5
+	a = a + 1
+return a
+]], 5)
+test("one line while", [[
+a = 0
+while a < 5
+	a = a + 1
+return a
+]], 5)
 
 -- results
 local resultCounter = {}
