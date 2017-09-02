@@ -410,6 +410,8 @@ chunkname = "nil" -- The chunkname used when running code using the helper funct
 rewriteErrors = true -- True to enable error rewriting when loading code using the helper functions. Will wrap the whole code in a xpcall().
 ```
 
+You can change these values in the table `candran.default`.
+
 There are also a few function-specific options available, see the associated functions documentation for more information.
 
 ### Compiling the library

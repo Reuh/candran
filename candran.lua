@@ -2855,10 +2855,10 @@ end + P("--") * (P(1) - P("\
 ["ShortStr"] = P("\"") * Cs((V("EscSeq") + (P(1) - S("\"\
 "))) ^ 0) * expect(P("\""), "Quote") + P("'") * Cs((V("EscSeq") + (P(1) - S("'\
 "))) ^ 0) * expect(P("'"), "Quote"),
-["EscSeq"] = P("\\") / "" * (P("a") / "" + P("b") / "" + P("f") / "" + P("n") / "\
-" + P("r") / "\r" + P("t") / "	" + P("v") / "" + P("\
+["EscSeq"] = P("\\") / "" * (P("a") / "\7" + P("b") / "\8" + P("f") / "\12" + P("n") / "\
+" + P("r") / "\13" + P("t") / "\9" + P("v") / "\11" + P("\
 ") / "\
-" + P("\r") / "\
+" + P("\13") / "\
 " + P("\\") / "\\" + P("\"") / "\"" + P("'") / "'" + P("z") * space ^ 0 / "" + digit * digit ^ - 2 / tonumber / string["char"] + P("x") * expect(C(xdigit * xdigit), "HexEsc") * Cc(16) / tonumber / string["char"] + P("u") * expect("{", "OBraceUEsc") * expect(C(xdigit ^ 1), "DigitUEsc") * Cc(16) * expect("}", "CBraceUEsc") / tonumber / (utf8 and utf8["char"] or string["char"]) + throw("EscSeq")),
 ["LongStr"] = V("Open") * C((P(1) - V("CloseEq")) ^ 0) * expect(V("Close"), "CloseLStr") / function(s, eqs)
 return s
@@ -2907,7 +2907,7 @@ end
 local parser = _() or parser
 package["loaded"]["lib.lua-parser.parser"] = parser or true
 local candran = { ["VERSION"] = "0.6.0" }
-local default = {
+candran["default"] = {
 ["target"] = "lua53",
 ["indentation"] = "",
 ["newline"] = "\
@@ -2919,7 +2919,7 @@ local default = {
 }
 candran["preprocess"] = function(input, options)
 if options == nil then options = {} end
-options = util["merge"](default, options)
+options = util["merge"](candran["default"], options)
 local preprocessor = ""
 local i = 0
 for line in (input .. "\
@@ -2975,7 +2975,7 @@ env["write"](f:read("*a"))
 f:close()
 end
 env["write"] = function(...)
-env["output"] = env["output"] .. (table["concat"]({ ... }, "	") .. "\
+env["output"] = env["output"] .. (table["concat"]({ ... }, "\9") .. "\
 ")
 end
 env["placeholder"] = function(name)
@@ -2995,7 +2995,7 @@ return output
 end
 candran["compile"] = function(input, options)
 if options == nil then options = {} end
-options = util["merge"](default, options)
+options = util["merge"](candran["default"], options)
 local ast, errmsg = parser["parse"](input, options["chunkname"])
 if not ast then
 error("Compiler: error while parsing file: " .. errmsg)
@@ -3024,17 +3024,20 @@ local f = util["load"](codeCache[options["chunkname"]], options["chunkname"], en
 if options["rewriteErrors"] == false then
 return f
 else
-return function()
+return function(...)
+local params = { ... }
 if not errorRewritingActive then
 errorRewritingActive = true
-local t = { xpcall(f, candran["messageHandler"]) }
+local t = { xpcall(function()
+return f(unpack(params))
+end, candran["messageHandler"]) }
 errorRewritingActive = false
 if t[1] == false then
 error(t[2], 0)
 end
 return unpack(t, 2)
 else
-return f()
+return f(...)
 end
 end
 end
@@ -3085,7 +3088,7 @@ candran["searcher"] = function(modpath)
 local filepath = util["search"](modpath, { "can" })
 if not filepath then
 return "\
-	no candran file in package.path"
+\9no candran file in package.path"
 end
 return candran["loadfile"](filepath)
 end

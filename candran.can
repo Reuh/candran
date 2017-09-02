@@ -14,7 +14,7 @@ local candran = {
 }
 
 --- Default options.
-local default = {
+candran.default = {
 	target = "lua53",
 	indentation = "",
 	newline = "\n",
@@ -29,7 +29,7 @@ local default = {
 -- @tparam options table arguments for the preprocessor. They will be inserted into the preprocessor environement.
 -- @treturn output string output code
 function candran.preprocess(input, options={})
-	options = util.merge(default, options)
+	options = util.merge(candran.default, options)
 
 	-- generate preprocessor code
 	local preprocessor = ""
@@ -122,7 +122,7 @@ end
 -- @tparam options table options for the compiler
 -- @treturn output string output code
 function candran.compile(input, options={})
-	options = util.merge(default, options)
+	options = util.merge(candran.default, options)
 
 	local ast, errmsg = parser.parse(input, options.chunkname)
 
@@ -165,17 +165,18 @@ function candran.load(chunk, chunkname, env, options={})
 	if options.rewriteErrors == false then
 		return f
 	else
-		return function()
+		return function(...)
+			local params = {...}
 			if not errorRewritingActive then
 				errorRewritingActive = true
-				local t = { xpcall(f, candran.messageHandler) }
+				local t = { xpcall(() return f(unpack(params)) end, candran.messageHandler) }
 				errorRewritingActive = false
 				if t[1] == false then
 					error(t[2], 0)
 				end
 				return unpack(t, 2)
 			else
-				return f()
+				return f(...)
 			end
 		end
 	end
