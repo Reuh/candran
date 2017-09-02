@@ -76,13 +76,19 @@ local b = a[3:5:1]
 local pos = { x = 5, y = 12 }
 
 local {x, y} = pos -- x, y = pos.x, pos.y
-local {x = x, y = y} = pos
-local {:x, :y} = pos -- shorthand for the above line
+local {a, b, x = x, y = y} = pos -- x, y = pos.x, pos.y, a = pos[1], b = pos[2]
+local {a, b, :x, :y} = pos -- shorthand for the above line. Or .x, .y
+local {:x.u} = pos OR {:x:u} OR {.x.u} -- u = pos.x.u
 local [x, y] = pos -- x, y = pos[0], pos[1]
 local x, y $= pos
 
 And in implicit assignments:
 for i, {x, y} in ipairs(positions) do
+
+* String interpolation
+Delimited by ``:
+`Hi, my name is ${@name}` -- -> "blaba" .. tostring(@name)
+Also allows multi-line with this maybe?
 
 * Other potential inspiration
 https://www.ruby-lang.org/fr/

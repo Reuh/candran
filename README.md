@@ -395,7 +395,7 @@ at the top of your main Lua file. If a Candran is found when you call ```require
 file will be loaded.
 
 * ```candran.searcher(modpath)``` : Candran package searcher function. Use the existing package.path.
-* ```candran.setup()``` : Register the Candran package searcher.
+* ```candran.setup()``` : Register the Candran package searcher, and return the `candran` table.
 
 ##### Available compiler & preprocessor options
 You can give arbitrary options which will be gived to the preprocessor, but Candran already provide and uses these with their associated default values:

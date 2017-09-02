@@ -1,6 +1,6 @@
 package = "candran"
 
-version = "0.6.0-1"
+version = "0.6.1-1"
 
 description = {
 	summary = "A simple Lua dialect and preprocessor.",
@@ -17,7 +17,7 @@ description = {
 
 source = {
 	url = "git://github.com/Reuh/candran",
-	tag = "v0.6.0"
+	tag = "v0.6.1"
 }
 
 dependencies = {

@@ -230,7 +230,7 @@ end
 
 --- Candran package searcher function. Use the existing package.path.
 function candran.searcher(modpath)
-	local filepath = util.search(modpath)
+	local filepath = util.search(modpath, {"can"})
 	if not filepath then
 		return "\n\tno candran file in package.path"
 	end
@@ -244,6 +244,7 @@ function candran.setup()
 	else
 		table.insert(package.searchers, 2, candran.searcher)
 	end
+	return candran
 end
 
 return candran

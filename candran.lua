@@ -2855,10 +2855,10 @@ end + P("--") * (P(1) - P("\
 ["ShortStr"] = P("\"") * Cs((V("EscSeq") + (P(1) - S("\"\
 "))) ^ 0) * expect(P("\""), "Quote") + P("'") * Cs((V("EscSeq") + (P(1) - S("'\
 "))) ^ 0) * expect(P("'"), "Quote"),
-["EscSeq"] = P("\\") / "" * (P("a") / "\7" + P("b") / "\8" + P("f") / "\12" + P("n") / "\
-" + P("r") / "\13" + P("t") / "\9" + P("v") / "\11" + P("\
+["EscSeq"] = P("\\") / "" * (P("a") / "" + P("b") / "" + P("f") / "" + P("n") / "\
+" + P("r") / "\r" + P("t") / "	" + P("v") / "" + P("\
 ") / "\
-" + P("\13") / "\
+" + P("\r") / "\
 " + P("\\") / "\\" + P("\"") / "\"" + P("'") / "'" + P("z") * space ^ 0 / "" + digit * digit ^ - 2 / tonumber / string["char"] + P("x") * expect(C(xdigit * xdigit), "HexEsc") * Cc(16) / tonumber / string["char"] + P("u") * expect("{", "OBraceUEsc") * expect(C(xdigit ^ 1), "DigitUEsc") * Cc(16) * expect("}", "CBraceUEsc") / tonumber / (utf8 and utf8["char"] or string["char"]) + throw("EscSeq")),
 ["LongStr"] = V("Open") * C((P(1) - V("CloseEq")) ^ 0) * expect(V("Close"), "CloseLStr") / function(s, eqs)
 return s
@@ -2975,7 +2975,7 @@ env["write"](f:read("*a"))
 f:close()
 end
 env["write"] = function(...)
-env["output"] = env["output"] .. (table["concat"]({ ... }, "\9") .. "\
+env["output"] = env["output"] .. (table["concat"]({ ... }, "	") .. "\
 ")
 end
 env["placeholder"] = function(name)
@@ -3082,10 +3082,10 @@ end
 end)
 end
 candran["searcher"] = function(modpath)
-local filepath = util["search"](modpath)
+local filepath = util["search"](modpath, { "can" })
 if not filepath then
 return "\
-\9no candran file in package.path"
+	no candran file in package.path"
 end
 return candran["loadfile"](filepath)
 end
@@ -3095,5 +3095,6 @@ table["insert"](package["loaders"], 2, candran["searcher"])
 else
 table["insert"](package["searchers"], 2, candran["searcher"])
 end
+return candran
 end
 return candran
