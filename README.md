@@ -51,7 +51,7 @@ local a = if condition then "one" else "two" end -- statement as expressions
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
 #### Quick setup
-Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.5.0-1.rockspec```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.6.1-1.rockspec```.
 
 Or manually install LPegLabel (```luarocks install LPegLabel```), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
