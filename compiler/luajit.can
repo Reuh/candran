@@ -10,27 +10,27 @@ tags._opid.idiv = (left, right)
 end
 tags._opid.band = (left, right)
 	addRequire("bit", "band", "band")
-	return getRequire("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+	return var("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
 tags._opid.bor = (left, right)
 	addRequire("bit", "bor", "bor")
-	return getRequire("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+	return var("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
 tags._opid.bxor = (left, right)
 	addRequire("bit", "bxor", "bxor")
-	return getRequire("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+	return var("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
 tags._opid.shl = (left, right)
 	addRequire("bit", "lshift", "lshift")
-	return getRequire("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+	return var("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
 tags._opid.shr = (left, right)
 	addRequire("bit", "rshift", "rshift")
-	return getRequire("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
+	return var("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
 end
 tags._opid.bnot = (right)
 	addRequire("bit", "bnot", "bnot")
-	return getRequire("bnot") .. "(" .. lua(right) .. ")"
+	return var("bnot") .. "(" .. lua(right) .. ")"
 end
 
 #local patch = output

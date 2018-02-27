@@ -425,8 +425,6 @@ This command will use the precompilled version of this repository (candran.lua) 
 canc candran.can
 ````
 
-The Candran build included in this repository was made using the ```mapLines=false``` option.
-
 You can then run the tests on your build :
 
 ````

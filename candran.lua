@@ -1,3103 +1,3103 @@
-local function _()
-local util = {}
-util["search"] = function(modpath, exts)
-if exts == nil then exts = {
-"can",
-"lua"
-} end
-for _, ext in ipairs(exts) do
-for path in package["path"]:gmatch("[^;]+") do
-local fpath = path:gsub("%.lua", "." .. ext):gsub("%?", (modpath:gsub("%.", "/")))
-local f = io["open"](fpath)
-if f then
-f:close()
-return fpath
-end
-end
-end
-end
-util["load"] = function(str, name, env)
-if _VERSION == "Lua 5.1" then
-local fn, err = loadstring(str, name)
-if not fn then
-return fn, err
-end
-return env ~= nil and setfenv(fn, env) or fn
-else
-if env then
-return load(str, name, nil, env)
-else
-return load(str, name)
-end
-end
-end
-util["merge"] = function(...)
-local r = {}
-for _, t in ipairs({ ... }) do
-for k, v in pairs(t) do
-r[k] = v
-end
-end
-return r
-end
-return util
-end
-local util = _() or util
-package["loaded"]["lib.util"] = util or true
-local function _()
-local ipairs, pairs, setfenv, tonumber, loadstring, type = ipairs, pairs, setfenv, tonumber, loadstring, type
-local tinsert, tconcat = table["insert"], table["concat"]
-local function commonerror(msg)
-return nil, ("[cmdline]: " .. msg)
-end
-local function argerror(msg, numarg)
-msg = msg and (": " .. msg) or ""
-return nil, ("[cmdline]: bad argument #" .. numarg .. msg)
-end
-local function iderror(numarg)
-return argerror("ID not valid", numarg)
-end
-local function idcheck(id)
-return id:match("^[%a_][%w_]*$") and true
-end
-return function(t_in, options, params)
-local t_out = {}
-for i, v in ipairs(t_in) do
-local prefix, command = v:sub(1, 1), v:sub(2)
-if prefix == "$" then
-tinsert(t_out, command)
-elseif prefix == "-" then
-for id in command:gmatch("[^,;]+") do
-if not idcheck(id) then
-return iderror(i)
-end
-t_out[id] = true
-end
-elseif prefix == "!" then
-local f, err = loadstring(command)
-if not f then
-return argerror(err, i)
-end
-setfenv(f, t_out)()
-elseif v:find("=") then
-local ids, val = v:match("^([^=]+)%=(.*)")
-if not ids then
-return argerror("invalid assignment syntax", i)
-end
-if val == "false" then
-val = false
-elseif val == "true" then
-val = true
-else
-val = val:sub(1, 1) == "$" and val:sub(2) or tonumber(val) or val
-end
-for id in ids:gmatch("[^,;]+") do
-if not idcheck(id) then
-return iderror(i)
-end
-t_out[id] = val
-end
-else
-tinsert(t_out, v)
-end
-end
-if options then
-local lookup, unknown = {}, {}
-for _, v in ipairs(options) do
-lookup[v] = true
-end
-for k, _ in pairs(t_out) do
-if lookup[k] == nil and type(k) == "string" then
-tinsert(unknown, k)
-end
-end
-if # unknown > 0 then
-return commonerror("unknown options: " .. tconcat(unknown, ", "))
-end
-end
-if params then
-local missing = {}
-for _, v in ipairs(params) do
-if t_out[v] == nil then
-tinsert(missing, v)
-end
-end
-if # missing > 0 then
-return commonerror("missing parameters: " .. tconcat(missing, ", "))
-end
-end
-return t_out
-end
-end
-local cmdline = _() or cmdline
-package["loaded"]["lib.cmdline"] = cmdline or true
-local function _()
-return function(code, ast, options)
-local lastInputPos = 1
-local prevLinePos = 1
-local lastSource = options["chunkname"] or "nil"
-local lastLine = 1
-local indentLevel = 0
-local function newline()
-local r = options["newline"] .. string["rep"](options["indentation"], indentLevel)
-if options["mapLines"] then
-local sub = code:sub(lastInputPos)
+local function _() -- candran.can:2
+local util = {} -- ./lib/util.can:1
+util["search"] = function(modpath, exts) -- ./lib/util.can:3
+if exts == nil then exts = { -- ./lib/util.can:3
+"can", -- ./lib/util.can:3
+"lua" -- ./lib/util.can:3
+} end -- ./lib/util.can:3
+for _, ext in ipairs(exts) do -- ./lib/util.can:4
+for path in package["path"]:gmatch("[^;]+") do -- ./lib/util.can:5
+local fpath = path:gsub("%.lua", "." .. ext):gsub("%?", (modpath:gsub("%.", "/"))) -- ./lib/util.can:6
+local f = io["open"](fpath) -- ./lib/util.can:7
+if f then -- ./lib/util.can:8
+f:close() -- ./lib/util.can:9
+return fpath -- ./lib/util.can:10
+end -- ./lib/util.can:10
+end -- ./lib/util.can:10
+end -- ./lib/util.can:10
+end -- ./lib/util.can:10
+util["load"] = function(str, name, env) -- ./lib/util.can:16
+if _VERSION == "Lua 5.1" then -- ./lib/util.can:17
+local fn, err = loadstring(str, name) -- ./lib/util.can:18
+if not fn then -- ./lib/util.can:19
+return fn, err -- ./lib/util.can:19
+end -- ./lib/util.can:19
+return env ~= nil and setfenv(fn, env) or fn -- ./lib/util.can:20
+else -- ./lib/util.can:20
+if env then -- ./lib/util.can:22
+return load(str, name, nil, env) -- ./lib/util.can:23
+else -- ./lib/util.can:23
+return load(str, name) -- ./lib/util.can:25
+end -- ./lib/util.can:25
+end -- ./lib/util.can:25
+end -- ./lib/util.can:25
+util["merge"] = function(...) -- ./lib/util.can:30
+local r = {} -- ./lib/util.can:31
+for _, t in ipairs({ ... }) do -- ./lib/util.can:32
+for k, v in pairs(t) do -- ./lib/util.can:33
+r[k] = v -- ./lib/util.can:34
+end -- ./lib/util.can:34
+end -- ./lib/util.can:34
+return r -- ./lib/util.can:37
+end -- ./lib/util.can:37
+return util -- ./lib/util.can:40
+end -- ./lib/util.can:40
+local util = _() or util -- ./lib/util.can:44
+package["loaded"]["lib.util"] = util or true -- ./lib/util.can:45
+local function _() -- ./lib/util.can:48
+local ipairs, pairs, setfenv, tonumber, loadstring, type = ipairs, pairs, setfenv, tonumber, loadstring, type -- ./lib/cmdline.lua:5
+local tinsert, tconcat = table["insert"], table["concat"] -- ./lib/cmdline.lua:6
+local function commonerror(msg) -- ./lib/cmdline.lua:8
+return nil, ("[cmdline]: " .. msg) -- ./lib/cmdline.lua:9
+end -- ./lib/cmdline.lua:9
+local function argerror(msg, numarg) -- ./lib/cmdline.lua:12
+msg = msg and (": " .. msg) or "" -- ./lib/cmdline.lua:13
+return nil, ("[cmdline]: bad argument #" .. numarg .. msg) -- ./lib/cmdline.lua:14
+end -- ./lib/cmdline.lua:14
+local function iderror(numarg) -- ./lib/cmdline.lua:17
+return argerror("ID not valid", numarg) -- ./lib/cmdline.lua:18
+end -- ./lib/cmdline.lua:18
+local function idcheck(id) -- ./lib/cmdline.lua:21
+return id:match("^[%a_][%w_]*$") and true -- ./lib/cmdline.lua:22
+end -- ./lib/cmdline.lua:22
+return function(t_in, options, params) -- ./lib/cmdline.lua:73
+local t_out = {} -- ./lib/cmdline.lua:74
+for i, v in ipairs(t_in) do -- ./lib/cmdline.lua:75
+local prefix, command = v:sub(1, 1), v:sub(2) -- ./lib/cmdline.lua:76
+if prefix == "$" then -- ./lib/cmdline.lua:77
+tinsert(t_out, command) -- ./lib/cmdline.lua:78
+elseif prefix == "-" then -- ./lib/cmdline.lua:79
+for id in command:gmatch("[^,;]+") do -- ./lib/cmdline.lua:80
+if not idcheck(id) then -- ./lib/cmdline.lua:81
+return iderror(i) -- ./lib/cmdline.lua:81
+end -- ./lib/cmdline.lua:81
+t_out[id] = true -- ./lib/cmdline.lua:82
+end -- ./lib/cmdline.lua:82
+elseif prefix == "!" then -- ./lib/cmdline.lua:84
+local f, err = loadstring(command) -- ./lib/cmdline.lua:85
+if not f then -- ./lib/cmdline.lua:86
+return argerror(err, i) -- ./lib/cmdline.lua:86
+end -- ./lib/cmdline.lua:86
+setfenv(f, t_out)() -- ./lib/cmdline.lua:87
+elseif v:find("=") then -- ./lib/cmdline.lua:88
+local ids, val = v:match("^([^=]+)%=(.*)") -- no space around = -- ./lib/cmdline.lua:89
+if not ids then -- ./lib/cmdline.lua:90
+return argerror("invalid assignment syntax", i) -- ./lib/cmdline.lua:90
+end -- ./lib/cmdline.lua:90
+if val == "false" then -- ./lib/cmdline.lua:91
+val = false -- ./lib/cmdline.lua:92
+elseif val == "true" then -- ./lib/cmdline.lua:93
+val = true -- ./lib/cmdline.lua:94
+else -- ./lib/cmdline.lua:94
+val = val:sub(1, 1) == "$" and val:sub(2) or tonumber(val) or val -- ./lib/cmdline.lua:96
+end -- ./lib/cmdline.lua:96
+for id in ids:gmatch("[^,;]+") do -- ./lib/cmdline.lua:98
+if not idcheck(id) then -- ./lib/cmdline.lua:99
+return iderror(i) -- ./lib/cmdline.lua:99
+end -- ./lib/cmdline.lua:99
+t_out[id] = val -- ./lib/cmdline.lua:100
+end -- ./lib/cmdline.lua:100
+else -- ./lib/cmdline.lua:100
+tinsert(t_out, v) -- ./lib/cmdline.lua:103
+end -- ./lib/cmdline.lua:103
+end -- ./lib/cmdline.lua:103
+if options then -- ./lib/cmdline.lua:106
+local lookup, unknown = {}, {} -- ./lib/cmdline.lua:107
+for _, v in ipairs(options) do -- ./lib/cmdline.lua:108
+lookup[v] = true -- ./lib/cmdline.lua:108
+end -- ./lib/cmdline.lua:108
+for k, _ in pairs(t_out) do -- ./lib/cmdline.lua:109
+if lookup[k] == nil and type(k) == "string" then -- ./lib/cmdline.lua:110
+tinsert(unknown, k) -- ./lib/cmdline.lua:110
+end -- ./lib/cmdline.lua:110
+end -- ./lib/cmdline.lua:110
+if # unknown > 0 then -- ./lib/cmdline.lua:112
+return commonerror("unknown options: " .. tconcat(unknown, ", ")) -- ./lib/cmdline.lua:113
+end -- ./lib/cmdline.lua:113
+end -- ./lib/cmdline.lua:113
+if params then -- ./lib/cmdline.lua:116
+local missing = {} -- ./lib/cmdline.lua:117
+for _, v in ipairs(params) do -- ./lib/cmdline.lua:118
+if t_out[v] == nil then -- ./lib/cmdline.lua:119
+tinsert(missing, v) -- ./lib/cmdline.lua:119
+end -- ./lib/cmdline.lua:119
+end -- ./lib/cmdline.lua:119
+if # missing > 0 then -- ./lib/cmdline.lua:121
+return commonerror("missing parameters: " .. tconcat(missing, ", ")) -- ./lib/cmdline.lua:122
+end -- ./lib/cmdline.lua:122
+end -- ./lib/cmdline.lua:122
+return t_out -- ./lib/cmdline.lua:125
+end -- ./lib/cmdline.lua:125
+end -- ./lib/cmdline.lua:125
+local cmdline = _() or cmdline -- ./lib/cmdline.lua:130
+package["loaded"]["lib.cmdline"] = cmdline or true -- ./lib/cmdline.lua:131
+local function _() -- ./lib/cmdline.lua:135
+return function(code, ast, options) -- ./compiler/lua53.can:1
+local lastInputPos = 1 -- last token position in the input code -- ./compiler/lua53.can:3
+local prevLinePos = 1 -- last token position in the previous line of code in the input code -- ./compiler/lua53.can:4
+local lastSource = options["chunkname"] or "nil" -- last found code source name (from the original file) -- ./compiler/lua53.can:5
+local lastLine = 1 -- last found line number (from the original file) -- ./compiler/lua53.can:6
+local indentLevel = 0 -- ./compiler/lua53.can:9
+local function newline() -- ./compiler/lua53.can:11
+local r = options["newline"] .. string["rep"](options["indentation"], indentLevel) -- ./compiler/lua53.can:12
+if options["mapLines"] then -- ./compiler/lua53.can:13
+local sub = code:sub(lastInputPos) -- ./compiler/lua53.can:14
 local source, line = sub:sub(1, sub:find("\
 ")):match("%-%- (.-)%:(%d+)\
-")
-if source and line then
-lastSource = source
-lastLine = tonumber(line)
-else
+") -- ./compiler/lua53.can:15
+if source and line then -- ./compiler/lua53.can:17
+lastSource = source -- ./compiler/lua53.can:18
+lastLine = tonumber(line) -- ./compiler/lua53.can:19
+else -- ./compiler/lua53.can:19
 for _ in code:sub(prevLinePos, lastInputPos):gmatch("\
-") do
-lastLine = lastLine + (1)
-end
-end
-prevLinePos = lastInputPos
-r = " -- " .. lastSource .. ":" .. lastLine .. r
-end
-return r
-end
-local function indent()
-indentLevel = indentLevel + (1)
-return newline()
-end
-local function unindent()
-indentLevel = indentLevel - (1)
-return newline()
-end
-local required = {}
-local requireStr = ""
-local function addRequire(mod, name, field)
-if not required[mod] then
-requireStr = requireStr .. ("local " .. options["variablePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"])
-required[mod] = true
-end
-end
-local function var(name)
-return options["variablePrefix"] .. name
-end
-local loop = {
-"While",
-"Repeat",
-"Fornum",
-"Forin"
-}
-local func = {
-"Function",
-"TableCompr",
-"DoExpr",
-"WhileExpr",
-"RepeatExpr",
-"IfExpr",
-"FornumExpr",
-"ForinExpr"
-}
-local function any(list, tags, nofollow)
-if nofollow == nil then nofollow = {} end
-local tagsCheck = {}
-for _, tag in ipairs(tags) do
-tagsCheck[tag] = true
-end
-local nofollowCheck = {}
-for _, tag in ipairs(nofollow) do
-nofollowCheck[tag] = true
-end
-for _, node in ipairs(list) do
-if type(node) == "table" then
-if tagsCheck[node["tag"]] then
-return node
-end
-if not nofollowCheck[node["tag"]] then
-local r = any(node, tags, nofollow)
-if r then
-return r
-end
-end
-end
-end
-return nil
-end
-local states = { ["push"] = {} }
-local function push(name, state)
-table["insert"](states[name], state)
-return ""
-end
-local function pop(name)
-table["remove"](states[name])
-return ""
-end
-local function peek(name)
-return states[name][# states[name]]
-end
-local tags
-local function lua(ast, forceTag, ...)
-if options["mapLines"] and ast["pos"] then
-lastInputPos = ast["pos"]
-end
-return tags[forceTag or ast["tag"]](ast, ...)
-end
-local UNPACK = function(list, i, j)
-return "table.unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
-end
-local APPEND = function(t, toAppend)
-return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end"
-end
-tags = setmetatable({
-["Block"] = function(t)
-local hasPush = peek("push") == nil and any(t, { "Push" }, func)
-if hasPush and hasPush == t[# t] then
-hasPush["tag"] = "Return"
-hasPush = false
-end
-local r = ""
-if hasPush then
-r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
-end
-for i = 1, # t - 1, 1 do
-r = r .. (lua(t[i]) .. newline())
-end
-if t[# t] then
-r = r .. (lua(t[# t]))
-end
-if hasPush and (t[# t] and t[# t]["tag"] ~= "Return") then
-r = r .. (newline() .. "return " .. UNPACK(var("push")) .. pop("push"))
-end
-return r
-end,
-["Do"] = function(t)
-return "do" .. indent() .. lua(t, "Block") .. unindent() .. "end"
-end,
-["Set"] = function(t)
-if # t == 2 then
-return lua(t[1], "_lhs") .. " = " .. lua(t[2], "_lhs")
-elseif # t == 3 then
-return lua(t[1], "_lhs") .. " = " .. lua(t[3], "_lhs")
-elseif # t == 4 then
-if t[3] == "=" then
-local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2],
-t[1][1],
-{
-["tag"] = "Paren",
-t[4][1]
-}
-}, "Op")
-for i = 2, math["min"](# t[4], # t[1]), 1 do
-r = r .. (", " .. lua({
-t[2],
-t[1][i],
-{
-["tag"] = "Paren",
-t[4][i]
-}
-}, "Op"))
-end
-return r
-else
-local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[3],
-{
-["tag"] = "Paren",
-t[4][1]
-},
-t[1][1]
-}, "Op")
-for i = 2, math["min"](# t[4], # t[1]), 1 do
-r = r .. (", " .. lua({
-t[3],
-{
-["tag"] = "Paren",
-t[4][i]
-},
-t[1][i]
-}, "Op"))
-end
-return r
-end
-else
-local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2],
-t[1][1],
-{
-["tag"] = "Op",
-t[4],
-{
-["tag"] = "Paren",
-t[5][1]
-},
-t[1][1]
-}
-}, "Op")
-for i = 2, math["min"](# t[5], # t[1]), 1 do
-r = r .. (", " .. lua({
-t[2],
-t[1][i],
-{
-["tag"] = "Op",
-t[4],
-{
-["tag"] = "Paren",
-t[5][i]
-},
-t[1][i]
-}
-}, "Op"))
-end
-return r
-end
-end,
-["While"] = function(t)
-local hasContinue = any(t[2], { "Continue" }, loop)
-local r = "while " .. lua(t[1]) .. " do" .. indent()
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[2]))
-if hasContinue then
-r = r .. (unindent() .. "until true")
-end
-r = r .. (unindent() .. "end")
-return r
-end,
-["Repeat"] = function(t)
-local hasContinue = any(t[2], { "Continue" }, loop)
-local r = "repeat" .. indent()
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[1]))
-if hasContinue then
-r = r .. (unindent() .. "until true")
-end
-r = r .. (unindent() .. "until " .. lua(t[2]))
-return r
-end,
-["If"] = function(t)
-local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
-for i = 3, # t - 1, 2 do
-r = r .. ("elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent())
-end
-if # t % 2 == 1 then
-r = r .. ("else" .. indent() .. lua(t[# t]) .. unindent())
-end
-return r .. "end"
-end,
-["Fornum"] = function(t)
-local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3])
-if # t == 5 then
-local hasContinue = any(t[5], { "Continue" }, loop)
-r = r .. (", " .. lua(t[4]) .. " do" .. indent())
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[5]))
-if hasContinue then
-r = r .. ("until true" .. unindent())
-end
-return r .. unindent() .. "end"
-else
-local hasContinue = any(t[4], { "Continue" }, loop)
-r = r .. (" do" .. indent())
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[4]))
-if hasContinue then
-r = r .. (unindent() .. "until true")
-end
-return r .. unindent() .. "end"
-end
-end,
-["Forin"] = function(t)
-local hasContinue = any(t[3], { "Continue" }, loop)
-local r = "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent()
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[3]))
-if hasContinue then
-r = r .. ("until true" .. unindent())
-end
-return r .. unindent() .. "end"
-end,
-["Local"] = function(t)
-local r = "local " .. lua(t[1], "_lhs")
-if t[2][1] then
-r = r .. (" = " .. lua(t[2], "_lhs"))
-end
-return r
-end,
-["Let"] = function(t)
-local nameList = lua(t[1], "_lhs")
-local r = "local " .. nameList
-if t[2][1] then
-if any(t[2], {
-"Function",
-"Table",
-"Paren"
-}) then
-r = r .. (newline() .. nameList .. " = " .. lua(t[2], "_lhs"))
-else
-r = r .. (" = " .. lua(t[2], "_lhs"))
-end
-end
-return r
-end,
-["Localrec"] = function(t)
-return "local function " .. lua(t[1][1]) .. lua(t[2][1], "_functionWithoutKeyword")
-end,
-["Goto"] = function(t)
-return "goto " .. lua(t, "Id")
-end,
-["Label"] = function(t)
-return "::" .. lua(t, "Id") .. "::"
-end,
-["Return"] = function(t)
-local push = peek("push")
-if push then
-local r = ""
-for _, val in ipairs(t) do
-r = r .. (push .. "[#" .. push .. "+1] = " .. lua(val) .. newline())
-end
-return r .. "return " .. UNPACK(push)
-else
-return "return " .. lua(t, "_lhs")
-end
-end,
-["Push"] = function(t)
-local var = assert(peek("push"), "no context given for push")
-r = ""
-for i = 1, # t - 1, 1 do
-r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[i]) .. newline())
-end
-if t[# t] then
-if t[# t]["tag"] == "Call" or t[# t]["tag"] == "Invoke" then
-r = r .. (APPEND(var, lua(t[# t])))
-else
-r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[# t]))
-end
-end
-return r
-end,
-["Break"] = function()
-return "break"
-end,
-["Continue"] = function()
-return "break"
-end,
-["Nil"] = function()
-return "nil"
-end,
-["Dots"] = function()
-return "..."
-end,
-["Boolean"] = function(t)
-return tostring(t[1])
-end,
-["Number"] = function(t)
-return tostring(t[1])
-end,
-["String"] = function(t)
-return ("%q"):format(t[1])
-end,
-["_functionWithoutKeyword"] = function(t)
-local r = "("
-local decl = {}
-if t[1][1] then
-if t[1][1]["tag"] == "ParPair" then
-local id = lua(t[1][1][1])
-indentLevel = indentLevel + (1)
-table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][1][2]) .. " end")
-indentLevel = indentLevel - (1)
-r = r .. (id)
-else
-r = r .. (lua(t[1][1]))
-end
-for i = 2, # t[1], 1 do
-if t[1][i]["tag"] == "ParPair" then
-local id = lua(t[1][i][1])
-indentLevel = indentLevel + (1)
-table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][i][2]) .. " end")
-indentLevel = indentLevel - (1)
-r = r .. (", " .. id)
-else
-r = r .. (", " .. lua(t[1][i]))
-end
-end
-end
-r = r .. (")" .. indent())
-for _, d in ipairs(decl) do
-r = r .. (d .. newline())
-end
-if t[2][# t[2]] and t[2][# t[2]]["tag"] == "Push" then
-t[2][# t[2]]["tag"] = "Return"
-end
-local hasPush = any(t[2], { "Push" }, func)
-if hasPush then
-r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
-else
-push("push", false)
-end
-r = r .. (lua(t[2]))
-if hasPush and (t[2][# t[2]] and t[2][# t[2]]["tag"] ~= "Return") then
-r = r .. (newline() .. "return " .. UNPACK(var("push")))
-end
-pop("push")
-return r .. unindent() .. "end"
-end,
-["Function"] = function(t)
-return "function" .. lua(t, "_functionWithoutKeyword")
-end,
-["Pair"] = function(t)
-return "[" .. lua(t[1]) .. "] = " .. lua(t[2])
-end,
-["Table"] = function(t)
-if # t == 0 then
-return "{}"
-elseif # t == 1 then
-return "{ " .. lua(t, "_lhs") .. " }"
-else
-return "{" .. indent() .. lua(t, "_lhs", nil, true) .. unindent() .. "}"
-end
-end,
-["TableCompr"] = function(t)
-return push("push", "self") .. "(function()" .. indent() .. "local self = {}" .. newline() .. lua(t[1]) .. newline() .. "return self" .. unindent() .. "end)()" .. pop("push")
-end,
-["Op"] = function(t)
-local r
-if # t == 2 then
-if type(tags["_opid"][t[1]]) == "string" then
-r = tags["_opid"][t[1]] .. " " .. lua(t[2])
-else
-r = tags["_opid"][t[1]](t[2])
-end
-else
-if type(tags["_opid"][t[1]]) == "string" then
-r = lua(t[2]) .. " " .. tags["_opid"][t[1]] .. " " .. lua(t[3])
-else
-r = tags["_opid"][t[1]](t[2], t[3])
-end
-end
-return r
-end,
-["Paren"] = function(t)
-return "(" .. lua(t[1]) .. ")"
-end,
-["_statexpr"] = function(t, stat)
-local hasPush = any(t, { "Push" }, func)
-local r = "(function()" .. indent()
-if hasPush then
-r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
-else
-push("push", false)
-end
-r = r .. (lua(t, stat))
-if hasPush then
-r = r .. (newline() .. "return " .. UNPACK(var("push")))
-end
-pop("push")
-r = r .. (unindent() .. "end)()")
-return r
-end,
-["DoExpr"] = function(t)
-if t[# t]["tag"] == "Push" then
-t[# t]["tag"] = "Return"
-end
-return lua(t, "_statexpr", "Do")
-end,
-["WhileExpr"] = function(t)
-return lua(t, "_statexpr", "While")
-end,
-["RepeatExpr"] = function(t)
-return lua(t, "_statexpr", "Repeat")
-end,
-["IfExpr"] = function(t)
-for i = 2, # t do
-local block = t[i]
-if block[# block] and block[# block]["tag"] == "Push" then
-block[# block]["tag"] = "Return"
-end
-end
-return lua(t, "_statexpr", "If")
-end,
-["FornumExpr"] = function(t)
-return lua(t, "_statexpr", "Fornum")
-end,
-["ForinExpr"] = function(t)
-return lua(t, "_statexpr", "Forin")
-end,
-["Call"] = function(t)
-return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")"
-end,
-["Invoke"] = function(t)
-return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")"
-end,
-["_lhs"] = function(t, start, newlines)
-if start == nil then start = 1 end
-local r
-if t[start] then
-r = lua(t[start])
-for i = start + 1, # t, 1 do
-r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i]))
-end
-else
-r = ""
-end
-return r
-end,
-["Id"] = function(t)
-return t[1]
-end,
-["Index"] = function(t)
-return lua(t[1]) .. "[" .. lua(t[2]) .. "]"
-end,
-["_opid"] = {
-["add"] = "+",
-["sub"] = "-",
-["mul"] = "*",
-["div"] = "/",
-["idiv"] = "//",
-["mod"] = "%",
-["pow"] = "^",
-["concat"] = "..",
-["band"] = "&",
-["bor"] = "|",
-["bxor"] = "~",
-["shl"] = "<<",
-["shr"] = ">>",
-["eq"] = "==",
-["ne"] = "~=",
-["lt"] = "<",
-["gt"] = ">",
-["le"] = "<=",
-["ge"] = ">=",
-["and"] = "and",
-["or"] = "or",
-["unm"] = "-",
-["len"] = "#",
-["bnot"] = "~",
-["not"] = "not"
-}
-}, { ["__index"] = function(self, key)
-error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3")
-end })
-local code = lua(ast) .. newline()
-return requireStr .. code
-end
-end
-local lua53 = _() or lua53
-package["loaded"]["compiler.lua53"] = lua53 or true
-local function _()
-local function _()
-return function(code, ast, options)
-local lastInputPos = 1
-local prevLinePos = 1
-local lastSource = options["chunkname"] or "nil"
-local lastLine = 1
-local indentLevel = 0
-local function newline()
-local r = options["newline"] .. string["rep"](options["indentation"], indentLevel)
-if options["mapLines"] then
-local sub = code:sub(lastInputPos)
+") do -- ./compiler/lua53.can:21
+lastLine = lastLine + (1) -- ./compiler/lua53.can:22
+end -- ./compiler/lua53.can:22
+end -- ./compiler/lua53.can:22
+prevLinePos = lastInputPos -- ./compiler/lua53.can:26
+r = " -- " .. lastSource .. ":" .. lastLine .. r -- ./compiler/lua53.can:28
+end -- ./compiler/lua53.can:28
+return r -- ./compiler/lua53.can:30
+end -- ./compiler/lua53.can:30
+local function indent() -- ./compiler/lua53.can:33
+indentLevel = indentLevel + (1) -- ./compiler/lua53.can:34
+return newline() -- ./compiler/lua53.can:35
+end -- ./compiler/lua53.can:35
+local function unindent() -- ./compiler/lua53.can:38
+indentLevel = indentLevel - (1) -- ./compiler/lua53.can:39
+return newline() -- ./compiler/lua53.can:40
+end -- ./compiler/lua53.can:40
+local required = {} -- { ["module"] = true, ... } -- ./compiler/lua53.can:44
+local requireStr = "" -- ./compiler/lua53.can:45
+local function addRequire(mod, name, field) -- ./compiler/lua53.can:47
+if not required[mod] then -- ./compiler/lua53.can:48
+requireStr = requireStr .. ("local " .. options["variablePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"]) -- ./compiler/lua53.can:49
+required[mod] = true -- ./compiler/lua53.can:50
+end -- ./compiler/lua53.can:50
+end -- ./compiler/lua53.can:50
+local function var(name) -- ./compiler/lua53.can:56
+return options["variablePrefix"] .. name -- ./compiler/lua53.can:57
+end -- ./compiler/lua53.can:57
+local loop = { -- loops tags -- ./compiler/lua53.can:61
+"While", -- loops tags -- ./compiler/lua53.can:61
+"Repeat", -- loops tags -- ./compiler/lua53.can:61
+"Fornum", -- loops tags -- ./compiler/lua53.can:61
+"Forin" -- loops tags -- ./compiler/lua53.can:61
+} -- loops tags -- ./compiler/lua53.can:61
+local func = { -- function scope tags -- ./compiler/lua53.can:62
+"Function", -- function scope tags -- ./compiler/lua53.can:62
+"TableCompr", -- function scope tags -- ./compiler/lua53.can:62
+"DoExpr", -- function scope tags -- ./compiler/lua53.can:62
+"WhileExpr", -- function scope tags -- ./compiler/lua53.can:62
+"RepeatExpr", -- function scope tags -- ./compiler/lua53.can:62
+"IfExpr", -- function scope tags -- ./compiler/lua53.can:62
+"FornumExpr", -- function scope tags -- ./compiler/lua53.can:62
+"ForinExpr" -- function scope tags -- ./compiler/lua53.can:62
+} -- function scope tags -- ./compiler/lua53.can:62
+local function any(list, tags, nofollow) -- ./compiler/lua53.can:65
+if nofollow == nil then nofollow = {} end -- ./compiler/lua53.can:65
+local tagsCheck = {} -- ./compiler/lua53.can:66
+for _, tag in ipairs(tags) do -- ./compiler/lua53.can:67
+tagsCheck[tag] = true -- ./compiler/lua53.can:68
+end -- ./compiler/lua53.can:68
+local nofollowCheck = {} -- ./compiler/lua53.can:70
+for _, tag in ipairs(nofollow) do -- ./compiler/lua53.can:71
+nofollowCheck[tag] = true -- ./compiler/lua53.can:72
+end -- ./compiler/lua53.can:72
+for _, node in ipairs(list) do -- ./compiler/lua53.can:74
+if type(node) == "table" then -- ./compiler/lua53.can:75
+if tagsCheck[node["tag"]] then -- ./compiler/lua53.can:76
+return node -- ./compiler/lua53.can:77
+end -- ./compiler/lua53.can:77
+if not nofollowCheck[node["tag"]] then -- ./compiler/lua53.can:79
+local r = any(node, tags, nofollow) -- ./compiler/lua53.can:80
+if r then -- ./compiler/lua53.can:81
+return r -- ./compiler/lua53.can:81
+end -- ./compiler/lua53.can:81
+end -- ./compiler/lua53.can:81
+end -- ./compiler/lua53.can:81
+end -- ./compiler/lua53.can:81
+return nil -- ./compiler/lua53.can:85
+end -- ./compiler/lua53.can:85
+local states = { ["push"] = {} } -- push stack variable names -- ./compiler/lua53.can:91
+local function push(name, state) -- ./compiler/lua53.can:94
+table["insert"](states[name], state) -- ./compiler/lua53.can:95
+return "" -- ./compiler/lua53.can:96
+end -- ./compiler/lua53.can:96
+local function pop(name) -- ./compiler/lua53.can:99
+table["remove"](states[name]) -- ./compiler/lua53.can:100
+return "" -- ./compiler/lua53.can:101
+end -- ./compiler/lua53.can:101
+local function peek(name) -- ./compiler/lua53.can:104
+return states[name][# states[name]] -- ./compiler/lua53.can:105
+end -- ./compiler/lua53.can:105
+local tags -- ./compiler/lua53.can:109
+local function lua(ast, forceTag, ...) -- ./compiler/lua53.can:111
+if options["mapLines"] and ast["pos"] then -- ./compiler/lua53.can:112
+lastInputPos = ast["pos"] -- ./compiler/lua53.can:113
+end -- ./compiler/lua53.can:113
+return tags[forceTag or ast["tag"]](ast, ...) -- ./compiler/lua53.can:115
+end -- ./compiler/lua53.can:115
+local UNPACK = function(list, i, j) -- table.unpack -- ./compiler/lua53.can:119
+return "table.unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/lua53.can:120
+end -- ./compiler/lua53.can:120
+local APPEND = function(t, toAppend) -- append values "toAppend" (multiple values possible) to t -- ./compiler/lua53.can:122
+return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end" -- ./compiler/lua53.can:123
+end -- ./compiler/lua53.can:123
+tags = setmetatable({ -- ./compiler/lua53.can:127
+["Block"] = function(t) -- ./compiler/lua53.can:129
+local hasPush = peek("push") == nil and any(t, { "Push" }, func) -- push in block and push context not yet defined -- ./compiler/lua53.can:130
+if hasPush and hasPush == t[# t] then -- if the first push is the last statement, it's just a return -- ./compiler/lua53.can:131
+hasPush["tag"] = "Return" -- ./compiler/lua53.can:132
+hasPush = false -- ./compiler/lua53.can:133
+end -- ./compiler/lua53.can:133
+local r = "" -- ./compiler/lua53.can:135
+if hasPush then -- ./compiler/lua53.can:136
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()) -- ./compiler/lua53.can:137
+end -- ./compiler/lua53.can:137
+for i = 1, # t - 1, 1 do -- ./compiler/lua53.can:139
+r = r .. (lua(t[i]) .. newline()) -- ./compiler/lua53.can:140
+end -- ./compiler/lua53.can:140
+if t[# t] then -- ./compiler/lua53.can:142
+r = r .. (lua(t[# t])) -- ./compiler/lua53.can:143
+end -- ./compiler/lua53.can:143
+if hasPush and (t[# t] and t[# t]["tag"] ~= "Return") then -- add return only if needed -- ./compiler/lua53.can:145
+r = r .. (newline() .. "return " .. UNPACK(var("push")) .. pop("push")) -- ./compiler/lua53.can:146
+end -- ./compiler/lua53.can:146
+return r -- ./compiler/lua53.can:148
+end, -- ./compiler/lua53.can:148
+["Do"] = function(t) -- ./compiler/lua53.can:154
+return "do" .. indent() .. lua(t, "Block") .. unindent() .. "end" -- ./compiler/lua53.can:155
+end, -- ./compiler/lua53.can:155
+["Set"] = function(t) -- ./compiler/lua53.can:158
+if # t == 2 then -- ./compiler/lua53.can:159
+return lua(t[1], "_lhs") .. " = " .. lua(t[2], "_lhs") -- ./compiler/lua53.can:160
+elseif # t == 3 then -- ./compiler/lua53.can:161
+return lua(t[1], "_lhs") .. " = " .. lua(t[3], "_lhs") -- ./compiler/lua53.can:162
+elseif # t == 4 then -- ./compiler/lua53.can:163
+if t[3] == "=" then -- ./compiler/lua53.can:164
+local r = lua(t[1], "_lhs") .. " = " .. lua({ -- ./compiler/lua53.can:165
+t[2], -- ./compiler/lua53.can:165
+t[1][1], -- ./compiler/lua53.can:165
+{ -- ./compiler/lua53.can:165
+["tag"] = "Paren", -- ./compiler/lua53.can:165
+t[4][1] -- ./compiler/lua53.can:165
+} -- ./compiler/lua53.can:165
+}, "Op") -- ./compiler/lua53.can:165
+for i = 2, math["min"](# t[4], # t[1]), 1 do -- ./compiler/lua53.can:166
+r = r .. (", " .. lua({ -- ./compiler/lua53.can:167
+t[2], -- ./compiler/lua53.can:167
+t[1][i], -- ./compiler/lua53.can:167
+{ -- ./compiler/lua53.can:167
+["tag"] = "Paren", -- ./compiler/lua53.can:167
+t[4][i] -- ./compiler/lua53.can:167
+} -- ./compiler/lua53.can:167
+}, "Op")) -- ./compiler/lua53.can:167
+end -- ./compiler/lua53.can:167
+return r -- ./compiler/lua53.can:169
+else -- ./compiler/lua53.can:169
+local r = lua(t[1], "_lhs") .. " = " .. lua({ -- ./compiler/lua53.can:171
+t[3], -- ./compiler/lua53.can:171
+{ -- ./compiler/lua53.can:171
+["tag"] = "Paren", -- ./compiler/lua53.can:171
+t[4][1] -- ./compiler/lua53.can:171
+}, -- ./compiler/lua53.can:171
+t[1][1] -- ./compiler/lua53.can:171
+}, "Op") -- ./compiler/lua53.can:171
+for i = 2, math["min"](# t[4], # t[1]), 1 do -- ./compiler/lua53.can:172
+r = r .. (", " .. lua({ -- ./compiler/lua53.can:173
+t[3], -- ./compiler/lua53.can:173
+{ -- ./compiler/lua53.can:173
+["tag"] = "Paren", -- ./compiler/lua53.can:173
+t[4][i] -- ./compiler/lua53.can:173
+}, -- ./compiler/lua53.can:173
+t[1][i] -- ./compiler/lua53.can:173
+}, "Op")) -- ./compiler/lua53.can:173
+end -- ./compiler/lua53.can:173
+return r -- ./compiler/lua53.can:175
+end -- ./compiler/lua53.can:175
+else -- ./compiler/lua53.can:175
+local r = lua(t[1], "_lhs") .. " = " .. lua({ -- ./compiler/lua53.can:178
+t[2], -- ./compiler/lua53.can:178
+t[1][1], -- ./compiler/lua53.can:178
+{ -- ./compiler/lua53.can:178
+["tag"] = "Op", -- ./compiler/lua53.can:178
+t[4], -- ./compiler/lua53.can:178
+{ -- ./compiler/lua53.can:178
+["tag"] = "Paren", -- ./compiler/lua53.can:178
+t[5][1] -- ./compiler/lua53.can:178
+}, -- ./compiler/lua53.can:178
+t[1][1] -- ./compiler/lua53.can:178
+} -- ./compiler/lua53.can:178
+}, "Op") -- ./compiler/lua53.can:178
+for i = 2, math["min"](# t[5], # t[1]), 1 do -- ./compiler/lua53.can:179
+r = r .. (", " .. lua({ -- ./compiler/lua53.can:180
+t[2], -- ./compiler/lua53.can:180
+t[1][i], -- ./compiler/lua53.can:180
+{ -- ./compiler/lua53.can:180
+["tag"] = "Op", -- ./compiler/lua53.can:180
+t[4], -- ./compiler/lua53.can:180
+{ -- ./compiler/lua53.can:180
+["tag"] = "Paren", -- ./compiler/lua53.can:180
+t[5][i] -- ./compiler/lua53.can:180
+}, -- ./compiler/lua53.can:180
+t[1][i] -- ./compiler/lua53.can:180
+} -- ./compiler/lua53.can:180
+}, "Op")) -- ./compiler/lua53.can:180
+end -- ./compiler/lua53.can:180
+return r -- ./compiler/lua53.can:182
+end -- ./compiler/lua53.can:182
+end, -- ./compiler/lua53.can:182
+["While"] = function(t) -- ./compiler/lua53.can:186
+local hasContinue = any(t[2], { "Continue" }, loop) -- ./compiler/lua53.can:187
+local r = "while " .. lua(t[1]) .. " do" .. indent() -- ./compiler/lua53.can:188
+if hasContinue then -- ./compiler/lua53.can:189
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:190
+end -- ./compiler/lua53.can:190
+r = r .. (lua(t[2])) -- ./compiler/lua53.can:192
+if hasContinue then -- ./compiler/lua53.can:193
+r = r .. (unindent() .. "until true") -- ./compiler/lua53.can:194
+end -- ./compiler/lua53.can:194
+r = r .. (unindent() .. "end") -- ./compiler/lua53.can:196
+return r -- ./compiler/lua53.can:197
+end, -- ./compiler/lua53.can:197
+["Repeat"] = function(t) -- ./compiler/lua53.can:200
+local hasContinue = any(t[2], { "Continue" }, loop) -- ./compiler/lua53.can:201
+local r = "repeat" .. indent() -- ./compiler/lua53.can:202
+if hasContinue then -- ./compiler/lua53.can:203
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:204
+end -- ./compiler/lua53.can:204
+r = r .. (lua(t[1])) -- ./compiler/lua53.can:206
+if hasContinue then -- ./compiler/lua53.can:207
+r = r .. (unindent() .. "until true") -- ./compiler/lua53.can:208
+end -- ./compiler/lua53.can:208
+r = r .. (unindent() .. "until " .. lua(t[2])) -- ./compiler/lua53.can:210
+return r -- ./compiler/lua53.can:211
+end, -- ./compiler/lua53.can:211
+["If"] = function(t) -- ./compiler/lua53.can:214
+local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent() -- ./compiler/lua53.can:215
+for i = 3, # t - 1, 2 do -- ./compiler/lua53.can:216
+r = r .. ("elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent()) -- ./compiler/lua53.can:217
+end -- ./compiler/lua53.can:217
+if # t % 2 == 1 then -- ./compiler/lua53.can:219
+r = r .. ("else" .. indent() .. lua(t[# t]) .. unindent()) -- ./compiler/lua53.can:220
+end -- ./compiler/lua53.can:220
+return r .. "end" -- ./compiler/lua53.can:222
+end, -- ./compiler/lua53.can:222
+["Fornum"] = function(t) -- ./compiler/lua53.can:225
+local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3]) -- ./compiler/lua53.can:226
+if # t == 5 then -- ./compiler/lua53.can:227
+local hasContinue = any(t[5], { "Continue" }, loop) -- ./compiler/lua53.can:228
+r = r .. (", " .. lua(t[4]) .. " do" .. indent()) -- ./compiler/lua53.can:229
+if hasContinue then -- ./compiler/lua53.can:230
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:231
+end -- ./compiler/lua53.can:231
+r = r .. (lua(t[5])) -- ./compiler/lua53.can:233
+if hasContinue then -- ./compiler/lua53.can:234
+r = r .. ("until true" .. unindent()) -- ./compiler/lua53.can:235
+end -- ./compiler/lua53.can:235
+return r .. unindent() .. "end" -- ./compiler/lua53.can:237
+else -- ./compiler/lua53.can:237
+local hasContinue = any(t[4], { "Continue" }, loop) -- ./compiler/lua53.can:239
+r = r .. (" do" .. indent()) -- ./compiler/lua53.can:240
+if hasContinue then -- ./compiler/lua53.can:241
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:242
+end -- ./compiler/lua53.can:242
+r = r .. (lua(t[4])) -- ./compiler/lua53.can:244
+if hasContinue then -- ./compiler/lua53.can:245
+r = r .. (unindent() .. "until true") -- ./compiler/lua53.can:246
+end -- ./compiler/lua53.can:246
+return r .. unindent() .. "end" -- ./compiler/lua53.can:248
+end -- ./compiler/lua53.can:248
+end, -- ./compiler/lua53.can:248
+["Forin"] = function(t) -- ./compiler/lua53.can:252
+local hasContinue = any(t[3], { "Continue" }, loop) -- ./compiler/lua53.can:253
+local r = "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() -- ./compiler/lua53.can:254
+if hasContinue then -- ./compiler/lua53.can:255
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:256
+end -- ./compiler/lua53.can:256
+r = r .. (lua(t[3])) -- ./compiler/lua53.can:258
+if hasContinue then -- ./compiler/lua53.can:259
+r = r .. ("until true" .. unindent()) -- ./compiler/lua53.can:260
+end -- ./compiler/lua53.can:260
+return r .. unindent() .. "end" -- ./compiler/lua53.can:262
+end, -- ./compiler/lua53.can:262
+["Local"] = function(t) -- ./compiler/lua53.can:265
+local r = "local " .. lua(t[1], "_lhs") -- ./compiler/lua53.can:266
+if t[2][1] then -- ./compiler/lua53.can:267
+r = r .. (" = " .. lua(t[2], "_lhs")) -- ./compiler/lua53.can:268
+end -- ./compiler/lua53.can:268
+return r -- ./compiler/lua53.can:270
+end, -- ./compiler/lua53.can:270
+["Let"] = function(t) -- ./compiler/lua53.can:273
+local nameList = lua(t[1], "_lhs") -- ./compiler/lua53.can:274
+local r = "local " .. nameList -- ./compiler/lua53.can:275
+if t[2][1] then -- ./compiler/lua53.can:276
+if any(t[2], { -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+"Function", -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+"Table", -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+"Paren" -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+}) then -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+r = r .. (newline() .. nameList .. " = " .. lua(t[2], "_lhs")) -- ./compiler/lua53.can:278
+else -- ./compiler/lua53.can:278
+r = r .. (" = " .. lua(t[2], "_lhs")) -- ./compiler/lua53.can:280
+end -- ./compiler/lua53.can:280
+end -- ./compiler/lua53.can:280
+return r -- ./compiler/lua53.can:283
+end, -- ./compiler/lua53.can:283
+["Localrec"] = function(t) -- ./compiler/lua53.can:286
+return "local function " .. lua(t[1][1]) .. lua(t[2][1], "_functionWithoutKeyword") -- ./compiler/lua53.can:287
+end, -- ./compiler/lua53.can:287
+["Goto"] = function(t) -- ./compiler/lua53.can:290
+return "goto " .. lua(t, "Id") -- ./compiler/lua53.can:291
+end, -- ./compiler/lua53.can:291
+["Label"] = function(t) -- ./compiler/lua53.can:294
+return "::" .. lua(t, "Id") .. "::" -- ./compiler/lua53.can:295
+end, -- ./compiler/lua53.can:295
+["Return"] = function(t) -- ./compiler/lua53.can:298
+local push = peek("push") -- ./compiler/lua53.can:299
+if push then -- ./compiler/lua53.can:300
+local r = "" -- ./compiler/lua53.can:301
+for _, val in ipairs(t) do -- ./compiler/lua53.can:302
+r = r .. (push .. "[#" .. push .. "+1] = " .. lua(val) .. newline()) -- ./compiler/lua53.can:303
+end -- ./compiler/lua53.can:303
+return r .. "return " .. UNPACK(push) -- ./compiler/lua53.can:305
+else -- ./compiler/lua53.can:305
+return "return " .. lua(t, "_lhs") -- ./compiler/lua53.can:307
+end -- ./compiler/lua53.can:307
+end, -- ./compiler/lua53.can:307
+["Push"] = function(t) -- ./compiler/lua53.can:311
+local var = assert(peek("push"), "no context given for push") -- ./compiler/lua53.can:312
+r = "" -- ./compiler/lua53.can:313
+for i = 1, # t - 1, 1 do -- ./compiler/lua53.can:314
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[i]) .. newline()) -- ./compiler/lua53.can:315
+end -- ./compiler/lua53.can:315
+if t[# t] then -- ./compiler/lua53.can:317
+if t[# t]["tag"] == "Call" or t[# t]["tag"] == "Invoke" then -- ./compiler/lua53.can:318
+r = r .. (APPEND(var, lua(t[# t]))) -- ./compiler/lua53.can:319
+else -- ./compiler/lua53.can:319
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[# t])) -- ./compiler/lua53.can:321
+end -- ./compiler/lua53.can:321
+end -- ./compiler/lua53.can:321
+return r -- ./compiler/lua53.can:324
+end, -- ./compiler/lua53.can:324
+["Break"] = function() -- ./compiler/lua53.can:327
+return "break" -- ./compiler/lua53.can:328
+end, -- ./compiler/lua53.can:328
+["Continue"] = function() -- ./compiler/lua53.can:331
+return "break" -- ./compiler/lua53.can:332
+end, -- ./compiler/lua53.can:332
+["Nil"] = function() -- ./compiler/lua53.can:339
+return "nil" -- ./compiler/lua53.can:340
+end, -- ./compiler/lua53.can:340
+["Dots"] = function() -- ./compiler/lua53.can:343
+return "..." -- ./compiler/lua53.can:344
+end, -- ./compiler/lua53.can:344
+["Boolean"] = function(t) -- ./compiler/lua53.can:347
+return tostring(t[1]) -- ./compiler/lua53.can:348
+end, -- ./compiler/lua53.can:348
+["Number"] = function(t) -- ./compiler/lua53.can:351
+return tostring(t[1]) -- ./compiler/lua53.can:352
+end, -- ./compiler/lua53.can:352
+["String"] = function(t) -- ./compiler/lua53.can:355
+return ("%q"):format(t[1]) -- ./compiler/lua53.can:356
+end, -- ./compiler/lua53.can:356
+["_functionWithoutKeyword"] = function(t) -- ./compiler/lua53.can:359
+local r = "(" -- ./compiler/lua53.can:360
+local decl = {} -- ./compiler/lua53.can:361
+if t[1][1] then -- ./compiler/lua53.can:362
+if t[1][1]["tag"] == "ParPair" then -- ./compiler/lua53.can:363
+local id = lua(t[1][1][1]) -- ./compiler/lua53.can:364
+indentLevel = indentLevel + (1) -- ./compiler/lua53.can:365
+table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][1][2]) .. " end") -- ./compiler/lua53.can:366
+indentLevel = indentLevel - (1) -- ./compiler/lua53.can:367
+r = r .. (id) -- ./compiler/lua53.can:368
+else -- ./compiler/lua53.can:368
+r = r .. (lua(t[1][1])) -- ./compiler/lua53.can:370
+end -- ./compiler/lua53.can:370
+for i = 2, # t[1], 1 do -- ./compiler/lua53.can:372
+if t[1][i]["tag"] == "ParPair" then -- ./compiler/lua53.can:373
+local id = lua(t[1][i][1]) -- ./compiler/lua53.can:374
+indentLevel = indentLevel + (1) -- ./compiler/lua53.can:375
+table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][i][2]) .. " end") -- ./compiler/lua53.can:376
+indentLevel = indentLevel - (1) -- ./compiler/lua53.can:377
+r = r .. (", " .. id) -- ./compiler/lua53.can:378
+else -- ./compiler/lua53.can:378
+r = r .. (", " .. lua(t[1][i])) -- ./compiler/lua53.can:380
+end -- ./compiler/lua53.can:380
+end -- ./compiler/lua53.can:380
+end -- ./compiler/lua53.can:380
+r = r .. (")" .. indent()) -- ./compiler/lua53.can:384
+for _, d in ipairs(decl) do -- ./compiler/lua53.can:385
+r = r .. (d .. newline()) -- ./compiler/lua53.can:386
+end -- ./compiler/lua53.can:386
+if t[2][# t[2]] and t[2][# t[2]]["tag"] == "Push" then -- convert final push to return -- ./compiler/lua53.can:388
+t[2][# t[2]]["tag"] = "Return" -- ./compiler/lua53.can:389
+end -- ./compiler/lua53.can:389
+local hasPush = any(t[2], { "Push" }, func) -- ./compiler/lua53.can:391
+if hasPush then -- ./compiler/lua53.can:392
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()) -- ./compiler/lua53.can:393
+else -- ./compiler/lua53.can:393
+push("push", false) -- no push here (make sure higher push don't affect us) -- ./compiler/lua53.can:395
+end -- no push here (make sure higher push don't affect us) -- ./compiler/lua53.can:395
+r = r .. (lua(t[2])) -- ./compiler/lua53.can:397
+if hasPush and (t[2][# t[2]] and t[2][# t[2]]["tag"] ~= "Return") then -- add return only if needed -- ./compiler/lua53.can:398
+r = r .. (newline() .. "return " .. UNPACK(var("push"))) -- ./compiler/lua53.can:399
+end -- ./compiler/lua53.can:399
+pop("push") -- ./compiler/lua53.can:401
+return r .. unindent() .. "end" -- ./compiler/lua53.can:402
+end, -- ./compiler/lua53.can:402
+["Function"] = function(t) -- ./compiler/lua53.can:404
+return "function" .. lua(t, "_functionWithoutKeyword") -- ./compiler/lua53.can:405
+end, -- ./compiler/lua53.can:405
+["Pair"] = function(t) -- ./compiler/lua53.can:408
+return "[" .. lua(t[1]) .. "] = " .. lua(t[2]) -- ./compiler/lua53.can:409
+end, -- ./compiler/lua53.can:409
+["Table"] = function(t) -- ./compiler/lua53.can:411
+if # t == 0 then -- ./compiler/lua53.can:412
+return "{}" -- ./compiler/lua53.can:413
+elseif # t == 1 then -- ./compiler/lua53.can:414
+return "{ " .. lua(t, "_lhs") .. " }" -- ./compiler/lua53.can:415
+else -- ./compiler/lua53.can:415
+return "{" .. indent() .. lua(t, "_lhs", nil, true) .. unindent() .. "}" -- ./compiler/lua53.can:417
+end -- ./compiler/lua53.can:417
+end, -- ./compiler/lua53.can:417
+["TableCompr"] = function(t) -- ./compiler/lua53.can:421
+return push("push", "self") .. "(function()" .. indent() .. "local self = {}" .. newline() .. lua(t[1]) .. newline() .. "return self" .. unindent() .. "end)()" .. pop("push") -- ./compiler/lua53.can:422
+end, -- ./compiler/lua53.can:422
+["Op"] = function(t) -- ./compiler/lua53.can:425
+local r -- ./compiler/lua53.can:426
+if # t == 2 then -- ./compiler/lua53.can:427
+if type(tags["_opid"][t[1]]) == "string" then -- ./compiler/lua53.can:428
+r = tags["_opid"][t[1]] .. " " .. lua(t[2]) -- ./compiler/lua53.can:429
+else -- ./compiler/lua53.can:429
+r = tags["_opid"][t[1]](t[2]) -- ./compiler/lua53.can:431
+end -- ./compiler/lua53.can:431
+else -- ./compiler/lua53.can:431
+if type(tags["_opid"][t[1]]) == "string" then -- ./compiler/lua53.can:434
+r = lua(t[2]) .. " " .. tags["_opid"][t[1]] .. " " .. lua(t[3]) -- ./compiler/lua53.can:435
+else -- ./compiler/lua53.can:435
+r = tags["_opid"][t[1]](t[2], t[3]) -- ./compiler/lua53.can:437
+end -- ./compiler/lua53.can:437
+end -- ./compiler/lua53.can:437
+return r -- ./compiler/lua53.can:440
+end, -- ./compiler/lua53.can:440
+["Paren"] = function(t) -- ./compiler/lua53.can:443
+return "(" .. lua(t[1]) .. ")" -- ./compiler/lua53.can:444
+end, -- ./compiler/lua53.can:444
+["_statexpr"] = function(t, stat) -- ./compiler/lua53.can:451
+local hasPush = any(t, { "Push" }, func) -- ./compiler/lua53.can:452
+local r = "(function()" .. indent() -- ./compiler/lua53.can:453
+if hasPush then -- ./compiler/lua53.can:454
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()) -- ./compiler/lua53.can:455
+else -- ./compiler/lua53.can:455
+push("push", false) -- no push here (make sure higher push don't affect us) -- ./compiler/lua53.can:457
+end -- no push here (make sure higher push don't affect us) -- ./compiler/lua53.can:457
+r = r .. (lua(t, stat)) -- ./compiler/lua53.can:459
+if hasPush then -- ./compiler/lua53.can:460
+r = r .. (newline() .. "return " .. UNPACK(var("push"))) -- ./compiler/lua53.can:461
+end -- ./compiler/lua53.can:461
+pop("push") -- ./compiler/lua53.can:463
+r = r .. (unindent() .. "end)()") -- ./compiler/lua53.can:464
+return r -- ./compiler/lua53.can:465
+end, -- ./compiler/lua53.can:465
+["DoExpr"] = function(t) -- ./compiler/lua53.can:468
+if t[# t]["tag"] == "Push" then -- convert final push to return -- ./compiler/lua53.can:469
+t[# t]["tag"] = "Return" -- ./compiler/lua53.can:470
+end -- ./compiler/lua53.can:470
+return lua(t, "_statexpr", "Do") -- ./compiler/lua53.can:472
+end, -- ./compiler/lua53.can:472
+["WhileExpr"] = function(t) -- ./compiler/lua53.can:475
+return lua(t, "_statexpr", "While") -- ./compiler/lua53.can:476
+end, -- ./compiler/lua53.can:476
+["RepeatExpr"] = function(t) -- ./compiler/lua53.can:479
+return lua(t, "_statexpr", "Repeat") -- ./compiler/lua53.can:480
+end, -- ./compiler/lua53.can:480
+["IfExpr"] = function(t) -- ./compiler/lua53.can:483
+for i = 2, # t do -- convert final pushes to returns -- ./compiler/lua53.can:484
+local block = t[i] -- ./compiler/lua53.can:485
+if block[# block] and block[# block]["tag"] == "Push" then -- ./compiler/lua53.can:486
+block[# block]["tag"] = "Return" -- ./compiler/lua53.can:487
+end -- ./compiler/lua53.can:487
+end -- ./compiler/lua53.can:487
+return lua(t, "_statexpr", "If") -- ./compiler/lua53.can:490
+end, -- ./compiler/lua53.can:490
+["FornumExpr"] = function(t) -- ./compiler/lua53.can:493
+return lua(t, "_statexpr", "Fornum") -- ./compiler/lua53.can:494
+end, -- ./compiler/lua53.can:494
+["ForinExpr"] = function(t) -- ./compiler/lua53.can:497
+return lua(t, "_statexpr", "Forin") -- ./compiler/lua53.can:498
+end, -- ./compiler/lua53.can:498
+["Call"] = function(t) -- ./compiler/lua53.can:504
+return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua53.can:505
+end, -- ./compiler/lua53.can:505
+["Invoke"] = function(t) -- ./compiler/lua53.can:509
+return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")" -- ./compiler/lua53.can:510
+end, -- ./compiler/lua53.can:510
+["_lhs"] = function(t, start, newlines) -- ./compiler/lua53.can:514
+if start == nil then start = 1 end -- ./compiler/lua53.can:514
+local r -- ./compiler/lua53.can:515
+if t[start] then -- ./compiler/lua53.can:516
+r = lua(t[start]) -- ./compiler/lua53.can:517
+for i = start + 1, # t, 1 do -- ./compiler/lua53.can:518
+r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i])) -- ./compiler/lua53.can:519
+end -- ./compiler/lua53.can:519
+else -- ./compiler/lua53.can:519
+r = "" -- ./compiler/lua53.can:522
+end -- ./compiler/lua53.can:522
+return r -- ./compiler/lua53.can:524
+end, -- ./compiler/lua53.can:524
+["Id"] = function(t) -- ./compiler/lua53.can:527
+return t[1] -- ./compiler/lua53.can:528
+end, -- ./compiler/lua53.can:528
+["Index"] = function(t) -- ./compiler/lua53.can:531
+return lua(t[1]) .. "[" .. lua(t[2]) .. "]" -- ./compiler/lua53.can:532
+end, -- ./compiler/lua53.can:532
+["_opid"] = { -- ./compiler/lua53.can:536
+["add"] = "+", -- ./compiler/lua53.can:537
+["sub"] = "-", -- ./compiler/lua53.can:537
+["mul"] = "*", -- ./compiler/lua53.can:537
+["div"] = "/", -- ./compiler/lua53.can:537
+["idiv"] = "//", -- ./compiler/lua53.can:538
+["mod"] = "%", -- ./compiler/lua53.can:538
+["pow"] = "^", -- ./compiler/lua53.can:538
+["concat"] = "..", -- ./compiler/lua53.can:538
+["band"] = "&", -- ./compiler/lua53.can:539
+["bor"] = "|", -- ./compiler/lua53.can:539
+["bxor"] = "~", -- ./compiler/lua53.can:539
+["shl"] = "<<", -- ./compiler/lua53.can:539
+["shr"] = ">>", -- ./compiler/lua53.can:539
+["eq"] = "==", -- ./compiler/lua53.can:540
+["ne"] = "~=", -- ./compiler/lua53.can:540
+["lt"] = "<", -- ./compiler/lua53.can:540
+["gt"] = ">", -- ./compiler/lua53.can:540
+["le"] = "<=", -- ./compiler/lua53.can:540
+["ge"] = ">=", -- ./compiler/lua53.can:540
+["and"] = "and", -- ./compiler/lua53.can:541
+["or"] = "or", -- ./compiler/lua53.can:541
+["unm"] = "-", -- ./compiler/lua53.can:541
+["len"] = "#", -- ./compiler/lua53.can:541
+["bnot"] = "~", -- ./compiler/lua53.can:541
+["not"] = "not" -- ./compiler/lua53.can:541
+} -- ./compiler/lua53.can:541
+}, { ["__index"] = function(self, key) -- ./compiler/lua53.can:544
+error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3") -- ./compiler/lua53.can:545
+end }) -- ./compiler/lua53.can:545
+local code = lua(ast) .. newline() -- ./compiler/lua53.can:551
+return requireStr .. code -- ./compiler/lua53.can:552
+end -- ./compiler/lua53.can:552
+end -- ./compiler/lua53.can:552
+local lua53 = _() or lua53 -- ./compiler/lua53.can:557
+package["loaded"]["compiler.lua53"] = lua53 or true -- ./compiler/lua53.can:558
+local function _() -- ./compiler/lua53.can:561
+local function _() -- ./compiler/lua53.can:563
+return function(code, ast, options) -- ./compiler/lua53.can:1
+local lastInputPos = 1 -- last token position in the input code -- ./compiler/lua53.can:3
+local prevLinePos = 1 -- last token position in the previous line of code in the input code -- ./compiler/lua53.can:4
+local lastSource = options["chunkname"] or "nil" -- last found code source name (from the original file) -- ./compiler/lua53.can:5
+local lastLine = 1 -- last found line number (from the original file) -- ./compiler/lua53.can:6
+local indentLevel = 0 -- ./compiler/lua53.can:9
+local function newline() -- ./compiler/lua53.can:11
+local r = options["newline"] .. string["rep"](options["indentation"], indentLevel) -- ./compiler/lua53.can:12
+if options["mapLines"] then -- ./compiler/lua53.can:13
+local sub = code:sub(lastInputPos) -- ./compiler/lua53.can:14
 local source, line = sub:sub(1, sub:find("\
 ")):match("%-%- (.-)%:(%d+)\
-")
-if source and line then
-lastSource = source
-lastLine = tonumber(line)
-else
+") -- ./compiler/lua53.can:15
+if source and line then -- ./compiler/lua53.can:17
+lastSource = source -- ./compiler/lua53.can:18
+lastLine = tonumber(line) -- ./compiler/lua53.can:19
+else -- ./compiler/lua53.can:19
 for _ in code:sub(prevLinePos, lastInputPos):gmatch("\
-") do
-lastLine = lastLine + (1)
-end
-end
-prevLinePos = lastInputPos
-r = " -- " .. lastSource .. ":" .. lastLine .. r
-end
-return r
-end
-local function indent()
-indentLevel = indentLevel + (1)
-return newline()
-end
-local function unindent()
-indentLevel = indentLevel - (1)
-return newline()
-end
-local required = {}
-local requireStr = ""
-local function addRequire(mod, name, field)
-if not required[mod] then
-requireStr = requireStr .. ("local " .. options["variablePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"])
-required[mod] = true
-end
-end
-local function var(name)
-return options["variablePrefix"] .. name
-end
-local loop = {
-"While",
-"Repeat",
-"Fornum",
-"Forin"
-}
-local func = {
-"Function",
-"TableCompr",
-"DoExpr",
-"WhileExpr",
-"RepeatExpr",
-"IfExpr",
-"FornumExpr",
-"ForinExpr"
-}
-local function any(list, tags, nofollow)
-if nofollow == nil then nofollow = {} end
-local tagsCheck = {}
-for _, tag in ipairs(tags) do
-tagsCheck[tag] = true
-end
-local nofollowCheck = {}
-for _, tag in ipairs(nofollow) do
-nofollowCheck[tag] = true
-end
-for _, node in ipairs(list) do
-if type(node) == "table" then
-if tagsCheck[node["tag"]] then
-return node
-end
-if not nofollowCheck[node["tag"]] then
-local r = any(node, tags, nofollow)
-if r then
-return r
-end
-end
-end
-end
-return nil
-end
-local states = { ["push"] = {} }
-local function push(name, state)
-table["insert"](states[name], state)
-return ""
-end
-local function pop(name)
-table["remove"](states[name])
-return ""
-end
-local function peek(name)
-return states[name][# states[name]]
-end
-local tags
-local function lua(ast, forceTag, ...)
-if options["mapLines"] and ast["pos"] then
-lastInputPos = ast["pos"]
-end
-return tags[forceTag or ast["tag"]](ast, ...)
-end
-local UNPACK = function(list, i, j)
-return "table.unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
-end
-local APPEND = function(t, toAppend)
-return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end"
-end
-tags = setmetatable({
-["Block"] = function(t)
-local hasPush = peek("push") == nil and any(t, { "Push" }, func)
-if hasPush and hasPush == t[# t] then
-hasPush["tag"] = "Return"
-hasPush = false
-end
-local r = ""
-if hasPush then
-r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
-end
-for i = 1, # t - 1, 1 do
-r = r .. (lua(t[i]) .. newline())
-end
-if t[# t] then
-r = r .. (lua(t[# t]))
-end
-if hasPush and (t[# t] and t[# t]["tag"] ~= "Return") then
-r = r .. (newline() .. "return " .. UNPACK(var("push")) .. pop("push"))
-end
-return r
-end,
-["Do"] = function(t)
-return "do" .. indent() .. lua(t, "Block") .. unindent() .. "end"
-end,
-["Set"] = function(t)
-if # t == 2 then
-return lua(t[1], "_lhs") .. " = " .. lua(t[2], "_lhs")
-elseif # t == 3 then
-return lua(t[1], "_lhs") .. " = " .. lua(t[3], "_lhs")
-elseif # t == 4 then
-if t[3] == "=" then
-local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2],
-t[1][1],
-{
-["tag"] = "Paren",
-t[4][1]
-}
-}, "Op")
-for i = 2, math["min"](# t[4], # t[1]), 1 do
-r = r .. (", " .. lua({
-t[2],
-t[1][i],
-{
-["tag"] = "Paren",
-t[4][i]
-}
-}, "Op"))
-end
-return r
-else
-local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[3],
-{
-["tag"] = "Paren",
-t[4][1]
-},
-t[1][1]
-}, "Op")
-for i = 2, math["min"](# t[4], # t[1]), 1 do
-r = r .. (", " .. lua({
-t[3],
-{
-["tag"] = "Paren",
-t[4][i]
-},
-t[1][i]
-}, "Op"))
-end
-return r
-end
-else
-local r = lua(t[1], "_lhs") .. " = " .. lua({
-t[2],
-t[1][1],
-{
-["tag"] = "Op",
-t[4],
-{
-["tag"] = "Paren",
-t[5][1]
-},
-t[1][1]
-}
-}, "Op")
-for i = 2, math["min"](# t[5], # t[1]), 1 do
-r = r .. (", " .. lua({
-t[2],
-t[1][i],
-{
-["tag"] = "Op",
-t[4],
-{
-["tag"] = "Paren",
-t[5][i]
-},
-t[1][i]
-}
-}, "Op"))
-end
-return r
-end
-end,
-["While"] = function(t)
-local hasContinue = any(t[2], { "Continue" }, loop)
-local r = "while " .. lua(t[1]) .. " do" .. indent()
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[2]))
-if hasContinue then
-r = r .. (unindent() .. "until true")
-end
-r = r .. (unindent() .. "end")
-return r
-end,
-["Repeat"] = function(t)
-local hasContinue = any(t[2], { "Continue" }, loop)
-local r = "repeat" .. indent()
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[1]))
-if hasContinue then
-r = r .. (unindent() .. "until true")
-end
-r = r .. (unindent() .. "until " .. lua(t[2]))
-return r
-end,
-["If"] = function(t)
-local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()
-for i = 3, # t - 1, 2 do
-r = r .. ("elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent())
-end
-if # t % 2 == 1 then
-r = r .. ("else" .. indent() .. lua(t[# t]) .. unindent())
-end
-return r .. "end"
-end,
-["Fornum"] = function(t)
-local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3])
-if # t == 5 then
-local hasContinue = any(t[5], { "Continue" }, loop)
-r = r .. (", " .. lua(t[4]) .. " do" .. indent())
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[5]))
-if hasContinue then
-r = r .. ("until true" .. unindent())
-end
-return r .. unindent() .. "end"
-else
-local hasContinue = any(t[4], { "Continue" }, loop)
-r = r .. (" do" .. indent())
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[4]))
-if hasContinue then
-r = r .. (unindent() .. "until true")
-end
-return r .. unindent() .. "end"
-end
-end,
-["Forin"] = function(t)
-local hasContinue = any(t[3], { "Continue" }, loop)
-local r = "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent()
-if hasContinue then
-r = r .. ("repeat" .. indent())
-end
-r = r .. (lua(t[3]))
-if hasContinue then
-r = r .. ("until true" .. unindent())
-end
-return r .. unindent() .. "end"
-end,
-["Local"] = function(t)
-local r = "local " .. lua(t[1], "_lhs")
-if t[2][1] then
-r = r .. (" = " .. lua(t[2], "_lhs"))
-end
-return r
-end,
-["Let"] = function(t)
-local nameList = lua(t[1], "_lhs")
-local r = "local " .. nameList
-if t[2][1] then
-if any(t[2], {
-"Function",
-"Table",
-"Paren"
-}) then
-r = r .. (newline() .. nameList .. " = " .. lua(t[2], "_lhs"))
-else
-r = r .. (" = " .. lua(t[2], "_lhs"))
-end
-end
-return r
-end,
-["Localrec"] = function(t)
-return "local function " .. lua(t[1][1]) .. lua(t[2][1], "_functionWithoutKeyword")
-end,
-["Goto"] = function(t)
-return "goto " .. lua(t, "Id")
-end,
-["Label"] = function(t)
-return "::" .. lua(t, "Id") .. "::"
-end,
-["Return"] = function(t)
-local push = peek("push")
-if push then
-local r = ""
-for _, val in ipairs(t) do
-r = r .. (push .. "[#" .. push .. "+1] = " .. lua(val) .. newline())
-end
-return r .. "return " .. UNPACK(push)
-else
-return "return " .. lua(t, "_lhs")
-end
-end,
-["Push"] = function(t)
-local var = assert(peek("push"), "no context given for push")
-r = ""
-for i = 1, # t - 1, 1 do
-r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[i]) .. newline())
-end
-if t[# t] then
-if t[# t]["tag"] == "Call" or t[# t]["tag"] == "Invoke" then
-r = r .. (APPEND(var, lua(t[# t])))
-else
-r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[# t]))
-end
-end
-return r
-end,
-["Break"] = function()
-return "break"
-end,
-["Continue"] = function()
-return "break"
-end,
-["Nil"] = function()
-return "nil"
-end,
-["Dots"] = function()
-return "..."
-end,
-["Boolean"] = function(t)
-return tostring(t[1])
-end,
-["Number"] = function(t)
-return tostring(t[1])
-end,
-["String"] = function(t)
-return ("%q"):format(t[1])
-end,
-["_functionWithoutKeyword"] = function(t)
-local r = "("
-local decl = {}
-if t[1][1] then
-if t[1][1]["tag"] == "ParPair" then
-local id = lua(t[1][1][1])
-indentLevel = indentLevel + (1)
-table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][1][2]) .. " end")
-indentLevel = indentLevel - (1)
-r = r .. (id)
-else
-r = r .. (lua(t[1][1]))
-end
-for i = 2, # t[1], 1 do
-if t[1][i]["tag"] == "ParPair" then
-local id = lua(t[1][i][1])
-indentLevel = indentLevel + (1)
-table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][i][2]) .. " end")
-indentLevel = indentLevel - (1)
-r = r .. (", " .. id)
-else
-r = r .. (", " .. lua(t[1][i]))
-end
-end
-end
-r = r .. (")" .. indent())
-for _, d in ipairs(decl) do
-r = r .. (d .. newline())
-end
-if t[2][# t[2]] and t[2][# t[2]]["tag"] == "Push" then
-t[2][# t[2]]["tag"] = "Return"
-end
-local hasPush = any(t[2], { "Push" }, func)
-if hasPush then
-r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
-else
-push("push", false)
-end
-r = r .. (lua(t[2]))
-if hasPush and (t[2][# t[2]] and t[2][# t[2]]["tag"] ~= "Return") then
-r = r .. (newline() .. "return " .. UNPACK(var("push")))
-end
-pop("push")
-return r .. unindent() .. "end"
-end,
-["Function"] = function(t)
-return "function" .. lua(t, "_functionWithoutKeyword")
-end,
-["Pair"] = function(t)
-return "[" .. lua(t[1]) .. "] = " .. lua(t[2])
-end,
-["Table"] = function(t)
-if # t == 0 then
-return "{}"
-elseif # t == 1 then
-return "{ " .. lua(t, "_lhs") .. " }"
-else
-return "{" .. indent() .. lua(t, "_lhs", nil, true) .. unindent() .. "}"
-end
-end,
-["TableCompr"] = function(t)
-return push("push", "self") .. "(function()" .. indent() .. "local self = {}" .. newline() .. lua(t[1]) .. newline() .. "return self" .. unindent() .. "end)()" .. pop("push")
-end,
-["Op"] = function(t)
-local r
-if # t == 2 then
-if type(tags["_opid"][t[1]]) == "string" then
-r = tags["_opid"][t[1]] .. " " .. lua(t[2])
-else
-r = tags["_opid"][t[1]](t[2])
-end
-else
-if type(tags["_opid"][t[1]]) == "string" then
-r = lua(t[2]) .. " " .. tags["_opid"][t[1]] .. " " .. lua(t[3])
-else
-r = tags["_opid"][t[1]](t[2], t[3])
-end
-end
-return r
-end,
-["Paren"] = function(t)
-return "(" .. lua(t[1]) .. ")"
-end,
-["_statexpr"] = function(t, stat)
-local hasPush = any(t, { "Push" }, func)
-local r = "(function()" .. indent()
-if hasPush then
-r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline())
-else
-push("push", false)
-end
-r = r .. (lua(t, stat))
-if hasPush then
-r = r .. (newline() .. "return " .. UNPACK(var("push")))
-end
-pop("push")
-r = r .. (unindent() .. "end)()")
-return r
-end,
-["DoExpr"] = function(t)
-if t[# t]["tag"] == "Push" then
-t[# t]["tag"] = "Return"
-end
-return lua(t, "_statexpr", "Do")
-end,
-["WhileExpr"] = function(t)
-return lua(t, "_statexpr", "While")
-end,
-["RepeatExpr"] = function(t)
-return lua(t, "_statexpr", "Repeat")
-end,
-["IfExpr"] = function(t)
-for i = 2, # t do
-local block = t[i]
-if block[# block] and block[# block]["tag"] == "Push" then
-block[# block]["tag"] = "Return"
-end
-end
-return lua(t, "_statexpr", "If")
-end,
-["FornumExpr"] = function(t)
-return lua(t, "_statexpr", "Fornum")
-end,
-["ForinExpr"] = function(t)
-return lua(t, "_statexpr", "Forin")
-end,
-["Call"] = function(t)
-return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")"
-end,
-["Invoke"] = function(t)
-return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")"
-end,
-["_lhs"] = function(t, start, newlines)
-if start == nil then start = 1 end
-local r
-if t[start] then
-r = lua(t[start])
-for i = start + 1, # t, 1 do
-r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i]))
-end
-else
-r = ""
-end
-return r
-end,
-["Id"] = function(t)
-return t[1]
-end,
-["Index"] = function(t)
-return lua(t[1]) .. "[" .. lua(t[2]) .. "]"
-end,
-["_opid"] = {
-["add"] = "+",
-["sub"] = "-",
-["mul"] = "*",
-["div"] = "/",
-["idiv"] = "//",
-["mod"] = "%",
-["pow"] = "^",
-["concat"] = "..",
-["band"] = "&",
-["bor"] = "|",
-["bxor"] = "~",
-["shl"] = "<<",
-["shr"] = ">>",
-["eq"] = "==",
-["ne"] = "~=",
-["lt"] = "<",
-["gt"] = ">",
-["le"] = "<=",
-["ge"] = ">=",
-["and"] = "and",
-["or"] = "or",
-["unm"] = "-",
-["len"] = "#",
-["bnot"] = "~",
-["not"] = "not"
-}
-}, { ["__index"] = function(self, key)
-error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3")
-end })
-UNPACK = function(list, i, j)
-return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
-end
-APPEND = function(t, toAppend)
-return "do" .. indent() .. "local a, p = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #a do" .. indent() .. t .. "[p] = a[i]" .. newline() .. "p = p + 1" .. unindent() .. "end" .. unindent() .. "end"
-end
-tags["_opid"]["idiv"] = function(left, right)
-return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")"
-end
-tags["_opid"]["band"] = function(left, right)
-addRequire("bit", "band", "band")
-return getRequire("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
-end
-tags["_opid"]["bor"] = function(left, right)
-addRequire("bit", "bor", "bor")
-return getRequire("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
-end
-tags["_opid"]["bxor"] = function(left, right)
-addRequire("bit", "bxor", "bxor")
-return getRequire("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
-end
-tags["_opid"]["shl"] = function(left, right)
-addRequire("bit", "lshift", "lshift")
-return getRequire("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
-end
-tags["_opid"]["shr"] = function(left, right)
-addRequire("bit", "rshift", "rshift")
-return getRequire("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")"
-end
-tags["_opid"]["bnot"] = function(right)
-addRequire("bit", "bnot", "bnot")
-return getRequire("bnot") .. "(" .. lua(right) .. ")"
-end
-local code = lua(ast) .. newline()
-return requireStr .. code
-end
-end
-local lua53 = _() or lua53
-return lua53
-end
-local luajit = _() or luajit
-package["loaded"]["compiler.luajit"] = luajit or true
-local function _()
-local scope = {}
-scope["lineno"] = function(s, i)
-if i == 1 then
-return 1, 1
-end
-local l, lastline = 0, ""
+") do -- ./compiler/lua53.can:21
+lastLine = lastLine + (1) -- ./compiler/lua53.can:22
+end -- ./compiler/lua53.can:22
+end -- ./compiler/lua53.can:22
+prevLinePos = lastInputPos -- ./compiler/lua53.can:26
+r = " -- " .. lastSource .. ":" .. lastLine .. r -- ./compiler/lua53.can:28
+end -- ./compiler/lua53.can:28
+return r -- ./compiler/lua53.can:30
+end -- ./compiler/lua53.can:30
+local function indent() -- ./compiler/lua53.can:33
+indentLevel = indentLevel + (1) -- ./compiler/lua53.can:34
+return newline() -- ./compiler/lua53.can:35
+end -- ./compiler/lua53.can:35
+local function unindent() -- ./compiler/lua53.can:38
+indentLevel = indentLevel - (1) -- ./compiler/lua53.can:39
+return newline() -- ./compiler/lua53.can:40
+end -- ./compiler/lua53.can:40
+local required = {} -- { ["module"] = true, ... } -- ./compiler/lua53.can:44
+local requireStr = "" -- ./compiler/lua53.can:45
+local function addRequire(mod, name, field) -- ./compiler/lua53.can:47
+if not required[mod] then -- ./compiler/lua53.can:48
+requireStr = requireStr .. ("local " .. options["variablePrefix"] .. name .. (" = require(%q)"):format(mod) .. (field and "." .. field or "") .. options["newline"]) -- ./compiler/lua53.can:49
+required[mod] = true -- ./compiler/lua53.can:50
+end -- ./compiler/lua53.can:50
+end -- ./compiler/lua53.can:50
+local function var(name) -- ./compiler/lua53.can:56
+return options["variablePrefix"] .. name -- ./compiler/lua53.can:57
+end -- ./compiler/lua53.can:57
+local loop = { -- loops tags -- ./compiler/lua53.can:61
+"While", -- loops tags -- ./compiler/lua53.can:61
+"Repeat", -- loops tags -- ./compiler/lua53.can:61
+"Fornum", -- loops tags -- ./compiler/lua53.can:61
+"Forin" -- loops tags -- ./compiler/lua53.can:61
+} -- loops tags -- ./compiler/lua53.can:61
+local func = { -- function scope tags -- ./compiler/lua53.can:62
+"Function", -- function scope tags -- ./compiler/lua53.can:62
+"TableCompr", -- function scope tags -- ./compiler/lua53.can:62
+"DoExpr", -- function scope tags -- ./compiler/lua53.can:62
+"WhileExpr", -- function scope tags -- ./compiler/lua53.can:62
+"RepeatExpr", -- function scope tags -- ./compiler/lua53.can:62
+"IfExpr", -- function scope tags -- ./compiler/lua53.can:62
+"FornumExpr", -- function scope tags -- ./compiler/lua53.can:62
+"ForinExpr" -- function scope tags -- ./compiler/lua53.can:62
+} -- function scope tags -- ./compiler/lua53.can:62
+local function any(list, tags, nofollow) -- ./compiler/lua53.can:65
+if nofollow == nil then nofollow = {} end -- ./compiler/lua53.can:65
+local tagsCheck = {} -- ./compiler/lua53.can:66
+for _, tag in ipairs(tags) do -- ./compiler/lua53.can:67
+tagsCheck[tag] = true -- ./compiler/lua53.can:68
+end -- ./compiler/lua53.can:68
+local nofollowCheck = {} -- ./compiler/lua53.can:70
+for _, tag in ipairs(nofollow) do -- ./compiler/lua53.can:71
+nofollowCheck[tag] = true -- ./compiler/lua53.can:72
+end -- ./compiler/lua53.can:72
+for _, node in ipairs(list) do -- ./compiler/lua53.can:74
+if type(node) == "table" then -- ./compiler/lua53.can:75
+if tagsCheck[node["tag"]] then -- ./compiler/lua53.can:76
+return node -- ./compiler/lua53.can:77
+end -- ./compiler/lua53.can:77
+if not nofollowCheck[node["tag"]] then -- ./compiler/lua53.can:79
+local r = any(node, tags, nofollow) -- ./compiler/lua53.can:80
+if r then -- ./compiler/lua53.can:81
+return r -- ./compiler/lua53.can:81
+end -- ./compiler/lua53.can:81
+end -- ./compiler/lua53.can:81
+end -- ./compiler/lua53.can:81
+end -- ./compiler/lua53.can:81
+return nil -- ./compiler/lua53.can:85
+end -- ./compiler/lua53.can:85
+local states = { ["push"] = {} } -- push stack variable names -- ./compiler/lua53.can:91
+local function push(name, state) -- ./compiler/lua53.can:94
+table["insert"](states[name], state) -- ./compiler/lua53.can:95
+return "" -- ./compiler/lua53.can:96
+end -- ./compiler/lua53.can:96
+local function pop(name) -- ./compiler/lua53.can:99
+table["remove"](states[name]) -- ./compiler/lua53.can:100
+return "" -- ./compiler/lua53.can:101
+end -- ./compiler/lua53.can:101
+local function peek(name) -- ./compiler/lua53.can:104
+return states[name][# states[name]] -- ./compiler/lua53.can:105
+end -- ./compiler/lua53.can:105
+local tags -- ./compiler/lua53.can:109
+local function lua(ast, forceTag, ...) -- ./compiler/lua53.can:111
+if options["mapLines"] and ast["pos"] then -- ./compiler/lua53.can:112
+lastInputPos = ast["pos"] -- ./compiler/lua53.can:113
+end -- ./compiler/lua53.can:113
+return tags[forceTag or ast["tag"]](ast, ...) -- ./compiler/lua53.can:115
+end -- ./compiler/lua53.can:115
+local UNPACK = function(list, i, j) -- table.unpack -- ./compiler/lua53.can:119
+return "table.unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/lua53.can:120
+end -- ./compiler/lua53.can:120
+local APPEND = function(t, toAppend) -- append values "toAppend" (multiple values possible) to t -- ./compiler/lua53.can:122
+return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end" -- ./compiler/lua53.can:123
+end -- ./compiler/lua53.can:123
+tags = setmetatable({ -- ./compiler/lua53.can:127
+["Block"] = function(t) -- ./compiler/lua53.can:129
+local hasPush = peek("push") == nil and any(t, { "Push" }, func) -- push in block and push context not yet defined -- ./compiler/lua53.can:130
+if hasPush and hasPush == t[# t] then -- if the first push is the last statement, it's just a return -- ./compiler/lua53.can:131
+hasPush["tag"] = "Return" -- ./compiler/lua53.can:132
+hasPush = false -- ./compiler/lua53.can:133
+end -- ./compiler/lua53.can:133
+local r = "" -- ./compiler/lua53.can:135
+if hasPush then -- ./compiler/lua53.can:136
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()) -- ./compiler/lua53.can:137
+end -- ./compiler/lua53.can:137
+for i = 1, # t - 1, 1 do -- ./compiler/lua53.can:139
+r = r .. (lua(t[i]) .. newline()) -- ./compiler/lua53.can:140
+end -- ./compiler/lua53.can:140
+if t[# t] then -- ./compiler/lua53.can:142
+r = r .. (lua(t[# t])) -- ./compiler/lua53.can:143
+end -- ./compiler/lua53.can:143
+if hasPush and (t[# t] and t[# t]["tag"] ~= "Return") then -- add return only if needed -- ./compiler/lua53.can:145
+r = r .. (newline() .. "return " .. UNPACK(var("push")) .. pop("push")) -- ./compiler/lua53.can:146
+end -- ./compiler/lua53.can:146
+return r -- ./compiler/lua53.can:148
+end, -- ./compiler/lua53.can:148
+["Do"] = function(t) -- ./compiler/lua53.can:154
+return "do" .. indent() .. lua(t, "Block") .. unindent() .. "end" -- ./compiler/lua53.can:155
+end, -- ./compiler/lua53.can:155
+["Set"] = function(t) -- ./compiler/lua53.can:158
+if # t == 2 then -- ./compiler/lua53.can:159
+return lua(t[1], "_lhs") .. " = " .. lua(t[2], "_lhs") -- ./compiler/lua53.can:160
+elseif # t == 3 then -- ./compiler/lua53.can:161
+return lua(t[1], "_lhs") .. " = " .. lua(t[3], "_lhs") -- ./compiler/lua53.can:162
+elseif # t == 4 then -- ./compiler/lua53.can:163
+if t[3] == "=" then -- ./compiler/lua53.can:164
+local r = lua(t[1], "_lhs") .. " = " .. lua({ -- ./compiler/lua53.can:165
+t[2], -- ./compiler/lua53.can:165
+t[1][1], -- ./compiler/lua53.can:165
+{ -- ./compiler/lua53.can:165
+["tag"] = "Paren", -- ./compiler/lua53.can:165
+t[4][1] -- ./compiler/lua53.can:165
+} -- ./compiler/lua53.can:165
+}, "Op") -- ./compiler/lua53.can:165
+for i = 2, math["min"](# t[4], # t[1]), 1 do -- ./compiler/lua53.can:166
+r = r .. (", " .. lua({ -- ./compiler/lua53.can:167
+t[2], -- ./compiler/lua53.can:167
+t[1][i], -- ./compiler/lua53.can:167
+{ -- ./compiler/lua53.can:167
+["tag"] = "Paren", -- ./compiler/lua53.can:167
+t[4][i] -- ./compiler/lua53.can:167
+} -- ./compiler/lua53.can:167
+}, "Op")) -- ./compiler/lua53.can:167
+end -- ./compiler/lua53.can:167
+return r -- ./compiler/lua53.can:169
+else -- ./compiler/lua53.can:169
+local r = lua(t[1], "_lhs") .. " = " .. lua({ -- ./compiler/lua53.can:171
+t[3], -- ./compiler/lua53.can:171
+{ -- ./compiler/lua53.can:171
+["tag"] = "Paren", -- ./compiler/lua53.can:171
+t[4][1] -- ./compiler/lua53.can:171
+}, -- ./compiler/lua53.can:171
+t[1][1] -- ./compiler/lua53.can:171
+}, "Op") -- ./compiler/lua53.can:171
+for i = 2, math["min"](# t[4], # t[1]), 1 do -- ./compiler/lua53.can:172
+r = r .. (", " .. lua({ -- ./compiler/lua53.can:173
+t[3], -- ./compiler/lua53.can:173
+{ -- ./compiler/lua53.can:173
+["tag"] = "Paren", -- ./compiler/lua53.can:173
+t[4][i] -- ./compiler/lua53.can:173
+}, -- ./compiler/lua53.can:173
+t[1][i] -- ./compiler/lua53.can:173
+}, "Op")) -- ./compiler/lua53.can:173
+end -- ./compiler/lua53.can:173
+return r -- ./compiler/lua53.can:175
+end -- ./compiler/lua53.can:175
+else -- ./compiler/lua53.can:175
+local r = lua(t[1], "_lhs") .. " = " .. lua({ -- ./compiler/lua53.can:178
+t[2], -- ./compiler/lua53.can:178
+t[1][1], -- ./compiler/lua53.can:178
+{ -- ./compiler/lua53.can:178
+["tag"] = "Op", -- ./compiler/lua53.can:178
+t[4], -- ./compiler/lua53.can:178
+{ -- ./compiler/lua53.can:178
+["tag"] = "Paren", -- ./compiler/lua53.can:178
+t[5][1] -- ./compiler/lua53.can:178
+}, -- ./compiler/lua53.can:178
+t[1][1] -- ./compiler/lua53.can:178
+} -- ./compiler/lua53.can:178
+}, "Op") -- ./compiler/lua53.can:178
+for i = 2, math["min"](# t[5], # t[1]), 1 do -- ./compiler/lua53.can:179
+r = r .. (", " .. lua({ -- ./compiler/lua53.can:180
+t[2], -- ./compiler/lua53.can:180
+t[1][i], -- ./compiler/lua53.can:180
+{ -- ./compiler/lua53.can:180
+["tag"] = "Op", -- ./compiler/lua53.can:180
+t[4], -- ./compiler/lua53.can:180
+{ -- ./compiler/lua53.can:180
+["tag"] = "Paren", -- ./compiler/lua53.can:180
+t[5][i] -- ./compiler/lua53.can:180
+}, -- ./compiler/lua53.can:180
+t[1][i] -- ./compiler/lua53.can:180
+} -- ./compiler/lua53.can:180
+}, "Op")) -- ./compiler/lua53.can:180
+end -- ./compiler/lua53.can:180
+return r -- ./compiler/lua53.can:182
+end -- ./compiler/lua53.can:182
+end, -- ./compiler/lua53.can:182
+["While"] = function(t) -- ./compiler/lua53.can:186
+local hasContinue = any(t[2], { "Continue" }, loop) -- ./compiler/lua53.can:187
+local r = "while " .. lua(t[1]) .. " do" .. indent() -- ./compiler/lua53.can:188
+if hasContinue then -- ./compiler/lua53.can:189
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:190
+end -- ./compiler/lua53.can:190
+r = r .. (lua(t[2])) -- ./compiler/lua53.can:192
+if hasContinue then -- ./compiler/lua53.can:193
+r = r .. (unindent() .. "until true") -- ./compiler/lua53.can:194
+end -- ./compiler/lua53.can:194
+r = r .. (unindent() .. "end") -- ./compiler/lua53.can:196
+return r -- ./compiler/lua53.can:197
+end, -- ./compiler/lua53.can:197
+["Repeat"] = function(t) -- ./compiler/lua53.can:200
+local hasContinue = any(t[2], { "Continue" }, loop) -- ./compiler/lua53.can:201
+local r = "repeat" .. indent() -- ./compiler/lua53.can:202
+if hasContinue then -- ./compiler/lua53.can:203
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:204
+end -- ./compiler/lua53.can:204
+r = r .. (lua(t[1])) -- ./compiler/lua53.can:206
+if hasContinue then -- ./compiler/lua53.can:207
+r = r .. (unindent() .. "until true") -- ./compiler/lua53.can:208
+end -- ./compiler/lua53.can:208
+r = r .. (unindent() .. "until " .. lua(t[2])) -- ./compiler/lua53.can:210
+return r -- ./compiler/lua53.can:211
+end, -- ./compiler/lua53.can:211
+["If"] = function(t) -- ./compiler/lua53.can:214
+local r = "if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent() -- ./compiler/lua53.can:215
+for i = 3, # t - 1, 2 do -- ./compiler/lua53.can:216
+r = r .. ("elseif " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent()) -- ./compiler/lua53.can:217
+end -- ./compiler/lua53.can:217
+if # t % 2 == 1 then -- ./compiler/lua53.can:219
+r = r .. ("else" .. indent() .. lua(t[# t]) .. unindent()) -- ./compiler/lua53.can:220
+end -- ./compiler/lua53.can:220
+return r .. "end" -- ./compiler/lua53.can:222
+end, -- ./compiler/lua53.can:222
+["Fornum"] = function(t) -- ./compiler/lua53.can:225
+local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3]) -- ./compiler/lua53.can:226
+if # t == 5 then -- ./compiler/lua53.can:227
+local hasContinue = any(t[5], { "Continue" }, loop) -- ./compiler/lua53.can:228
+r = r .. (", " .. lua(t[4]) .. " do" .. indent()) -- ./compiler/lua53.can:229
+if hasContinue then -- ./compiler/lua53.can:230
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:231
+end -- ./compiler/lua53.can:231
+r = r .. (lua(t[5])) -- ./compiler/lua53.can:233
+if hasContinue then -- ./compiler/lua53.can:234
+r = r .. ("until true" .. unindent()) -- ./compiler/lua53.can:235
+end -- ./compiler/lua53.can:235
+return r .. unindent() .. "end" -- ./compiler/lua53.can:237
+else -- ./compiler/lua53.can:237
+local hasContinue = any(t[4], { "Continue" }, loop) -- ./compiler/lua53.can:239
+r = r .. (" do" .. indent()) -- ./compiler/lua53.can:240
+if hasContinue then -- ./compiler/lua53.can:241
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:242
+end -- ./compiler/lua53.can:242
+r = r .. (lua(t[4])) -- ./compiler/lua53.can:244
+if hasContinue then -- ./compiler/lua53.can:245
+r = r .. (unindent() .. "until true") -- ./compiler/lua53.can:246
+end -- ./compiler/lua53.can:246
+return r .. unindent() .. "end" -- ./compiler/lua53.can:248
+end -- ./compiler/lua53.can:248
+end, -- ./compiler/lua53.can:248
+["Forin"] = function(t) -- ./compiler/lua53.can:252
+local hasContinue = any(t[3], { "Continue" }, loop) -- ./compiler/lua53.can:253
+local r = "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() -- ./compiler/lua53.can:254
+if hasContinue then -- ./compiler/lua53.can:255
+r = r .. ("repeat" .. indent()) -- ./compiler/lua53.can:256
+end -- ./compiler/lua53.can:256
+r = r .. (lua(t[3])) -- ./compiler/lua53.can:258
+if hasContinue then -- ./compiler/lua53.can:259
+r = r .. ("until true" .. unindent()) -- ./compiler/lua53.can:260
+end -- ./compiler/lua53.can:260
+return r .. unindent() .. "end" -- ./compiler/lua53.can:262
+end, -- ./compiler/lua53.can:262
+["Local"] = function(t) -- ./compiler/lua53.can:265
+local r = "local " .. lua(t[1], "_lhs") -- ./compiler/lua53.can:266
+if t[2][1] then -- ./compiler/lua53.can:267
+r = r .. (" = " .. lua(t[2], "_lhs")) -- ./compiler/lua53.can:268
+end -- ./compiler/lua53.can:268
+return r -- ./compiler/lua53.can:270
+end, -- ./compiler/lua53.can:270
+["Let"] = function(t) -- ./compiler/lua53.can:273
+local nameList = lua(t[1], "_lhs") -- ./compiler/lua53.can:274
+local r = "local " .. nameList -- ./compiler/lua53.can:275
+if t[2][1] then -- ./compiler/lua53.can:276
+if any(t[2], { -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+"Function", -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+"Table", -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+"Paren" -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+}) then -- predeclaration doesn't matter otherwise -- ./compiler/lua53.can:277
+r = r .. (newline() .. nameList .. " = " .. lua(t[2], "_lhs")) -- ./compiler/lua53.can:278
+else -- ./compiler/lua53.can:278
+r = r .. (" = " .. lua(t[2], "_lhs")) -- ./compiler/lua53.can:280
+end -- ./compiler/lua53.can:280
+end -- ./compiler/lua53.can:280
+return r -- ./compiler/lua53.can:283
+end, -- ./compiler/lua53.can:283
+["Localrec"] = function(t) -- ./compiler/lua53.can:286
+return "local function " .. lua(t[1][1]) .. lua(t[2][1], "_functionWithoutKeyword") -- ./compiler/lua53.can:287
+end, -- ./compiler/lua53.can:287
+["Goto"] = function(t) -- ./compiler/lua53.can:290
+return "goto " .. lua(t, "Id") -- ./compiler/lua53.can:291
+end, -- ./compiler/lua53.can:291
+["Label"] = function(t) -- ./compiler/lua53.can:294
+return "::" .. lua(t, "Id") .. "::" -- ./compiler/lua53.can:295
+end, -- ./compiler/lua53.can:295
+["Return"] = function(t) -- ./compiler/lua53.can:298
+local push = peek("push") -- ./compiler/lua53.can:299
+if push then -- ./compiler/lua53.can:300
+local r = "" -- ./compiler/lua53.can:301
+for _, val in ipairs(t) do -- ./compiler/lua53.can:302
+r = r .. (push .. "[#" .. push .. "+1] = " .. lua(val) .. newline()) -- ./compiler/lua53.can:303
+end -- ./compiler/lua53.can:303
+return r .. "return " .. UNPACK(push) -- ./compiler/lua53.can:305
+else -- ./compiler/lua53.can:305
+return "return " .. lua(t, "_lhs") -- ./compiler/lua53.can:307
+end -- ./compiler/lua53.can:307
+end, -- ./compiler/lua53.can:307
+["Push"] = function(t) -- ./compiler/lua53.can:311
+local var = assert(peek("push"), "no context given for push") -- ./compiler/lua53.can:312
+r = "" -- ./compiler/lua53.can:313
+for i = 1, # t - 1, 1 do -- ./compiler/lua53.can:314
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[i]) .. newline()) -- ./compiler/lua53.can:315
+end -- ./compiler/lua53.can:315
+if t[# t] then -- ./compiler/lua53.can:317
+if t[# t]["tag"] == "Call" or t[# t]["tag"] == "Invoke" then -- ./compiler/lua53.can:318
+r = r .. (APPEND(var, lua(t[# t]))) -- ./compiler/lua53.can:319
+else -- ./compiler/lua53.can:319
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[# t])) -- ./compiler/lua53.can:321
+end -- ./compiler/lua53.can:321
+end -- ./compiler/lua53.can:321
+return r -- ./compiler/lua53.can:324
+end, -- ./compiler/lua53.can:324
+["Break"] = function() -- ./compiler/lua53.can:327
+return "break" -- ./compiler/lua53.can:328
+end, -- ./compiler/lua53.can:328
+["Continue"] = function() -- ./compiler/lua53.can:331
+return "break" -- ./compiler/lua53.can:332
+end, -- ./compiler/lua53.can:332
+["Nil"] = function() -- ./compiler/lua53.can:339
+return "nil" -- ./compiler/lua53.can:340
+end, -- ./compiler/lua53.can:340
+["Dots"] = function() -- ./compiler/lua53.can:343
+return "..." -- ./compiler/lua53.can:344
+end, -- ./compiler/lua53.can:344
+["Boolean"] = function(t) -- ./compiler/lua53.can:347
+return tostring(t[1]) -- ./compiler/lua53.can:348
+end, -- ./compiler/lua53.can:348
+["Number"] = function(t) -- ./compiler/lua53.can:351
+return tostring(t[1]) -- ./compiler/lua53.can:352
+end, -- ./compiler/lua53.can:352
+["String"] = function(t) -- ./compiler/lua53.can:355
+return ("%q"):format(t[1]) -- ./compiler/lua53.can:356
+end, -- ./compiler/lua53.can:356
+["_functionWithoutKeyword"] = function(t) -- ./compiler/lua53.can:359
+local r = "(" -- ./compiler/lua53.can:360
+local decl = {} -- ./compiler/lua53.can:361
+if t[1][1] then -- ./compiler/lua53.can:362
+if t[1][1]["tag"] == "ParPair" then -- ./compiler/lua53.can:363
+local id = lua(t[1][1][1]) -- ./compiler/lua53.can:364
+indentLevel = indentLevel + (1) -- ./compiler/lua53.can:365
+table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][1][2]) .. " end") -- ./compiler/lua53.can:366
+indentLevel = indentLevel - (1) -- ./compiler/lua53.can:367
+r = r .. (id) -- ./compiler/lua53.can:368
+else -- ./compiler/lua53.can:368
+r = r .. (lua(t[1][1])) -- ./compiler/lua53.can:370
+end -- ./compiler/lua53.can:370
+for i = 2, # t[1], 1 do -- ./compiler/lua53.can:372
+if t[1][i]["tag"] == "ParPair" then -- ./compiler/lua53.can:373
+local id = lua(t[1][i][1]) -- ./compiler/lua53.can:374
+indentLevel = indentLevel + (1) -- ./compiler/lua53.can:375
+table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][i][2]) .. " end") -- ./compiler/lua53.can:376
+indentLevel = indentLevel - (1) -- ./compiler/lua53.can:377
+r = r .. (", " .. id) -- ./compiler/lua53.can:378
+else -- ./compiler/lua53.can:378
+r = r .. (", " .. lua(t[1][i])) -- ./compiler/lua53.can:380
+end -- ./compiler/lua53.can:380
+end -- ./compiler/lua53.can:380
+end -- ./compiler/lua53.can:380
+r = r .. (")" .. indent()) -- ./compiler/lua53.can:384
+for _, d in ipairs(decl) do -- ./compiler/lua53.can:385
+r = r .. (d .. newline()) -- ./compiler/lua53.can:386
+end -- ./compiler/lua53.can:386
+if t[2][# t[2]] and t[2][# t[2]]["tag"] == "Push" then -- convert final push to return -- ./compiler/lua53.can:388
+t[2][# t[2]]["tag"] = "Return" -- ./compiler/lua53.can:389
+end -- ./compiler/lua53.can:389
+local hasPush = any(t[2], { "Push" }, func) -- ./compiler/lua53.can:391
+if hasPush then -- ./compiler/lua53.can:392
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()) -- ./compiler/lua53.can:393
+else -- ./compiler/lua53.can:393
+push("push", false) -- no push here (make sure higher push don't affect us) -- ./compiler/lua53.can:395
+end -- no push here (make sure higher push don't affect us) -- ./compiler/lua53.can:395
+r = r .. (lua(t[2])) -- ./compiler/lua53.can:397
+if hasPush and (t[2][# t[2]] and t[2][# t[2]]["tag"] ~= "Return") then -- add return only if needed -- ./compiler/lua53.can:398
+r = r .. (newline() .. "return " .. UNPACK(var("push"))) -- ./compiler/lua53.can:399
+end -- ./compiler/lua53.can:399
+pop("push") -- ./compiler/lua53.can:401
+return r .. unindent() .. "end" -- ./compiler/lua53.can:402
+end, -- ./compiler/lua53.can:402
+["Function"] = function(t) -- ./compiler/lua53.can:404
+return "function" .. lua(t, "_functionWithoutKeyword") -- ./compiler/lua53.can:405
+end, -- ./compiler/lua53.can:405
+["Pair"] = function(t) -- ./compiler/lua53.can:408
+return "[" .. lua(t[1]) .. "] = " .. lua(t[2]) -- ./compiler/lua53.can:409
+end, -- ./compiler/lua53.can:409
+["Table"] = function(t) -- ./compiler/lua53.can:411
+if # t == 0 then -- ./compiler/lua53.can:412
+return "{}" -- ./compiler/lua53.can:413
+elseif # t == 1 then -- ./compiler/lua53.can:414
+return "{ " .. lua(t, "_lhs") .. " }" -- ./compiler/lua53.can:415
+else -- ./compiler/lua53.can:415
+return "{" .. indent() .. lua(t, "_lhs", nil, true) .. unindent() .. "}" -- ./compiler/lua53.can:417
+end -- ./compiler/lua53.can:417
+end, -- ./compiler/lua53.can:417
+["TableCompr"] = function(t) -- ./compiler/lua53.can:421
+return push("push", "self") .. "(function()" .. indent() .. "local self = {}" .. newline() .. lua(t[1]) .. newline() .. "return self" .. unindent() .. "end)()" .. pop("push") -- ./compiler/lua53.can:422
+end, -- ./compiler/lua53.can:422
+["Op"] = function(t) -- ./compiler/lua53.can:425
+local r -- ./compiler/lua53.can:426
+if # t == 2 then -- ./compiler/lua53.can:427
+if type(tags["_opid"][t[1]]) == "string" then -- ./compiler/lua53.can:428
+r = tags["_opid"][t[1]] .. " " .. lua(t[2]) -- ./compiler/lua53.can:429
+else -- ./compiler/lua53.can:429
+r = tags["_opid"][t[1]](t[2]) -- ./compiler/lua53.can:431
+end -- ./compiler/lua53.can:431
+else -- ./compiler/lua53.can:431
+if type(tags["_opid"][t[1]]) == "string" then -- ./compiler/lua53.can:434
+r = lua(t[2]) .. " " .. tags["_opid"][t[1]] .. " " .. lua(t[3]) -- ./compiler/lua53.can:435
+else -- ./compiler/lua53.can:435
+r = tags["_opid"][t[1]](t[2], t[3]) -- ./compiler/lua53.can:437
+end -- ./compiler/lua53.can:437
+end -- ./compiler/lua53.can:437
+return r -- ./compiler/lua53.can:440
+end, -- ./compiler/lua53.can:440
+["Paren"] = function(t) -- ./compiler/lua53.can:443
+return "(" .. lua(t[1]) .. ")" -- ./compiler/lua53.can:444
+end, -- ./compiler/lua53.can:444
+["_statexpr"] = function(t, stat) -- ./compiler/lua53.can:451
+local hasPush = any(t, { "Push" }, func) -- ./compiler/lua53.can:452
+local r = "(function()" .. indent() -- ./compiler/lua53.can:453
+if hasPush then -- ./compiler/lua53.can:454
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()) -- ./compiler/lua53.can:455
+else -- ./compiler/lua53.can:455
+push("push", false) -- no push here (make sure higher push don't affect us) -- ./compiler/lua53.can:457
+end -- no push here (make sure higher push don't affect us) -- ./compiler/lua53.can:457
+r = r .. (lua(t, stat)) -- ./compiler/lua53.can:459
+if hasPush then -- ./compiler/lua53.can:460
+r = r .. (newline() .. "return " .. UNPACK(var("push"))) -- ./compiler/lua53.can:461
+end -- ./compiler/lua53.can:461
+pop("push") -- ./compiler/lua53.can:463
+r = r .. (unindent() .. "end)()") -- ./compiler/lua53.can:464
+return r -- ./compiler/lua53.can:465
+end, -- ./compiler/lua53.can:465
+["DoExpr"] = function(t) -- ./compiler/lua53.can:468
+if t[# t]["tag"] == "Push" then -- convert final push to return -- ./compiler/lua53.can:469
+t[# t]["tag"] = "Return" -- ./compiler/lua53.can:470
+end -- ./compiler/lua53.can:470
+return lua(t, "_statexpr", "Do") -- ./compiler/lua53.can:472
+end, -- ./compiler/lua53.can:472
+["WhileExpr"] = function(t) -- ./compiler/lua53.can:475
+return lua(t, "_statexpr", "While") -- ./compiler/lua53.can:476
+end, -- ./compiler/lua53.can:476
+["RepeatExpr"] = function(t) -- ./compiler/lua53.can:479
+return lua(t, "_statexpr", "Repeat") -- ./compiler/lua53.can:480
+end, -- ./compiler/lua53.can:480
+["IfExpr"] = function(t) -- ./compiler/lua53.can:483
+for i = 2, # t do -- convert final pushes to returns -- ./compiler/lua53.can:484
+local block = t[i] -- ./compiler/lua53.can:485
+if block[# block] and block[# block]["tag"] == "Push" then -- ./compiler/lua53.can:486
+block[# block]["tag"] = "Return" -- ./compiler/lua53.can:487
+end -- ./compiler/lua53.can:487
+end -- ./compiler/lua53.can:487
+return lua(t, "_statexpr", "If") -- ./compiler/lua53.can:490
+end, -- ./compiler/lua53.can:490
+["FornumExpr"] = function(t) -- ./compiler/lua53.can:493
+return lua(t, "_statexpr", "Fornum") -- ./compiler/lua53.can:494
+end, -- ./compiler/lua53.can:494
+["ForinExpr"] = function(t) -- ./compiler/lua53.can:497
+return lua(t, "_statexpr", "Forin") -- ./compiler/lua53.can:498
+end, -- ./compiler/lua53.can:498
+["Call"] = function(t) -- ./compiler/lua53.can:504
+return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua53.can:505
+end, -- ./compiler/lua53.can:505
+["Invoke"] = function(t) -- ./compiler/lua53.can:509
+return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")" -- ./compiler/lua53.can:510
+end, -- ./compiler/lua53.can:510
+["_lhs"] = function(t, start, newlines) -- ./compiler/lua53.can:514
+if start == nil then start = 1 end -- ./compiler/lua53.can:514
+local r -- ./compiler/lua53.can:515
+if t[start] then -- ./compiler/lua53.can:516
+r = lua(t[start]) -- ./compiler/lua53.can:517
+for i = start + 1, # t, 1 do -- ./compiler/lua53.can:518
+r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i])) -- ./compiler/lua53.can:519
+end -- ./compiler/lua53.can:519
+else -- ./compiler/lua53.can:519
+r = "" -- ./compiler/lua53.can:522
+end -- ./compiler/lua53.can:522
+return r -- ./compiler/lua53.can:524
+end, -- ./compiler/lua53.can:524
+["Id"] = function(t) -- ./compiler/lua53.can:527
+return t[1] -- ./compiler/lua53.can:528
+end, -- ./compiler/lua53.can:528
+["Index"] = function(t) -- ./compiler/lua53.can:531
+return lua(t[1]) .. "[" .. lua(t[2]) .. "]" -- ./compiler/lua53.can:532
+end, -- ./compiler/lua53.can:532
+["_opid"] = { -- ./compiler/lua53.can:536
+["add"] = "+", -- ./compiler/lua53.can:537
+["sub"] = "-", -- ./compiler/lua53.can:537
+["mul"] = "*", -- ./compiler/lua53.can:537
+["div"] = "/", -- ./compiler/lua53.can:537
+["idiv"] = "//", -- ./compiler/lua53.can:538
+["mod"] = "%", -- ./compiler/lua53.can:538
+["pow"] = "^", -- ./compiler/lua53.can:538
+["concat"] = "..", -- ./compiler/lua53.can:538
+["band"] = "&", -- ./compiler/lua53.can:539
+["bor"] = "|", -- ./compiler/lua53.can:539
+["bxor"] = "~", -- ./compiler/lua53.can:539
+["shl"] = "<<", -- ./compiler/lua53.can:539
+["shr"] = ">>", -- ./compiler/lua53.can:539
+["eq"] = "==", -- ./compiler/lua53.can:540
+["ne"] = "~=", -- ./compiler/lua53.can:540
+["lt"] = "<", -- ./compiler/lua53.can:540
+["gt"] = ">", -- ./compiler/lua53.can:540
+["le"] = "<=", -- ./compiler/lua53.can:540
+["ge"] = ">=", -- ./compiler/lua53.can:540
+["and"] = "and", -- ./compiler/lua53.can:541
+["or"] = "or", -- ./compiler/lua53.can:541
+["unm"] = "-", -- ./compiler/lua53.can:541
+["len"] = "#", -- ./compiler/lua53.can:541
+["bnot"] = "~", -- ./compiler/lua53.can:541
+["not"] = "not" -- ./compiler/lua53.can:541
+} -- ./compiler/lua53.can:541
+}, { ["__index"] = function(self, key) -- ./compiler/lua53.can:544
+error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3") -- ./compiler/lua53.can:545
+end }) -- ./compiler/lua53.can:545
+UNPACK = function(list, i, j) -- ./compiler/luajit.can:1
+return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/luajit.can:2
+end -- ./compiler/luajit.can:2
+APPEND = function(t, toAppend) -- ./compiler/luajit.can:4
+return "do" .. indent() .. "local a, p = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #a do" .. indent() .. t .. "[p] = a[i]" .. newline() .. "p = p + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/luajit.can:5
+end -- ./compiler/luajit.can:5
+tags["_opid"]["idiv"] = function(left, right) -- ./compiler/luajit.can:8
+return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/luajit.can:9
+end -- ./compiler/luajit.can:9
+tags["_opid"]["band"] = function(left, right) -- ./compiler/luajit.can:11
+addRequire("bit", "band", "band") -- ./compiler/luajit.can:12
+return var("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:13
+end -- ./compiler/luajit.can:13
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/luajit.can:15
+addRequire("bit", "bor", "bor") -- ./compiler/luajit.can:16
+return var("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:17
+end -- ./compiler/luajit.can:17
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/luajit.can:19
+addRequire("bit", "bxor", "bxor") -- ./compiler/luajit.can:20
+return var("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:21
+end -- ./compiler/luajit.can:21
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/luajit.can:23
+addRequire("bit", "lshift", "lshift") -- ./compiler/luajit.can:24
+return var("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:25
+end -- ./compiler/luajit.can:25
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/luajit.can:27
+addRequire("bit", "rshift", "rshift") -- ./compiler/luajit.can:28
+return var("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:29
+end -- ./compiler/luajit.can:29
+tags["_opid"]["bnot"] = function(right) -- ./compiler/luajit.can:31
+addRequire("bit", "bnot", "bnot") -- ./compiler/luajit.can:32
+return var("bnot") .. "(" .. lua(right) .. ")" -- ./compiler/luajit.can:33
+end -- ./compiler/luajit.can:33
+local code = lua(ast) .. newline() -- ./compiler/lua53.can:551
+return requireStr .. code -- ./compiler/lua53.can:552
+end -- ./compiler/lua53.can:552
+end -- ./compiler/lua53.can:552
+local lua53 = _() or lua53 -- ./compiler/lua53.can:557
+return lua53 -- ./compiler/luajit.can:40
+end -- ./compiler/luajit.can:40
+local luajit = _() or luajit -- ./compiler/luajit.can:44
+package["loaded"]["compiler.luajit"] = luajit or true -- ./compiler/luajit.can:45
+local function _() -- ./compiler/luajit.can:49
+local scope = {} -- ./lib/lua-parser/scope.lua:4
+scope["lineno"] = function(s, i) -- ./lib/lua-parser/scope.lua:6
+if i == 1 then -- ./lib/lua-parser/scope.lua:7
+return 1, 1 -- ./lib/lua-parser/scope.lua:7
+end -- ./lib/lua-parser/scope.lua:7
+local l, lastline = 0, "" -- ./lib/lua-parser/scope.lua:8
 s = s:sub(1, i) .. "\
-"
+" -- ./lib/lua-parser/scope.lua:9
 for line in s:gmatch("[^\
 ]*[\
-]") do
-l = l + 1
-lastline = line
-end
-local c = lastline:len() - 1
-return l, c ~= 0 and c or 1
-end
-scope["new_scope"] = function(env)
-if not env["scope"] then
-env["scope"] = 0
-else
-env["scope"] = env["scope"] + 1
-end
-local scope = env["scope"]
-env["maxscope"] = scope
-env[scope] = {}
-env[scope]["label"] = {}
-env[scope]["local"] = {}
-env[scope]["goto"] = {}
-end
-scope["begin_scope"] = function(env)
-env["scope"] = env["scope"] + 1
-end
-scope["end_scope"] = function(env)
-env["scope"] = env["scope"] - 1
-end
-scope["new_function"] = function(env)
-if not env["fscope"] then
-env["fscope"] = 0
-else
-env["fscope"] = env["fscope"] + 1
-end
-local fscope = env["fscope"]
-env["function"][fscope] = {}
-end
-scope["begin_function"] = function(env)
-env["fscope"] = env["fscope"] + 1
-end
-scope["end_function"] = function(env)
-env["fscope"] = env["fscope"] - 1
-end
-scope["begin_loop"] = function(env)
-if not env["loop"] then
-env["loop"] = 1
-else
-env["loop"] = env["loop"] + 1
-end
-end
-scope["end_loop"] = function(env)
-env["loop"] = env["loop"] - 1
-end
-scope["insideloop"] = function(env)
-return env["loop"] and env["loop"] > 0
-end
-return scope
-end
-local scope = _() or scope
-package["loaded"]["lib.lua-parser.scope"] = scope or true
-local function _()
-local scope = require("lib.lua-parser.scope")
-local lineno = scope["lineno"]
-local new_scope, end_scope = scope["new_scope"], scope["end_scope"]
-local new_function, end_function = scope["new_function"], scope["end_function"]
-local begin_loop, end_loop = scope["begin_loop"], scope["end_loop"]
-local insideloop = scope["insideloop"]
-local function syntaxerror(errorinfo, pos, msg)
-local l, c = lineno(errorinfo["subject"], pos)
-local error_msg = "%s:%d:%d: syntax error, %s"
-return string["format"](error_msg, errorinfo["filename"], l, c, msg)
-end
-local function exist_label(env, scope, stm)
-local l = stm[1]
-for s = scope, 0, - 1 do
-if env[s]["label"][l] then
-return true
-end
-end
-return false
-end
-local function set_label(env, label, pos)
-local scope = env["scope"]
-local l = env[scope]["label"][label]
-if not l then
-env[scope]["label"][label] = {
-["name"] = label,
-["pos"] = pos
-}
-return true
-else
-local msg = "label '%s' already defined at line %d"
-local line = lineno(env["errorinfo"]["subject"], l["pos"])
-msg = string["format"](msg, label, line)
-return nil, syntaxerror(env["errorinfo"], pos, msg)
-end
-end
-local function set_pending_goto(env, stm)
-local scope = env["scope"]
-table["insert"](env[scope]["goto"], stm)
-return true
-end
-local function verify_pending_gotos(env)
-for s = env["maxscope"], 0, - 1 do
-for k, v in ipairs(env[s]["goto"]) do
-if not exist_label(env, s, v) then
-local msg = "no visible label '%s' for <goto>"
-msg = string["format"](msg, v[1])
-return nil, syntaxerror(env["errorinfo"], v["pos"], msg)
-end
-end
-end
-return true
-end
-local function set_vararg(env, is_vararg)
-env["function"][env["fscope"]]["is_vararg"] = is_vararg
-end
-local traverse_stm, traverse_exp, traverse_var
-local traverse_block, traverse_explist, traverse_varlist, traverse_parlist
-traverse_parlist = function(env, parlist)
-local len = # parlist
-local is_vararg = false
-if len > 0 and parlist[len]["tag"] == "Dots" then
-is_vararg = true
-end
-set_vararg(env, is_vararg)
-return true
-end
-local function traverse_function(env, exp)
-new_function(env)
-new_scope(env)
-local status, msg = traverse_parlist(env, exp[1])
-if not status then
-return status, msg
-end
-status, msg = traverse_block(env, exp[2])
-if not status then
-return status, msg
-end
-end_scope(env)
-end_function(env)
-return true
-end
-local function traverse_tablecompr(env, exp)
-new_function(env)
-new_scope(env)
-local status, msg = traverse_block(env, exp[1])
-if not status then
-return status, msg
-end
-end_scope(env)
-end_function(env)
-return true
-end
-local function traverse_statexpr(env, exp)
-new_function(env)
-new_scope(env)
-exp["tag"] = exp["tag"]:gsub("Expr$", "")
-local status, msg = traverse_stm(env, exp)
-exp["tag"] = exp["tag"] .. "Expr"
-if not status then
-return status, msg
-end
-end_scope(env)
-end_function(env)
-return true
-end
-local function traverse_op(env, exp)
-local status, msg = traverse_exp(env, exp[2])
-if not status then
-return status, msg
-end
-if exp[3] then
-status, msg = traverse_exp(env, exp[3])
-if not status then
-return status, msg
-end
-end
-return true
-end
-local function traverse_paren(env, exp)
-local status, msg = traverse_exp(env, exp[1])
-if not status then
-return status, msg
-end
-return true
-end
-local function traverse_table(env, fieldlist)
-for k, v in ipairs(fieldlist) do
-local tag = v["tag"]
-if tag == "Pair" then
-local status, msg = traverse_exp(env, v[1])
-if not status then
-return status, msg
-end
-status, msg = traverse_exp(env, v[2])
-if not status then
-return status, msg
-end
-else
-local status, msg = traverse_exp(env, v)
-if not status then
-return status, msg
-end
-end
-end
-return true
-end
-local function traverse_vararg(env, exp)
-if not env["function"][env["fscope"]]["is_vararg"] then
-local msg = "cannot use '...' outside a vararg function"
-return nil, syntaxerror(env["errorinfo"], exp["pos"], msg)
-end
-return true
-end
-local function traverse_call(env, call)
-local status, msg = traverse_exp(env, call[1])
-if not status then
-return status, msg
-end
-for i = 2, # call do
-status, msg = traverse_exp(env, call[i])
-if not status then
-return status, msg
-end
-end
-return true
-end
-local function traverse_invoke(env, invoke)
-local status, msg = traverse_exp(env, invoke[1])
-if not status then
-return status, msg
-end
-for i = 3, # invoke do
-status, msg = traverse_exp(env, invoke[i])
-if not status then
-return status, msg
-end
-end
-return true
-end
-local function traverse_assignment(env, stm)
-local status, msg = traverse_varlist(env, stm[1])
-if not status then
-return status, msg
-end
-status, msg = traverse_explist(env, stm[# stm])
-if not status then
-return status, msg
-end
-return true
-end
-local function traverse_break(env, stm)
-if not insideloop(env) then
-local msg = "<break> not inside a loop"
-return nil, syntaxerror(env["errorinfo"], stm["pos"], msg)
-end
-return true
-end
-local function traverse_continue(env, stm)
-if not insideloop(env) then
-local msg = "<continue> not inside a loop"
-return nil, syntaxerror(env["errorinfo"], stm["pos"], msg)
-end
-return true
-end
-local function traverse_push(env, stm)
-local status, msg = traverse_explist(env, stm)
-if not status then
-return status, msg
-end
-return true
-end
-local function traverse_forin(env, stm)
-begin_loop(env)
-new_scope(env)
-local status, msg = traverse_explist(env, stm[2])
-if not status then
-return status, msg
-end
-status, msg = traverse_block(env, stm[3])
-if not status then
-return status, msg
-end
-end_scope(env)
-end_loop(env)
-return true
-end
-local function traverse_fornum(env, stm)
-local status, msg
-begin_loop(env)
-new_scope(env)
-status, msg = traverse_exp(env, stm[2])
-if not status then
-return status, msg
-end
-status, msg = traverse_exp(env, stm[3])
-if not status then
-return status, msg
-end
-if stm[5] then
-status, msg = traverse_exp(env, stm[4])
-if not status then
-return status, msg
-end
-status, msg = traverse_block(env, stm[5])
-if not status then
-return status, msg
-end
-else
-status, msg = traverse_block(env, stm[4])
-if not status then
-return status, msg
-end
-end
-end_scope(env)
-end_loop(env)
-return true
-end
-local function traverse_goto(env, stm)
-local status, msg = set_pending_goto(env, stm)
-if not status then
-return status, msg
-end
-return true
-end
-local function traverse_if(env, stm)
-local len = # stm
-if len % 2 == 0 then
-for i = 1, len, 2 do
-local status, msg = traverse_exp(env, stm[i])
-if not status then
-return status, msg
-end
-status, msg = traverse_block(env, stm[i + 1])
-if not status then
-return status, msg
-end
-end
-else
-for i = 1, len - 1, 2 do
-local status, msg = traverse_exp(env, stm[i])
-if not status then
-return status, msg
-end
-status, msg = traverse_block(env, stm[i + 1])
-if not status then
-return status, msg
-end
-end
-local status, msg = traverse_block(env, stm[len])
-if not status then
-return status, msg
-end
-end
-return true
-end
-local function traverse_label(env, stm)
-local status, msg = set_label(env, stm[1], stm["pos"])
-if not status then
-return status, msg
-end
-return true
-end
-local function traverse_let(env, stm)
-local status, msg = traverse_explist(env, stm[2])
-if not status then
-return status, msg
-end
-return true
-end
-local function traverse_letrec(env, stm)
-local status, msg = traverse_exp(env, stm[2][1])
-if not status then
-return status, msg
-end
-return true
-end
-local function traverse_repeat(env, stm)
-begin_loop(env)
-local status, msg = traverse_block(env, stm[1])
-if not status then
-return status, msg
-end
-status, msg = traverse_exp(env, stm[2])
-if not status then
-return status, msg
-end
-end_loop(env)
-return true
-end
-local function traverse_return(env, stm)
-local status, msg = traverse_explist(env, stm)
-if not status then
-return status, msg
-end
-return true
-end
-local function traverse_while(env, stm)
-begin_loop(env)
-local status, msg = traverse_exp(env, stm[1])
-if not status then
-return status, msg
-end
-status, msg = traverse_block(env, stm[2])
-if not status then
-return status, msg
-end
-end_loop(env)
-return true
-end
-traverse_var = function(env, var)
-local tag = var["tag"]
-if tag == "Id" then
-return true
-elseif tag == "Index" then
-local status, msg = traverse_exp(env, var[1])
-if not status then
-return status, msg
-end
-status, msg = traverse_exp(env, var[2])
-if not status then
-return status, msg
-end
-return true
-else
-error("expecting a variable, but got a " .. tag)
-end
-end
-traverse_varlist = function(env, varlist)
-for k, v in ipairs(varlist) do
-local status, msg = traverse_var(env, v)
-if not status then
-return status, msg
-end
-end
-return true
-end
-traverse_exp = function(env, exp)
-local tag = exp["tag"]
-if tag == "Nil" or tag == "Boolean" or tag == "Number" or tag == "String" then
-return true
-elseif tag == "Dots" then
-return traverse_vararg(env, exp)
-elseif tag == "Function" then
-return traverse_function(env, exp)
-elseif tag == "Table" then
-return traverse_table(env, exp)
-elseif tag == "Op" then
-return traverse_op(env, exp)
-elseif tag == "Paren" then
-return traverse_paren(env, exp)
-elseif tag == "Call" then
-return traverse_call(env, exp)
-elseif tag == "Invoke" then
-return traverse_invoke(env, exp)
-elseif tag == "Id" or tag == "Index" then
-return traverse_var(env, exp)
-elseif tag == "TableCompr" then
-return traverse_tablecompr(env, exp)
-elseif tag:match("Expr$") then
-return traverse_statexpr(env, exp)
-else
-error("expecting an expression, but got a " .. tag)
-end
-end
-traverse_explist = function(env, explist)
-for k, v in ipairs(explist) do
-local status, msg = traverse_exp(env, v)
-if not status then
-return status, msg
-end
-end
-return true
-end
-traverse_stm = function(env, stm)
-local tag = stm["tag"]
-if tag == "Do" then
-return traverse_block(env, stm)
-elseif tag == "Set" then
-return traverse_assignment(env, stm)
-elseif tag == "While" then
-return traverse_while(env, stm)
-elseif tag == "Repeat" then
-return traverse_repeat(env, stm)
-elseif tag == "If" then
-return traverse_if(env, stm)
-elseif tag == "Fornum" then
-return traverse_fornum(env, stm)
-elseif tag == "Forin" then
-return traverse_forin(env, stm)
-elseif tag == "Local" or tag == "Let" then
-return traverse_let(env, stm)
-elseif tag == "Localrec" then
-return traverse_letrec(env, stm)
-elseif tag == "Goto" then
-return traverse_goto(env, stm)
-elseif tag == "Label" then
-return traverse_label(env, stm)
-elseif tag == "Return" then
-return traverse_return(env, stm)
-elseif tag == "Break" then
-return traverse_break(env, stm)
-elseif tag == "Call" then
-return traverse_call(env, stm)
-elseif tag == "Invoke" then
-return traverse_invoke(env, stm)
-elseif tag == "Continue" then
-return traverse_continue(env, stm)
-elseif tag == "Push" then
-return traverse_push(env, stm)
-else
-error("expecting a statement, but got a " .. tag)
-end
-end
-traverse_block = function(env, block)
-local l = {}
-new_scope(env)
-for k, v in ipairs(block) do
-local status, msg = traverse_stm(env, v)
-if not status then
-return status, msg
-end
-end
-end_scope(env)
-return true
-end
-local function traverse(ast, errorinfo)
-assert(type(ast) == "table")
-assert(type(errorinfo) == "table")
-local env = {
-["errorinfo"] = errorinfo,
-["function"] = {}
-}
-new_function(env)
-set_vararg(env, true)
-local status, msg = traverse_block(env, ast)
-if not status then
-return status, msg
-end
-end_function(env)
-status, msg = verify_pending_gotos(env)
-if not status then
-return status, msg
-end
-return ast
-end
-return {
-["validate"] = traverse,
-["syntaxerror"] = syntaxerror
-}
-end
-local validator = _() or validator
-package["loaded"]["lib.lua-parser.validator"] = validator or true
-local function _()
-local pp = {}
-local block2str, stm2str, exp2str, var2str
-local explist2str, varlist2str, parlist2str, fieldlist2str
-local function iscntrl(x)
-if (x >= 0 and x <= 31) or (x == 127) then
-return true
-end
-return false
-end
-local function isprint(x)
-return not iscntrl(x)
-end
-local function fixed_string(str)
-local new_str = ""
-for i = 1, string["len"](str) do
-char = string["byte"](str, i)
-if char == 34 then
-new_str = new_str .. string["format"]("\\\"")
-elseif char == 92 then
-new_str = new_str .. string["format"]("\\\\")
-elseif char == 7 then
-new_str = new_str .. string["format"]("\\a")
-elseif char == 8 then
-new_str = new_str .. string["format"]("\\b")
-elseif char == 12 then
-new_str = new_str .. string["format"]("\\f")
-elseif char == 10 then
-new_str = new_str .. string["format"]("\\n")
-elseif char == 13 then
-new_str = new_str .. string["format"]("\\r")
-elseif char == 9 then
-new_str = new_str .. string["format"]("\\t")
-elseif char == 11 then
-new_str = new_str .. string["format"]("\\v")
-else
-if isprint(char) then
-new_str = new_str .. string["format"]("%c", char)
-else
-new_str = new_str .. string["format"]("\\%03d", char)
-end
-end
-end
-return new_str
-end
-local function name2str(name)
-return string["format"]("\"%s\"", name)
-end
-local function boolean2str(b)
-return string["format"]("\"%s\"", tostring(b))
-end
-local function number2str(n)
-return string["format"]("\"%s\"", tostring(n))
-end
-local function string2str(s)
-return string["format"]("\"%s\"", fixed_string(s))
-end
-var2str = function(var)
-local tag = var["tag"]
-local str = "`" .. tag
-if tag == "Id" then
-str = str .. " " .. name2str(var[1])
-elseif tag == "Index" then
-str = str .. "{ "
-str = str .. exp2str(var[1]) .. ", "
-str = str .. exp2str(var[2])
-str = str .. " }"
-else
-error("expecting a variable, but got a " .. tag)
-end
-return str
-end
-varlist2str = function(varlist)
-local l = {}
-for k, v in ipairs(varlist) do
-l[k] = var2str(v)
-end
-return "{ " .. table["concat"](l, ", ") .. " }"
-end
-parlist2str = function(parlist)
-local l = {}
-local len = # parlist
-local is_vararg = false
-if len > 0 and parlist[len]["tag"] == "Dots" then
-is_vararg = true
-len = len - 1
-end
-local i = 1
-while i <= len do
-l[i] = var2str(parlist[i])
-i = i + 1
-end
-if is_vararg then
-l[i] = "`" .. parlist[i]["tag"]
-end
-return "{ " .. table["concat"](l, ", ") .. " }"
-end
-fieldlist2str = function(fieldlist)
-local l = {}
-for k, v in ipairs(fieldlist) do
-local tag = v["tag"]
-if tag == "Pair" then
-l[k] = "`" .. tag .. "{ "
-l[k] = l[k] .. exp2str(v[1]) .. ", " .. exp2str(v[2])
-l[k] = l[k] .. " }"
-else
-l[k] = exp2str(v)
-end
-end
-if # l > 0 then
-return "{ " .. table["concat"](l, ", ") .. " }"
-else
-return ""
-end
-end
-exp2str = function(exp)
-local tag = exp["tag"]
-local str = "`" .. tag
-if tag == "Nil" or tag == "Dots" then
-
-elseif tag == "Boolean" then
-str = str .. " " .. boolean2str(exp[1])
-elseif tag == "Number" then
-str = str .. " " .. number2str(exp[1])
-elseif tag == "String" then
-str = str .. " " .. string2str(exp[1])
-elseif tag == "Function" then
-str = str .. "{ "
-str = str .. parlist2str(exp[1]) .. ", "
-str = str .. block2str(exp[2])
-str = str .. " }"
-elseif tag == "Table" then
-str = str .. fieldlist2str(exp)
-elseif tag == "Op" then
-str = str .. "{ "
-str = str .. name2str(exp[1]) .. ", "
-str = str .. exp2str(exp[2])
-if exp[3] then
-str = str .. ", " .. exp2str(exp[3])
-end
-str = str .. " }"
-elseif tag == "Paren" then
-str = str .. "{ " .. exp2str(exp[1]) .. " }"
-elseif tag == "Call" then
-str = str .. "{ "
-str = str .. exp2str(exp[1])
-if exp[2] then
-for i = 2, # exp do
-str = str .. ", " .. exp2str(exp[i])
-end
-end
-str = str .. " }"
-elseif tag == "Invoke" then
-str = str .. "{ "
-str = str .. exp2str(exp[1]) .. ", "
-str = str .. exp2str(exp[2])
-if exp[3] then
-for i = 3, # exp do
-str = str .. ", " .. exp2str(exp[i])
-end
-end
-str = str .. " }"
-elseif tag == "Id" or tag == "Index" then
-str = var2str(exp)
-else
-error("expecting an expression, but got a " .. tag)
-end
-return str
-end
-explist2str = function(explist)
-local l = {}
-for k, v in ipairs(explist) do
-l[k] = exp2str(v)
-end
-if # l > 0 then
-return "{ " .. table["concat"](l, ", ") .. " }"
-else
-return ""
-end
-end
-stm2str = function(stm)
-local tag = stm["tag"]
-local str = "`" .. tag
-if tag == "Do" then
-local l = {}
-for k, v in ipairs(stm) do
-l[k] = stm2str(v)
-end
-str = str .. "{ " .. table["concat"](l, ", ") .. " }"
-elseif tag == "Set" then
-str = str .. "{ "
-str = str .. varlist2str(stm[1]) .. ", "
-str = str .. explist2str(stm[2])
-str = str .. " }"
-elseif tag == "While" then
-str = str .. "{ "
-str = str .. exp2str(stm[1]) .. ", "
-str = str .. block2str(stm[2])
-str = str .. " }"
-elseif tag == "Repeat" then
-str = str .. "{ "
-str = str .. block2str(stm[1]) .. ", "
-str = str .. exp2str(stm[2])
-str = str .. " }"
-elseif tag == "If" then
-str = str .. "{ "
-local len = # stm
-if len % 2 == 0 then
-local l = {}
-for i = 1, len - 2, 2 do
-str = str .. exp2str(stm[i]) .. ", " .. block2str(stm[i + 1]) .. ", "
-end
-str = str .. exp2str(stm[len - 1]) .. ", " .. block2str(stm[len])
-else
-local l = {}
-for i = 1, len - 3, 2 do
-str = str .. exp2str(stm[i]) .. ", " .. block2str(stm[i + 1]) .. ", "
-end
-str = str .. exp2str(stm[len - 2]) .. ", " .. block2str(stm[len - 1]) .. ", "
-str = str .. block2str(stm[len])
-end
-str = str .. " }"
-elseif tag == "Fornum" then
-str = str .. "{ "
-str = str .. var2str(stm[1]) .. ", "
-str = str .. exp2str(stm[2]) .. ", "
-str = str .. exp2str(stm[3]) .. ", "
-if stm[5] then
-str = str .. exp2str(stm[4]) .. ", "
-str = str .. block2str(stm[5])
-else
-str = str .. block2str(stm[4])
-end
-str = str .. " }"
-elseif tag == "Forin" then
-str = str .. "{ "
-str = str .. varlist2str(stm[1]) .. ", "
-str = str .. explist2str(stm[2]) .. ", "
-str = str .. block2str(stm[3])
-str = str .. " }"
-elseif tag == "Local" then
-str = str .. "{ "
-str = str .. varlist2str(stm[1])
-if # stm[2] > 0 then
-str = str .. ", " .. explist2str(stm[2])
-else
-str = str .. ", " .. "{  }"
-end
-str = str .. " }"
-elseif tag == "Localrec" then
-str = str .. "{ "
-str = str .. "{ " .. var2str(stm[1][1]) .. " }, "
-str = str .. "{ " .. exp2str(stm[2][1]) .. " }"
-str = str .. " }"
-elseif tag == "Goto" or tag == "Label" then
-str = str .. "{ " .. name2str(stm[1]) .. " }"
-elseif tag == "Return" then
-str = str .. explist2str(stm)
-elseif tag == "Break" then
-
-elseif tag == "Call" then
-str = str .. "{ "
-str = str .. exp2str(stm[1])
-if stm[2] then
-for i = 2, # stm do
-str = str .. ", " .. exp2str(stm[i])
-end
-end
-str = str .. " }"
-elseif tag == "Invoke" then
-str = str .. "{ "
-str = str .. exp2str(stm[1]) .. ", "
-str = str .. exp2str(stm[2])
-if stm[3] then
-for i = 3, # stm do
-str = str .. ", " .. exp2str(stm[i])
-end
-end
-str = str .. " }"
-else
-error("expecting a statement, but got a " .. tag)
-end
-return str
-end
-block2str = function(block)
-local l = {}
-for k, v in ipairs(block) do
-l[k] = stm2str(v)
-end
-return "{ " .. table["concat"](l, ", ") .. " }"
-end
-pp["tostring"] = function(t)
-assert(type(t) == "table")
-return block2str(t)
-end
-pp["print"] = function(t)
-assert(type(t) == "table")
-print(pp["tostring"](t))
-end
-pp["dump"] = function(t, i)
-if i == nil then
-i = 0
-end
+]") do -- ./lib/lua-parser/scope.lua:10
+l = l + 1 -- ./lib/lua-parser/scope.lua:11
+lastline = line -- ./lib/lua-parser/scope.lua:12
+end -- ./lib/lua-parser/scope.lua:12
+local c = lastline:len() - 1 -- ./lib/lua-parser/scope.lua:14
+return l, c ~= 0 and c or 1 -- ./lib/lua-parser/scope.lua:15
+end -- ./lib/lua-parser/scope.lua:15
+scope["new_scope"] = function(env) -- ./lib/lua-parser/scope.lua:18
+if not env["scope"] then -- ./lib/lua-parser/scope.lua:19
+env["scope"] = 0 -- ./lib/lua-parser/scope.lua:20
+else -- ./lib/lua-parser/scope.lua:20
+env["scope"] = env["scope"] + 1 -- ./lib/lua-parser/scope.lua:22
+end -- ./lib/lua-parser/scope.lua:22
+local scope = env["scope"] -- ./lib/lua-parser/scope.lua:24
+env["maxscope"] = scope -- ./lib/lua-parser/scope.lua:25
+env[scope] = {} -- ./lib/lua-parser/scope.lua:26
+env[scope]["label"] = {} -- ./lib/lua-parser/scope.lua:27
+env[scope]["local"] = {} -- ./lib/lua-parser/scope.lua:28
+env[scope]["goto"] = {} -- ./lib/lua-parser/scope.lua:29
+end -- ./lib/lua-parser/scope.lua:29
+scope["begin_scope"] = function(env) -- ./lib/lua-parser/scope.lua:32
+env["scope"] = env["scope"] + 1 -- ./lib/lua-parser/scope.lua:33
+end -- ./lib/lua-parser/scope.lua:33
+scope["end_scope"] = function(env) -- ./lib/lua-parser/scope.lua:36
+env["scope"] = env["scope"] - 1 -- ./lib/lua-parser/scope.lua:37
+end -- ./lib/lua-parser/scope.lua:37
+scope["new_function"] = function(env) -- ./lib/lua-parser/scope.lua:40
+if not env["fscope"] then -- ./lib/lua-parser/scope.lua:41
+env["fscope"] = 0 -- ./lib/lua-parser/scope.lua:42
+else -- ./lib/lua-parser/scope.lua:42
+env["fscope"] = env["fscope"] + 1 -- ./lib/lua-parser/scope.lua:44
+end -- ./lib/lua-parser/scope.lua:44
+local fscope = env["fscope"] -- ./lib/lua-parser/scope.lua:46
+env["function"][fscope] = {} -- ./lib/lua-parser/scope.lua:47
+end -- ./lib/lua-parser/scope.lua:47
+scope["begin_function"] = function(env) -- ./lib/lua-parser/scope.lua:50
+env["fscope"] = env["fscope"] + 1 -- ./lib/lua-parser/scope.lua:51
+end -- ./lib/lua-parser/scope.lua:51
+scope["end_function"] = function(env) -- ./lib/lua-parser/scope.lua:54
+env["fscope"] = env["fscope"] - 1 -- ./lib/lua-parser/scope.lua:55
+end -- ./lib/lua-parser/scope.lua:55
+scope["begin_loop"] = function(env) -- ./lib/lua-parser/scope.lua:58
+if not env["loop"] then -- ./lib/lua-parser/scope.lua:59
+env["loop"] = 1 -- ./lib/lua-parser/scope.lua:60
+else -- ./lib/lua-parser/scope.lua:60
+env["loop"] = env["loop"] + 1 -- ./lib/lua-parser/scope.lua:62
+end -- ./lib/lua-parser/scope.lua:62
+end -- ./lib/lua-parser/scope.lua:62
+scope["end_loop"] = function(env) -- ./lib/lua-parser/scope.lua:66
+env["loop"] = env["loop"] - 1 -- ./lib/lua-parser/scope.lua:67
+end -- ./lib/lua-parser/scope.lua:67
+scope["insideloop"] = function(env) -- ./lib/lua-parser/scope.lua:70
+return env["loop"] and env["loop"] > 0 -- ./lib/lua-parser/scope.lua:71
+end -- ./lib/lua-parser/scope.lua:71
+return scope -- ./lib/lua-parser/scope.lua:74
+end -- ./lib/lua-parser/scope.lua:74
+local scope = _() or scope -- ./lib/lua-parser/scope.lua:78
+package["loaded"]["lib.lua-parser.scope"] = scope or true -- ./lib/lua-parser/scope.lua:79
+local function _() -- ./lib/lua-parser/scope.lua:82
+local scope = require("lib.lua-parser.scope") -- ./lib/lua-parser/validator.lua:4
+local lineno = scope["lineno"] -- ./lib/lua-parser/validator.lua:6
+local new_scope, end_scope = scope["new_scope"], scope["end_scope"] -- ./lib/lua-parser/validator.lua:7
+local new_function, end_function = scope["new_function"], scope["end_function"] -- ./lib/lua-parser/validator.lua:8
+local begin_loop, end_loop = scope["begin_loop"], scope["end_loop"] -- ./lib/lua-parser/validator.lua:9
+local insideloop = scope["insideloop"] -- ./lib/lua-parser/validator.lua:10
+local function syntaxerror(errorinfo, pos, msg) -- ./lib/lua-parser/validator.lua:13
+local l, c = lineno(errorinfo["subject"], pos) -- ./lib/lua-parser/validator.lua:14
+local error_msg = "%s:%d:%d: syntax error, %s" -- ./lib/lua-parser/validator.lua:15
+return string["format"](error_msg, errorinfo["filename"], l, c, msg) -- ./lib/lua-parser/validator.lua:16
+end -- ./lib/lua-parser/validator.lua:16
+local function exist_label(env, scope, stm) -- ./lib/lua-parser/validator.lua:19
+local l = stm[1] -- ./lib/lua-parser/validator.lua:20
+for s = scope, 0, - 1 do -- ./lib/lua-parser/validator.lua:21
+if env[s]["label"][l] then -- ./lib/lua-parser/validator.lua:22
+return true -- ./lib/lua-parser/validator.lua:22
+end -- ./lib/lua-parser/validator.lua:22
+end -- ./lib/lua-parser/validator.lua:22
+return false -- ./lib/lua-parser/validator.lua:24
+end -- ./lib/lua-parser/validator.lua:24
+local function set_label(env, label, pos) -- ./lib/lua-parser/validator.lua:27
+local scope = env["scope"] -- ./lib/lua-parser/validator.lua:28
+local l = env[scope]["label"][label] -- ./lib/lua-parser/validator.lua:29
+if not l then -- ./lib/lua-parser/validator.lua:30
+env[scope]["label"][label] = { -- ./lib/lua-parser/validator.lua:31
+["name"] = label, -- ./lib/lua-parser/validator.lua:31
+["pos"] = pos -- ./lib/lua-parser/validator.lua:31
+} -- ./lib/lua-parser/validator.lua:31
+return true -- ./lib/lua-parser/validator.lua:32
+else -- ./lib/lua-parser/validator.lua:32
+local msg = "label '%s' already defined at line %d" -- ./lib/lua-parser/validator.lua:34
+local line = lineno(env["errorinfo"]["subject"], l["pos"]) -- ./lib/lua-parser/validator.lua:35
+msg = string["format"](msg, label, line) -- ./lib/lua-parser/validator.lua:36
+return nil, syntaxerror(env["errorinfo"], pos, msg) -- ./lib/lua-parser/validator.lua:37
+end -- ./lib/lua-parser/validator.lua:37
+end -- ./lib/lua-parser/validator.lua:37
+local function set_pending_goto(env, stm) -- ./lib/lua-parser/validator.lua:41
+local scope = env["scope"] -- ./lib/lua-parser/validator.lua:42
+table["insert"](env[scope]["goto"], stm) -- ./lib/lua-parser/validator.lua:43
+return true -- ./lib/lua-parser/validator.lua:44
+end -- ./lib/lua-parser/validator.lua:44
+local function verify_pending_gotos(env) -- ./lib/lua-parser/validator.lua:47
+for s = env["maxscope"], 0, - 1 do -- ./lib/lua-parser/validator.lua:48
+for k, v in ipairs(env[s]["goto"]) do -- ./lib/lua-parser/validator.lua:49
+if not exist_label(env, s, v) then -- ./lib/lua-parser/validator.lua:50
+local msg = "no visible label '%s' for <goto>" -- ./lib/lua-parser/validator.lua:51
+msg = string["format"](msg, v[1]) -- ./lib/lua-parser/validator.lua:52
+return nil, syntaxerror(env["errorinfo"], v["pos"], msg) -- ./lib/lua-parser/validator.lua:53
+end -- ./lib/lua-parser/validator.lua:53
+end -- ./lib/lua-parser/validator.lua:53
+end -- ./lib/lua-parser/validator.lua:53
+return true -- ./lib/lua-parser/validator.lua:57
+end -- ./lib/lua-parser/validator.lua:57
+local function set_vararg(env, is_vararg) -- ./lib/lua-parser/validator.lua:60
+env["function"][env["fscope"]]["is_vararg"] = is_vararg -- ./lib/lua-parser/validator.lua:61
+end -- ./lib/lua-parser/validator.lua:61
+local traverse_stm, traverse_exp, traverse_var -- ./lib/lua-parser/validator.lua:64
+local traverse_block, traverse_explist, traverse_varlist, traverse_parlist -- ./lib/lua-parser/validator.lua:65
+traverse_parlist = function(env, parlist) -- ./lib/lua-parser/validator.lua:67
+local len = # parlist -- ./lib/lua-parser/validator.lua:68
+local is_vararg = false -- ./lib/lua-parser/validator.lua:69
+if len > 0 and parlist[len]["tag"] == "Dots" then -- ./lib/lua-parser/validator.lua:70
+is_vararg = true -- ./lib/lua-parser/validator.lua:71
+end -- ./lib/lua-parser/validator.lua:71
+set_vararg(env, is_vararg) -- ./lib/lua-parser/validator.lua:73
+return true -- ./lib/lua-parser/validator.lua:74
+end -- ./lib/lua-parser/validator.lua:74
+local function traverse_function(env, exp) -- ./lib/lua-parser/validator.lua:77
+new_function(env) -- ./lib/lua-parser/validator.lua:78
+new_scope(env) -- ./lib/lua-parser/validator.lua:79
+local status, msg = traverse_parlist(env, exp[1]) -- ./lib/lua-parser/validator.lua:80
+if not status then -- ./lib/lua-parser/validator.lua:81
+return status, msg -- ./lib/lua-parser/validator.lua:81
+end -- ./lib/lua-parser/validator.lua:81
+status, msg = traverse_block(env, exp[2]) -- ./lib/lua-parser/validator.lua:82
+if not status then -- ./lib/lua-parser/validator.lua:83
+return status, msg -- ./lib/lua-parser/validator.lua:83
+end -- ./lib/lua-parser/validator.lua:83
+end_scope(env) -- ./lib/lua-parser/validator.lua:84
+end_function(env) -- ./lib/lua-parser/validator.lua:85
+return true -- ./lib/lua-parser/validator.lua:86
+end -- ./lib/lua-parser/validator.lua:86
+local function traverse_tablecompr(env, exp) -- ./lib/lua-parser/validator.lua:89
+new_function(env) -- ./lib/lua-parser/validator.lua:90
+new_scope(env) -- ./lib/lua-parser/validator.lua:91
+local status, msg = traverse_block(env, exp[1]) -- ./lib/lua-parser/validator.lua:92
+if not status then -- ./lib/lua-parser/validator.lua:93
+return status, msg -- ./lib/lua-parser/validator.lua:93
+end -- ./lib/lua-parser/validator.lua:93
+end_scope(env) -- ./lib/lua-parser/validator.lua:94
+end_function(env) -- ./lib/lua-parser/validator.lua:95
+return true -- ./lib/lua-parser/validator.lua:96
+end -- ./lib/lua-parser/validator.lua:96
+local function traverse_statexpr(env, exp) -- ./lib/lua-parser/validator.lua:99
+new_function(env) -- ./lib/lua-parser/validator.lua:100
+new_scope(env) -- ./lib/lua-parser/validator.lua:101
+exp["tag"] = exp["tag"]:gsub("Expr$", "") -- ./lib/lua-parser/validator.lua:102
+local status, msg = traverse_stm(env, exp) -- ./lib/lua-parser/validator.lua:103
+exp["tag"] = exp["tag"] .. "Expr" -- ./lib/lua-parser/validator.lua:104
+if not status then -- ./lib/lua-parser/validator.lua:105
+return status, msg -- ./lib/lua-parser/validator.lua:105
+end -- ./lib/lua-parser/validator.lua:105
+end_scope(env) -- ./lib/lua-parser/validator.lua:106
+end_function(env) -- ./lib/lua-parser/validator.lua:107
+return true -- ./lib/lua-parser/validator.lua:108
+end -- ./lib/lua-parser/validator.lua:108
+local function traverse_op(env, exp) -- ./lib/lua-parser/validator.lua:111
+local status, msg = traverse_exp(env, exp[2]) -- ./lib/lua-parser/validator.lua:112
+if not status then -- ./lib/lua-parser/validator.lua:113
+return status, msg -- ./lib/lua-parser/validator.lua:113
+end -- ./lib/lua-parser/validator.lua:113
+if exp[3] then -- ./lib/lua-parser/validator.lua:114
+status, msg = traverse_exp(env, exp[3]) -- ./lib/lua-parser/validator.lua:115
+if not status then -- ./lib/lua-parser/validator.lua:116
+return status, msg -- ./lib/lua-parser/validator.lua:116
+end -- ./lib/lua-parser/validator.lua:116
+end -- ./lib/lua-parser/validator.lua:116
+return true -- ./lib/lua-parser/validator.lua:118
+end -- ./lib/lua-parser/validator.lua:118
+local function traverse_paren(env, exp) -- ./lib/lua-parser/validator.lua:121
+local status, msg = traverse_exp(env, exp[1]) -- ./lib/lua-parser/validator.lua:122
+if not status then -- ./lib/lua-parser/validator.lua:123
+return status, msg -- ./lib/lua-parser/validator.lua:123
+end -- ./lib/lua-parser/validator.lua:123
+return true -- ./lib/lua-parser/validator.lua:124
+end -- ./lib/lua-parser/validator.lua:124
+local function traverse_table(env, fieldlist) -- ./lib/lua-parser/validator.lua:127
+for k, v in ipairs(fieldlist) do -- ./lib/lua-parser/validator.lua:128
+local tag = v["tag"] -- ./lib/lua-parser/validator.lua:129
+if tag == "Pair" then -- ./lib/lua-parser/validator.lua:130
+local status, msg = traverse_exp(env, v[1]) -- ./lib/lua-parser/validator.lua:131
+if not status then -- ./lib/lua-parser/validator.lua:132
+return status, msg -- ./lib/lua-parser/validator.lua:132
+end -- ./lib/lua-parser/validator.lua:132
+status, msg = traverse_exp(env, v[2]) -- ./lib/lua-parser/validator.lua:133
+if not status then -- ./lib/lua-parser/validator.lua:134
+return status, msg -- ./lib/lua-parser/validator.lua:134
+end -- ./lib/lua-parser/validator.lua:134
+else -- ./lib/lua-parser/validator.lua:134
+local status, msg = traverse_exp(env, v) -- ./lib/lua-parser/validator.lua:136
+if not status then -- ./lib/lua-parser/validator.lua:137
+return status, msg -- ./lib/lua-parser/validator.lua:137
+end -- ./lib/lua-parser/validator.lua:137
+end -- ./lib/lua-parser/validator.lua:137
+end -- ./lib/lua-parser/validator.lua:137
+return true -- ./lib/lua-parser/validator.lua:140
+end -- ./lib/lua-parser/validator.lua:140
+local function traverse_vararg(env, exp) -- ./lib/lua-parser/validator.lua:143
+if not env["function"][env["fscope"]]["is_vararg"] then -- ./lib/lua-parser/validator.lua:144
+local msg = "cannot use '...' outside a vararg function" -- ./lib/lua-parser/validator.lua:145
+return nil, syntaxerror(env["errorinfo"], exp["pos"], msg) -- ./lib/lua-parser/validator.lua:146
+end -- ./lib/lua-parser/validator.lua:146
+return true -- ./lib/lua-parser/validator.lua:148
+end -- ./lib/lua-parser/validator.lua:148
+local function traverse_call(env, call) -- ./lib/lua-parser/validator.lua:151
+local status, msg = traverse_exp(env, call[1]) -- ./lib/lua-parser/validator.lua:152
+if not status then -- ./lib/lua-parser/validator.lua:153
+return status, msg -- ./lib/lua-parser/validator.lua:153
+end -- ./lib/lua-parser/validator.lua:153
+for i = 2, # call do -- ./lib/lua-parser/validator.lua:154
+status, msg = traverse_exp(env, call[i]) -- ./lib/lua-parser/validator.lua:155
+if not status then -- ./lib/lua-parser/validator.lua:156
+return status, msg -- ./lib/lua-parser/validator.lua:156
+end -- ./lib/lua-parser/validator.lua:156
+end -- ./lib/lua-parser/validator.lua:156
+return true -- ./lib/lua-parser/validator.lua:158
+end -- ./lib/lua-parser/validator.lua:158
+local function traverse_invoke(env, invoke) -- ./lib/lua-parser/validator.lua:161
+local status, msg = traverse_exp(env, invoke[1]) -- ./lib/lua-parser/validator.lua:162
+if not status then -- ./lib/lua-parser/validator.lua:163
+return status, msg -- ./lib/lua-parser/validator.lua:163
+end -- ./lib/lua-parser/validator.lua:163
+for i = 3, # invoke do -- ./lib/lua-parser/validator.lua:164
+status, msg = traverse_exp(env, invoke[i]) -- ./lib/lua-parser/validator.lua:165
+if not status then -- ./lib/lua-parser/validator.lua:166
+return status, msg -- ./lib/lua-parser/validator.lua:166
+end -- ./lib/lua-parser/validator.lua:166
+end -- ./lib/lua-parser/validator.lua:166
+return true -- ./lib/lua-parser/validator.lua:168
+end -- ./lib/lua-parser/validator.lua:168
+local function traverse_assignment(env, stm) -- ./lib/lua-parser/validator.lua:171
+local status, msg = traverse_varlist(env, stm[1]) -- ./lib/lua-parser/validator.lua:172
+if not status then -- ./lib/lua-parser/validator.lua:173
+return status, msg -- ./lib/lua-parser/validator.lua:173
+end -- ./lib/lua-parser/validator.lua:173
+status, msg = traverse_explist(env, stm[# stm]) -- ./lib/lua-parser/validator.lua:174
+if not status then -- ./lib/lua-parser/validator.lua:175
+return status, msg -- ./lib/lua-parser/validator.lua:175
+end -- ./lib/lua-parser/validator.lua:175
+return true -- ./lib/lua-parser/validator.lua:176
+end -- ./lib/lua-parser/validator.lua:176
+local function traverse_break(env, stm) -- ./lib/lua-parser/validator.lua:179
+if not insideloop(env) then -- ./lib/lua-parser/validator.lua:180
+local msg = "<break> not inside a loop" -- ./lib/lua-parser/validator.lua:181
+return nil, syntaxerror(env["errorinfo"], stm["pos"], msg) -- ./lib/lua-parser/validator.lua:182
+end -- ./lib/lua-parser/validator.lua:182
+return true -- ./lib/lua-parser/validator.lua:184
+end -- ./lib/lua-parser/validator.lua:184
+local function traverse_continue(env, stm) -- ./lib/lua-parser/validator.lua:187
+if not insideloop(env) then -- ./lib/lua-parser/validator.lua:188
+local msg = "<continue> not inside a loop" -- ./lib/lua-parser/validator.lua:189
+return nil, syntaxerror(env["errorinfo"], stm["pos"], msg) -- ./lib/lua-parser/validator.lua:190
+end -- ./lib/lua-parser/validator.lua:190
+return true -- ./lib/lua-parser/validator.lua:192
+end -- ./lib/lua-parser/validator.lua:192
+local function traverse_push(env, stm) -- ./lib/lua-parser/validator.lua:195
+local status, msg = traverse_explist(env, stm) -- ./lib/lua-parser/validator.lua:196
+if not status then -- ./lib/lua-parser/validator.lua:197
+return status, msg -- ./lib/lua-parser/validator.lua:197
+end -- ./lib/lua-parser/validator.lua:197
+return true -- ./lib/lua-parser/validator.lua:198
+end -- ./lib/lua-parser/validator.lua:198
+local function traverse_forin(env, stm) -- ./lib/lua-parser/validator.lua:201
+begin_loop(env) -- ./lib/lua-parser/validator.lua:202
+new_scope(env) -- ./lib/lua-parser/validator.lua:203
+local status, msg = traverse_explist(env, stm[2]) -- ./lib/lua-parser/validator.lua:204
+if not status then -- ./lib/lua-parser/validator.lua:205
+return status, msg -- ./lib/lua-parser/validator.lua:205
+end -- ./lib/lua-parser/validator.lua:205
+status, msg = traverse_block(env, stm[3]) -- ./lib/lua-parser/validator.lua:206
+if not status then -- ./lib/lua-parser/validator.lua:207
+return status, msg -- ./lib/lua-parser/validator.lua:207
+end -- ./lib/lua-parser/validator.lua:207
+end_scope(env) -- ./lib/lua-parser/validator.lua:208
+end_loop(env) -- ./lib/lua-parser/validator.lua:209
+return true -- ./lib/lua-parser/validator.lua:210
+end -- ./lib/lua-parser/validator.lua:210
+local function traverse_fornum(env, stm) -- ./lib/lua-parser/validator.lua:213
+local status, msg -- ./lib/lua-parser/validator.lua:214
+begin_loop(env) -- ./lib/lua-parser/validator.lua:215
+new_scope(env) -- ./lib/lua-parser/validator.lua:216
+status, msg = traverse_exp(env, stm[2]) -- ./lib/lua-parser/validator.lua:217
+if not status then -- ./lib/lua-parser/validator.lua:218
+return status, msg -- ./lib/lua-parser/validator.lua:218
+end -- ./lib/lua-parser/validator.lua:218
+status, msg = traverse_exp(env, stm[3]) -- ./lib/lua-parser/validator.lua:219
+if not status then -- ./lib/lua-parser/validator.lua:220
+return status, msg -- ./lib/lua-parser/validator.lua:220
+end -- ./lib/lua-parser/validator.lua:220
+if stm[5] then -- ./lib/lua-parser/validator.lua:221
+status, msg = traverse_exp(env, stm[4]) -- ./lib/lua-parser/validator.lua:222
+if not status then -- ./lib/lua-parser/validator.lua:223
+return status, msg -- ./lib/lua-parser/validator.lua:223
+end -- ./lib/lua-parser/validator.lua:223
+status, msg = traverse_block(env, stm[5]) -- ./lib/lua-parser/validator.lua:224
+if not status then -- ./lib/lua-parser/validator.lua:225
+return status, msg -- ./lib/lua-parser/validator.lua:225
+end -- ./lib/lua-parser/validator.lua:225
+else -- ./lib/lua-parser/validator.lua:225
+status, msg = traverse_block(env, stm[4]) -- ./lib/lua-parser/validator.lua:227
+if not status then -- ./lib/lua-parser/validator.lua:228
+return status, msg -- ./lib/lua-parser/validator.lua:228
+end -- ./lib/lua-parser/validator.lua:228
+end -- ./lib/lua-parser/validator.lua:228
+end_scope(env) -- ./lib/lua-parser/validator.lua:230
+end_loop(env) -- ./lib/lua-parser/validator.lua:231
+return true -- ./lib/lua-parser/validator.lua:232
+end -- ./lib/lua-parser/validator.lua:232
+local function traverse_goto(env, stm) -- ./lib/lua-parser/validator.lua:235
+local status, msg = set_pending_goto(env, stm) -- ./lib/lua-parser/validator.lua:236
+if not status then -- ./lib/lua-parser/validator.lua:237
+return status, msg -- ./lib/lua-parser/validator.lua:237
+end -- ./lib/lua-parser/validator.lua:237
+return true -- ./lib/lua-parser/validator.lua:238
+end -- ./lib/lua-parser/validator.lua:238
+local function traverse_if(env, stm) -- ./lib/lua-parser/validator.lua:241
+local len = # stm -- ./lib/lua-parser/validator.lua:242
+if len % 2 == 0 then -- ./lib/lua-parser/validator.lua:243
+for i = 1, len, 2 do -- ./lib/lua-parser/validator.lua:244
+local status, msg = traverse_exp(env, stm[i]) -- ./lib/lua-parser/validator.lua:245
+if not status then -- ./lib/lua-parser/validator.lua:246
+return status, msg -- ./lib/lua-parser/validator.lua:246
+end -- ./lib/lua-parser/validator.lua:246
+status, msg = traverse_block(env, stm[i + 1]) -- ./lib/lua-parser/validator.lua:247
+if not status then -- ./lib/lua-parser/validator.lua:248
+return status, msg -- ./lib/lua-parser/validator.lua:248
+end -- ./lib/lua-parser/validator.lua:248
+end -- ./lib/lua-parser/validator.lua:248
+else -- ./lib/lua-parser/validator.lua:248
+for i = 1, len - 1, 2 do -- ./lib/lua-parser/validator.lua:251
+local status, msg = traverse_exp(env, stm[i]) -- ./lib/lua-parser/validator.lua:252
+if not status then -- ./lib/lua-parser/validator.lua:253
+return status, msg -- ./lib/lua-parser/validator.lua:253
+end -- ./lib/lua-parser/validator.lua:253
+status, msg = traverse_block(env, stm[i + 1]) -- ./lib/lua-parser/validator.lua:254
+if not status then -- ./lib/lua-parser/validator.lua:255
+return status, msg -- ./lib/lua-parser/validator.lua:255
+end -- ./lib/lua-parser/validator.lua:255
+end -- ./lib/lua-parser/validator.lua:255
+local status, msg = traverse_block(env, stm[len]) -- ./lib/lua-parser/validator.lua:257
+if not status then -- ./lib/lua-parser/validator.lua:258
+return status, msg -- ./lib/lua-parser/validator.lua:258
+end -- ./lib/lua-parser/validator.lua:258
+end -- ./lib/lua-parser/validator.lua:258
+return true -- ./lib/lua-parser/validator.lua:260
+end -- ./lib/lua-parser/validator.lua:260
+local function traverse_label(env, stm) -- ./lib/lua-parser/validator.lua:263
+local status, msg = set_label(env, stm[1], stm["pos"]) -- ./lib/lua-parser/validator.lua:264
+if not status then -- ./lib/lua-parser/validator.lua:265
+return status, msg -- ./lib/lua-parser/validator.lua:265
+end -- ./lib/lua-parser/validator.lua:265
+return true -- ./lib/lua-parser/validator.lua:266
+end -- ./lib/lua-parser/validator.lua:266
+local function traverse_let(env, stm) -- ./lib/lua-parser/validator.lua:269
+local status, msg = traverse_explist(env, stm[2]) -- ./lib/lua-parser/validator.lua:270
+if not status then -- ./lib/lua-parser/validator.lua:271
+return status, msg -- ./lib/lua-parser/validator.lua:271
+end -- ./lib/lua-parser/validator.lua:271
+return true -- ./lib/lua-parser/validator.lua:272
+end -- ./lib/lua-parser/validator.lua:272
+local function traverse_letrec(env, stm) -- ./lib/lua-parser/validator.lua:275
+local status, msg = traverse_exp(env, stm[2][1]) -- ./lib/lua-parser/validator.lua:276
+if not status then -- ./lib/lua-parser/validator.lua:277
+return status, msg -- ./lib/lua-parser/validator.lua:277
+end -- ./lib/lua-parser/validator.lua:277
+return true -- ./lib/lua-parser/validator.lua:278
+end -- ./lib/lua-parser/validator.lua:278
+local function traverse_repeat(env, stm) -- ./lib/lua-parser/validator.lua:281
+begin_loop(env) -- ./lib/lua-parser/validator.lua:282
+local status, msg = traverse_block(env, stm[1]) -- ./lib/lua-parser/validator.lua:283
+if not status then -- ./lib/lua-parser/validator.lua:284
+return status, msg -- ./lib/lua-parser/validator.lua:284
+end -- ./lib/lua-parser/validator.lua:284
+status, msg = traverse_exp(env, stm[2]) -- ./lib/lua-parser/validator.lua:285
+if not status then -- ./lib/lua-parser/validator.lua:286
+return status, msg -- ./lib/lua-parser/validator.lua:286
+end -- ./lib/lua-parser/validator.lua:286
+end_loop(env) -- ./lib/lua-parser/validator.lua:287
+return true -- ./lib/lua-parser/validator.lua:288
+end -- ./lib/lua-parser/validator.lua:288
+local function traverse_return(env, stm) -- ./lib/lua-parser/validator.lua:291
+local status, msg = traverse_explist(env, stm) -- ./lib/lua-parser/validator.lua:292
+if not status then -- ./lib/lua-parser/validator.lua:293
+return status, msg -- ./lib/lua-parser/validator.lua:293
+end -- ./lib/lua-parser/validator.lua:293
+return true -- ./lib/lua-parser/validator.lua:294
+end -- ./lib/lua-parser/validator.lua:294
+local function traverse_while(env, stm) -- ./lib/lua-parser/validator.lua:297
+begin_loop(env) -- ./lib/lua-parser/validator.lua:298
+local status, msg = traverse_exp(env, stm[1]) -- ./lib/lua-parser/validator.lua:299
+if not status then -- ./lib/lua-parser/validator.lua:300
+return status, msg -- ./lib/lua-parser/validator.lua:300
+end -- ./lib/lua-parser/validator.lua:300
+status, msg = traverse_block(env, stm[2]) -- ./lib/lua-parser/validator.lua:301
+if not status then -- ./lib/lua-parser/validator.lua:302
+return status, msg -- ./lib/lua-parser/validator.lua:302
+end -- ./lib/lua-parser/validator.lua:302
+end_loop(env) -- ./lib/lua-parser/validator.lua:303
+return true -- ./lib/lua-parser/validator.lua:304
+end -- ./lib/lua-parser/validator.lua:304
+traverse_var = function(env, var) -- ./lib/lua-parser/validator.lua:307
+local tag = var["tag"] -- ./lib/lua-parser/validator.lua:308
+if tag == "Id" then -- `Id{ <string> } -- ./lib/lua-parser/validator.lua:309
+return true -- ./lib/lua-parser/validator.lua:310
+elseif tag == "Index" then -- `Index{ expr expr } -- ./lib/lua-parser/validator.lua:311
+local status, msg = traverse_exp(env, var[1]) -- ./lib/lua-parser/validator.lua:312
+if not status then -- ./lib/lua-parser/validator.lua:313
+return status, msg -- ./lib/lua-parser/validator.lua:313
+end -- ./lib/lua-parser/validator.lua:313
+status, msg = traverse_exp(env, var[2]) -- ./lib/lua-parser/validator.lua:314
+if not status then -- ./lib/lua-parser/validator.lua:315
+return status, msg -- ./lib/lua-parser/validator.lua:315
+end -- ./lib/lua-parser/validator.lua:315
+return true -- ./lib/lua-parser/validator.lua:316
+else -- ./lib/lua-parser/validator.lua:316
+error("expecting a variable, but got a " .. tag) -- ./lib/lua-parser/validator.lua:318
+end -- ./lib/lua-parser/validator.lua:318
+end -- ./lib/lua-parser/validator.lua:318
+traverse_varlist = function(env, varlist) -- ./lib/lua-parser/validator.lua:322
+for k, v in ipairs(varlist) do -- ./lib/lua-parser/validator.lua:323
+local status, msg = traverse_var(env, v) -- ./lib/lua-parser/validator.lua:324
+if not status then -- ./lib/lua-parser/validator.lua:325
+return status, msg -- ./lib/lua-parser/validator.lua:325
+end -- ./lib/lua-parser/validator.lua:325
+end -- ./lib/lua-parser/validator.lua:325
+return true -- ./lib/lua-parser/validator.lua:327
+end -- ./lib/lua-parser/validator.lua:327
+traverse_exp = function(env, exp) -- ./lib/lua-parser/validator.lua:330
+local tag = exp["tag"] -- ./lib/lua-parser/validator.lua:331
+if tag == "Nil" or tag == "Boolean" or tag == "Number" or tag == "String" then -- `String{ <string> } -- ./lib/lua-parser/validator.lua:335
+return true -- ./lib/lua-parser/validator.lua:336
+elseif tag == "Dots" then -- ./lib/lua-parser/validator.lua:337
+return traverse_vararg(env, exp) -- ./lib/lua-parser/validator.lua:338
+elseif tag == "Function" then -- `Function{ { `Id{ <string> }* `Dots? } block } -- ./lib/lua-parser/validator.lua:339
+return traverse_function(env, exp) -- ./lib/lua-parser/validator.lua:340
+elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* } -- ./lib/lua-parser/validator.lua:341
+return traverse_table(env, exp) -- ./lib/lua-parser/validator.lua:342
+elseif tag == "Op" then -- `Op{ opid expr expr? } -- ./lib/lua-parser/validator.lua:343
+return traverse_op(env, exp) -- ./lib/lua-parser/validator.lua:344
+elseif tag == "Paren" then -- `Paren{ expr } -- ./lib/lua-parser/validator.lua:345
+return traverse_paren(env, exp) -- ./lib/lua-parser/validator.lua:346
+elseif tag == "Call" then -- `Call{ expr expr* } -- ./lib/lua-parser/validator.lua:347
+return traverse_call(env, exp) -- ./lib/lua-parser/validator.lua:348
+elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* } -- ./lib/lua-parser/validator.lua:349
+return traverse_invoke(env, exp) -- ./lib/lua-parser/validator.lua:350
+elseif tag == "Id" or tag == "Index" then -- `Index{ expr expr } -- ./lib/lua-parser/validator.lua:352
+return traverse_var(env, exp) -- ./lib/lua-parser/validator.lua:353
+elseif tag == "TableCompr" then -- `TableCompr{ block } -- ./lib/lua-parser/validator.lua:354
+return traverse_tablecompr(env, exp) -- ./lib/lua-parser/validator.lua:355
+elseif tag:match("Expr$") then -- `StatExpr{ ... } -- ./lib/lua-parser/validator.lua:356
+return traverse_statexpr(env, exp) -- ./lib/lua-parser/validator.lua:357
+else -- ./lib/lua-parser/validator.lua:357
+error("expecting an expression, but got a " .. tag) -- ./lib/lua-parser/validator.lua:359
+end -- ./lib/lua-parser/validator.lua:359
+end -- ./lib/lua-parser/validator.lua:359
+traverse_explist = function(env, explist) -- ./lib/lua-parser/validator.lua:363
+for k, v in ipairs(explist) do -- ./lib/lua-parser/validator.lua:364
+local status, msg = traverse_exp(env, v) -- ./lib/lua-parser/validator.lua:365
+if not status then -- ./lib/lua-parser/validator.lua:366
+return status, msg -- ./lib/lua-parser/validator.lua:366
+end -- ./lib/lua-parser/validator.lua:366
+end -- ./lib/lua-parser/validator.lua:366
+return true -- ./lib/lua-parser/validator.lua:368
+end -- ./lib/lua-parser/validator.lua:368
+traverse_stm = function(env, stm) -- ./lib/lua-parser/validator.lua:371
+local tag = stm["tag"] -- ./lib/lua-parser/validator.lua:372
+if tag == "Do" then -- `Do{ stat* } -- ./lib/lua-parser/validator.lua:373
+return traverse_block(env, stm) -- ./lib/lua-parser/validator.lua:374
+elseif tag == "Set" then -- `Set{ {lhs+} (opid? = opid?)? {expr+} } -- ./lib/lua-parser/validator.lua:375
+return traverse_assignment(env, stm) -- ./lib/lua-parser/validator.lua:376
+elseif tag == "While" then -- `While{ expr block } -- ./lib/lua-parser/validator.lua:377
+return traverse_while(env, stm) -- ./lib/lua-parser/validator.lua:378
+elseif tag == "Repeat" then -- `Repeat{ block expr } -- ./lib/lua-parser/validator.lua:379
+return traverse_repeat(env, stm) -- ./lib/lua-parser/validator.lua:380
+elseif tag == "If" then -- `If{ (expr block)+ block? } -- ./lib/lua-parser/validator.lua:381
+return traverse_if(env, stm) -- ./lib/lua-parser/validator.lua:382
+elseif tag == "Fornum" then -- `Fornum{ ident expr expr expr? block } -- ./lib/lua-parser/validator.lua:383
+return traverse_fornum(env, stm) -- ./lib/lua-parser/validator.lua:384
+elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block } -- ./lib/lua-parser/validator.lua:385
+return traverse_forin(env, stm) -- ./lib/lua-parser/validator.lua:386
+elseif tag == "Local" or tag == "Let" then -- `Let{ {ident+} {expr+}? } -- ./lib/lua-parser/validator.lua:388
+return traverse_let(env, stm) -- ./lib/lua-parser/validator.lua:389
+elseif tag == "Localrec" then -- `Localrec{ ident expr } -- ./lib/lua-parser/validator.lua:390
+return traverse_letrec(env, stm) -- ./lib/lua-parser/validator.lua:391
+elseif tag == "Goto" then -- `Goto{ <string> } -- ./lib/lua-parser/validator.lua:392
+return traverse_goto(env, stm) -- ./lib/lua-parser/validator.lua:393
+elseif tag == "Label" then -- `Label{ <string> } -- ./lib/lua-parser/validator.lua:394
+return traverse_label(env, stm) -- ./lib/lua-parser/validator.lua:395
+elseif tag == "Return" then -- `Return{ <expr>* } -- ./lib/lua-parser/validator.lua:396
+return traverse_return(env, stm) -- ./lib/lua-parser/validator.lua:397
+elseif tag == "Break" then -- ./lib/lua-parser/validator.lua:398
+return traverse_break(env, stm) -- ./lib/lua-parser/validator.lua:399
+elseif tag == "Call" then -- `Call{ expr expr* } -- ./lib/lua-parser/validator.lua:400
+return traverse_call(env, stm) -- ./lib/lua-parser/validator.lua:401
+elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* } -- ./lib/lua-parser/validator.lua:402
+return traverse_invoke(env, stm) -- ./lib/lua-parser/validator.lua:403
+elseif tag == "Continue" then -- ./lib/lua-parser/validator.lua:404
+return traverse_continue(env, stm) -- ./lib/lua-parser/validator.lua:405
+elseif tag == "Push" then -- `Push{ <expr>* } -- ./lib/lua-parser/validator.lua:406
+return traverse_push(env, stm) -- ./lib/lua-parser/validator.lua:407
+else -- ./lib/lua-parser/validator.lua:407
+error("expecting a statement, but got a " .. tag) -- ./lib/lua-parser/validator.lua:409
+end -- ./lib/lua-parser/validator.lua:409
+end -- ./lib/lua-parser/validator.lua:409
+traverse_block = function(env, block) -- ./lib/lua-parser/validator.lua:413
+local l = {} -- ./lib/lua-parser/validator.lua:414
+new_scope(env) -- ./lib/lua-parser/validator.lua:415
+for k, v in ipairs(block) do -- ./lib/lua-parser/validator.lua:416
+local status, msg = traverse_stm(env, v) -- ./lib/lua-parser/validator.lua:417
+if not status then -- ./lib/lua-parser/validator.lua:418
+return status, msg -- ./lib/lua-parser/validator.lua:418
+end -- ./lib/lua-parser/validator.lua:418
+end -- ./lib/lua-parser/validator.lua:418
+end_scope(env) -- ./lib/lua-parser/validator.lua:420
+return true -- ./lib/lua-parser/validator.lua:421
+end -- ./lib/lua-parser/validator.lua:421
+local function traverse(ast, errorinfo) -- ./lib/lua-parser/validator.lua:425
+assert(type(ast) == "table") -- ./lib/lua-parser/validator.lua:426
+assert(type(errorinfo) == "table") -- ./lib/lua-parser/validator.lua:427
+local env = { -- ./lib/lua-parser/validator.lua:428
+["errorinfo"] = errorinfo, -- ./lib/lua-parser/validator.lua:428
+["function"] = {} -- ./lib/lua-parser/validator.lua:428
+} -- ./lib/lua-parser/validator.lua:428
+new_function(env) -- ./lib/lua-parser/validator.lua:429
+set_vararg(env, true) -- ./lib/lua-parser/validator.lua:430
+local status, msg = traverse_block(env, ast) -- ./lib/lua-parser/validator.lua:431
+if not status then -- ./lib/lua-parser/validator.lua:432
+return status, msg -- ./lib/lua-parser/validator.lua:432
+end -- ./lib/lua-parser/validator.lua:432
+end_function(env) -- ./lib/lua-parser/validator.lua:433
+status, msg = verify_pending_gotos(env) -- ./lib/lua-parser/validator.lua:434
+if not status then -- ./lib/lua-parser/validator.lua:435
+return status, msg -- ./lib/lua-parser/validator.lua:435
+end -- ./lib/lua-parser/validator.lua:435
+return ast -- ./lib/lua-parser/validator.lua:436
+end -- ./lib/lua-parser/validator.lua:436
+return { -- ./lib/lua-parser/validator.lua:439
+["validate"] = traverse, -- ./lib/lua-parser/validator.lua:439
+["syntaxerror"] = syntaxerror -- ./lib/lua-parser/validator.lua:439
+} -- ./lib/lua-parser/validator.lua:439
+end -- ./lib/lua-parser/validator.lua:439
+local validator = _() or validator -- ./lib/lua-parser/validator.lua:443
+package["loaded"]["lib.lua-parser.validator"] = validator or true -- ./lib/lua-parser/validator.lua:444
+local function _() -- ./lib/lua-parser/validator.lua:447
+local pp = {} -- ./lib/lua-parser/pp.lua:4
+local block2str, stm2str, exp2str, var2str -- ./lib/lua-parser/pp.lua:6
+local explist2str, varlist2str, parlist2str, fieldlist2str -- ./lib/lua-parser/pp.lua:7
+local function iscntrl(x) -- ./lib/lua-parser/pp.lua:9
+if (x >= 0 and x <= 31) or (x == 127) then -- ./lib/lua-parser/pp.lua:10
+return true -- ./lib/lua-parser/pp.lua:10
+end -- ./lib/lua-parser/pp.lua:10
+return false -- ./lib/lua-parser/pp.lua:11
+end -- ./lib/lua-parser/pp.lua:11
+local function isprint(x) -- ./lib/lua-parser/pp.lua:14
+return not iscntrl(x) -- ./lib/lua-parser/pp.lua:15
+end -- ./lib/lua-parser/pp.lua:15
+local function fixed_string(str) -- ./lib/lua-parser/pp.lua:18
+local new_str = "" -- ./lib/lua-parser/pp.lua:19
+for i = 1, string["len"](str) do -- ./lib/lua-parser/pp.lua:20
+char = string["byte"](str, i) -- ./lib/lua-parser/pp.lua:21
+if char == 34 then -- ./lib/lua-parser/pp.lua:22
+new_str = new_str .. string["format"]("\\\"") -- ./lib/lua-parser/pp.lua:22
+elseif char == 92 then -- ./lib/lua-parser/pp.lua:23
+new_str = new_str .. string["format"]("\\\\") -- ./lib/lua-parser/pp.lua:23
+elseif char == 7 then -- ./lib/lua-parser/pp.lua:24
+new_str = new_str .. string["format"]("\\a") -- ./lib/lua-parser/pp.lua:24
+elseif char == 8 then -- ./lib/lua-parser/pp.lua:25
+new_str = new_str .. string["format"]("\\b") -- ./lib/lua-parser/pp.lua:25
+elseif char == 12 then -- ./lib/lua-parser/pp.lua:26
+new_str = new_str .. string["format"]("\\f") -- ./lib/lua-parser/pp.lua:26
+elseif char == 10 then -- ./lib/lua-parser/pp.lua:27
+new_str = new_str .. string["format"]("\\n") -- ./lib/lua-parser/pp.lua:27
+elseif char == 13 then -- ./lib/lua-parser/pp.lua:28
+new_str = new_str .. string["format"]("\\r") -- ./lib/lua-parser/pp.lua:28
+elseif char == 9 then -- ./lib/lua-parser/pp.lua:29
+new_str = new_str .. string["format"]("\\t") -- ./lib/lua-parser/pp.lua:29
+elseif char == 11 then -- ./lib/lua-parser/pp.lua:30
+new_str = new_str .. string["format"]("\\v") -- ./lib/lua-parser/pp.lua:30
+else -- ./lib/lua-parser/pp.lua:30
+if isprint(char) then -- ./lib/lua-parser/pp.lua:32
+new_str = new_str .. string["format"]("%c", char) -- ./lib/lua-parser/pp.lua:33
+else -- ./lib/lua-parser/pp.lua:33
+new_str = new_str .. string["format"]("\\%03d", char) -- ./lib/lua-parser/pp.lua:35
+end -- ./lib/lua-parser/pp.lua:35
+end -- ./lib/lua-parser/pp.lua:35
+end -- ./lib/lua-parser/pp.lua:35
+return new_str -- ./lib/lua-parser/pp.lua:39
+end -- ./lib/lua-parser/pp.lua:39
+local function name2str(name) -- ./lib/lua-parser/pp.lua:42
+return string["format"]("\"%s\"", name) -- ./lib/lua-parser/pp.lua:43
+end -- ./lib/lua-parser/pp.lua:43
+local function boolean2str(b) -- ./lib/lua-parser/pp.lua:46
+return string["format"]("\"%s\"", tostring(b)) -- ./lib/lua-parser/pp.lua:47
+end -- ./lib/lua-parser/pp.lua:47
+local function number2str(n) -- ./lib/lua-parser/pp.lua:50
+return string["format"]("\"%s\"", tostring(n)) -- ./lib/lua-parser/pp.lua:51
+end -- ./lib/lua-parser/pp.lua:51
+local function string2str(s) -- ./lib/lua-parser/pp.lua:54
+return string["format"]("\"%s\"", fixed_string(s)) -- ./lib/lua-parser/pp.lua:55
+end -- ./lib/lua-parser/pp.lua:55
+var2str = function(var) -- ./lib/lua-parser/pp.lua:58
+local tag = var["tag"] -- ./lib/lua-parser/pp.lua:59
+local str = "`" .. tag -- ./lib/lua-parser/pp.lua:60
+if tag == "Id" then -- `Id{ <string> } -- ./lib/lua-parser/pp.lua:61
+str = str .. " " .. name2str(var[1]) -- ./lib/lua-parser/pp.lua:62
+elseif tag == "Index" then -- `Index{ expr expr } -- ./lib/lua-parser/pp.lua:63
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:64
+str = str .. exp2str(var[1]) .. ", " -- ./lib/lua-parser/pp.lua:65
+str = str .. exp2str(var[2]) -- ./lib/lua-parser/pp.lua:66
+str = str .. " }" -- ./lib/lua-parser/pp.lua:67
+else -- ./lib/lua-parser/pp.lua:67
+error("expecting a variable, but got a " .. tag) -- ./lib/lua-parser/pp.lua:69
+end -- ./lib/lua-parser/pp.lua:69
+return str -- ./lib/lua-parser/pp.lua:71
+end -- ./lib/lua-parser/pp.lua:71
+varlist2str = function(varlist) -- ./lib/lua-parser/pp.lua:74
+local l = {} -- ./lib/lua-parser/pp.lua:75
+for k, v in ipairs(varlist) do -- ./lib/lua-parser/pp.lua:76
+l[k] = var2str(v) -- ./lib/lua-parser/pp.lua:77
+end -- ./lib/lua-parser/pp.lua:77
+return "{ " .. table["concat"](l, ", ") .. " }" -- ./lib/lua-parser/pp.lua:79
+end -- ./lib/lua-parser/pp.lua:79
+parlist2str = function(parlist) -- ./lib/lua-parser/pp.lua:82
+local l = {} -- ./lib/lua-parser/pp.lua:83
+local len = # parlist -- ./lib/lua-parser/pp.lua:84
+local is_vararg = false -- ./lib/lua-parser/pp.lua:85
+if len > 0 and parlist[len]["tag"] == "Dots" then -- ./lib/lua-parser/pp.lua:86
+is_vararg = true -- ./lib/lua-parser/pp.lua:87
+len = len - 1 -- ./lib/lua-parser/pp.lua:88
+end -- ./lib/lua-parser/pp.lua:88
+local i = 1 -- ./lib/lua-parser/pp.lua:90
+while i <= len do -- ./lib/lua-parser/pp.lua:91
+l[i] = var2str(parlist[i]) -- ./lib/lua-parser/pp.lua:92
+i = i + 1 -- ./lib/lua-parser/pp.lua:93
+end -- ./lib/lua-parser/pp.lua:93
+if is_vararg then -- ./lib/lua-parser/pp.lua:95
+l[i] = "`" .. parlist[i]["tag"] -- ./lib/lua-parser/pp.lua:96
+end -- ./lib/lua-parser/pp.lua:96
+return "{ " .. table["concat"](l, ", ") .. " }" -- ./lib/lua-parser/pp.lua:98
+end -- ./lib/lua-parser/pp.lua:98
+fieldlist2str = function(fieldlist) -- ./lib/lua-parser/pp.lua:101
+local l = {} -- ./lib/lua-parser/pp.lua:102
+for k, v in ipairs(fieldlist) do -- ./lib/lua-parser/pp.lua:103
+local tag = v["tag"] -- ./lib/lua-parser/pp.lua:104
+if tag == "Pair" then -- `Pair{ expr expr } -- ./lib/lua-parser/pp.lua:105
+l[k] = "`" .. tag .. "{ " -- ./lib/lua-parser/pp.lua:106
+l[k] = l[k] .. exp2str(v[1]) .. ", " .. exp2str(v[2]) -- ./lib/lua-parser/pp.lua:107
+l[k] = l[k] .. " }" -- ./lib/lua-parser/pp.lua:108
+else -- ./lib/lua-parser/pp.lua:108
+l[k] = exp2str(v) -- ./lib/lua-parser/pp.lua:110
+end -- ./lib/lua-parser/pp.lua:110
+end -- ./lib/lua-parser/pp.lua:110
+if # l > 0 then -- ./lib/lua-parser/pp.lua:113
+return "{ " .. table["concat"](l, ", ") .. " }" -- ./lib/lua-parser/pp.lua:114
+else -- ./lib/lua-parser/pp.lua:114
+return "" -- ./lib/lua-parser/pp.lua:116
+end -- ./lib/lua-parser/pp.lua:116
+end -- ./lib/lua-parser/pp.lua:116
+exp2str = function(exp) -- ./lib/lua-parser/pp.lua:120
+local tag = exp["tag"] -- ./lib/lua-parser/pp.lua:121
+local str = "`" .. tag -- ./lib/lua-parser/pp.lua:122
+if tag == "Nil" or tag == "Dots" then -- ./lib/lua-parser/pp.lua:124
+ -- `Boolean{ <boolean> } -- ./lib/lua-parser/pp.lua:125
+elseif tag == "Boolean" then -- `Boolean{ <boolean> } -- ./lib/lua-parser/pp.lua:125
+str = str .. " " .. boolean2str(exp[1]) -- ./lib/lua-parser/pp.lua:126
+elseif tag == "Number" then -- `Number{ <number> } -- ./lib/lua-parser/pp.lua:127
+str = str .. " " .. number2str(exp[1]) -- ./lib/lua-parser/pp.lua:128
+elseif tag == "String" then -- `String{ <string> } -- ./lib/lua-parser/pp.lua:129
+str = str .. " " .. string2str(exp[1]) -- ./lib/lua-parser/pp.lua:130
+elseif tag == "Function" then -- `Function{ { `Id{ <string> }* `Dots? } block } -- ./lib/lua-parser/pp.lua:131
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:132
+str = str .. parlist2str(exp[1]) .. ", " -- ./lib/lua-parser/pp.lua:133
+str = str .. block2str(exp[2]) -- ./lib/lua-parser/pp.lua:134
+str = str .. " }" -- ./lib/lua-parser/pp.lua:135
+elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* } -- ./lib/lua-parser/pp.lua:136
+str = str .. fieldlist2str(exp) -- ./lib/lua-parser/pp.lua:137
+elseif tag == "Op" then -- `Op{ opid expr expr? } -- ./lib/lua-parser/pp.lua:138
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:139
+str = str .. name2str(exp[1]) .. ", " -- ./lib/lua-parser/pp.lua:140
+str = str .. exp2str(exp[2]) -- ./lib/lua-parser/pp.lua:141
+if exp[3] then -- ./lib/lua-parser/pp.lua:142
+str = str .. ", " .. exp2str(exp[3]) -- ./lib/lua-parser/pp.lua:143
+end -- ./lib/lua-parser/pp.lua:143
+str = str .. " }" -- ./lib/lua-parser/pp.lua:145
+elseif tag == "Paren" then -- `Paren{ expr } -- ./lib/lua-parser/pp.lua:146
+str = str .. "{ " .. exp2str(exp[1]) .. " }" -- ./lib/lua-parser/pp.lua:147
+elseif tag == "Call" then -- `Call{ expr expr* } -- ./lib/lua-parser/pp.lua:148
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:149
+str = str .. exp2str(exp[1]) -- ./lib/lua-parser/pp.lua:150
+if exp[2] then -- ./lib/lua-parser/pp.lua:151
+for i = 2, # exp do -- ./lib/lua-parser/pp.lua:152
+str = str .. ", " .. exp2str(exp[i]) -- ./lib/lua-parser/pp.lua:153
+end -- ./lib/lua-parser/pp.lua:153
+end -- ./lib/lua-parser/pp.lua:153
+str = str .. " }" -- ./lib/lua-parser/pp.lua:156
+elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* } -- ./lib/lua-parser/pp.lua:157
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:158
+str = str .. exp2str(exp[1]) .. ", " -- ./lib/lua-parser/pp.lua:159
+str = str .. exp2str(exp[2]) -- ./lib/lua-parser/pp.lua:160
+if exp[3] then -- ./lib/lua-parser/pp.lua:161
+for i = 3, # exp do -- ./lib/lua-parser/pp.lua:162
+str = str .. ", " .. exp2str(exp[i]) -- ./lib/lua-parser/pp.lua:163
+end -- ./lib/lua-parser/pp.lua:163
+end -- ./lib/lua-parser/pp.lua:163
+str = str .. " }" -- ./lib/lua-parser/pp.lua:166
+elseif tag == "Id" or tag == "Index" then -- `Index{ expr expr } -- ./lib/lua-parser/pp.lua:168
+str = var2str(exp) -- ./lib/lua-parser/pp.lua:169
+else -- ./lib/lua-parser/pp.lua:169
+error("expecting an expression, but got a " .. tag) -- ./lib/lua-parser/pp.lua:171
+end -- ./lib/lua-parser/pp.lua:171
+return str -- ./lib/lua-parser/pp.lua:173
+end -- ./lib/lua-parser/pp.lua:173
+explist2str = function(explist) -- ./lib/lua-parser/pp.lua:176
+local l = {} -- ./lib/lua-parser/pp.lua:177
+for k, v in ipairs(explist) do -- ./lib/lua-parser/pp.lua:178
+l[k] = exp2str(v) -- ./lib/lua-parser/pp.lua:179
+end -- ./lib/lua-parser/pp.lua:179
+if # l > 0 then -- ./lib/lua-parser/pp.lua:181
+return "{ " .. table["concat"](l, ", ") .. " }" -- ./lib/lua-parser/pp.lua:182
+else -- ./lib/lua-parser/pp.lua:182
+return "" -- ./lib/lua-parser/pp.lua:184
+end -- ./lib/lua-parser/pp.lua:184
+end -- ./lib/lua-parser/pp.lua:184
+stm2str = function(stm) -- ./lib/lua-parser/pp.lua:188
+local tag = stm["tag"] -- ./lib/lua-parser/pp.lua:189
+local str = "`" .. tag -- ./lib/lua-parser/pp.lua:190
+if tag == "Do" then -- `Do{ stat* } -- ./lib/lua-parser/pp.lua:191
+local l = {} -- ./lib/lua-parser/pp.lua:192
+for k, v in ipairs(stm) do -- ./lib/lua-parser/pp.lua:193
+l[k] = stm2str(v) -- ./lib/lua-parser/pp.lua:194
+end -- ./lib/lua-parser/pp.lua:194
+str = str .. "{ " .. table["concat"](l, ", ") .. " }" -- ./lib/lua-parser/pp.lua:196
+elseif tag == "Set" then -- `Set{ {lhs+} {expr+} } -- ./lib/lua-parser/pp.lua:197
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:198
+str = str .. varlist2str(stm[1]) .. ", " -- ./lib/lua-parser/pp.lua:199
+str = str .. explist2str(stm[2]) -- ./lib/lua-parser/pp.lua:200
+str = str .. " }" -- ./lib/lua-parser/pp.lua:201
+elseif tag == "While" then -- `While{ expr block } -- ./lib/lua-parser/pp.lua:202
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:203
+str = str .. exp2str(stm[1]) .. ", " -- ./lib/lua-parser/pp.lua:204
+str = str .. block2str(stm[2]) -- ./lib/lua-parser/pp.lua:205
+str = str .. " }" -- ./lib/lua-parser/pp.lua:206
+elseif tag == "Repeat" then -- `Repeat{ block expr } -- ./lib/lua-parser/pp.lua:207
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:208
+str = str .. block2str(stm[1]) .. ", " -- ./lib/lua-parser/pp.lua:209
+str = str .. exp2str(stm[2]) -- ./lib/lua-parser/pp.lua:210
+str = str .. " }" -- ./lib/lua-parser/pp.lua:211
+elseif tag == "If" then -- `If{ (expr block)+ block? } -- ./lib/lua-parser/pp.lua:212
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:213
+local len = # stm -- ./lib/lua-parser/pp.lua:214
+if len % 2 == 0 then -- ./lib/lua-parser/pp.lua:215
+local l = {} -- ./lib/lua-parser/pp.lua:216
+for i = 1, len - 2, 2 do -- ./lib/lua-parser/pp.lua:217
+str = str .. exp2str(stm[i]) .. ", " .. block2str(stm[i + 1]) .. ", " -- ./lib/lua-parser/pp.lua:218
+end -- ./lib/lua-parser/pp.lua:218
+str = str .. exp2str(stm[len - 1]) .. ", " .. block2str(stm[len]) -- ./lib/lua-parser/pp.lua:220
+else -- ./lib/lua-parser/pp.lua:220
+local l = {} -- ./lib/lua-parser/pp.lua:222
+for i = 1, len - 3, 2 do -- ./lib/lua-parser/pp.lua:223
+str = str .. exp2str(stm[i]) .. ", " .. block2str(stm[i + 1]) .. ", " -- ./lib/lua-parser/pp.lua:224
+end -- ./lib/lua-parser/pp.lua:224
+str = str .. exp2str(stm[len - 2]) .. ", " .. block2str(stm[len - 1]) .. ", " -- ./lib/lua-parser/pp.lua:226
+str = str .. block2str(stm[len]) -- ./lib/lua-parser/pp.lua:227
+end -- ./lib/lua-parser/pp.lua:227
+str = str .. " }" -- ./lib/lua-parser/pp.lua:229
+elseif tag == "Fornum" then -- `Fornum{ ident expr expr expr? block } -- ./lib/lua-parser/pp.lua:230
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:231
+str = str .. var2str(stm[1]) .. ", " -- ./lib/lua-parser/pp.lua:232
+str = str .. exp2str(stm[2]) .. ", " -- ./lib/lua-parser/pp.lua:233
+str = str .. exp2str(stm[3]) .. ", " -- ./lib/lua-parser/pp.lua:234
+if stm[5] then -- ./lib/lua-parser/pp.lua:235
+str = str .. exp2str(stm[4]) .. ", " -- ./lib/lua-parser/pp.lua:236
+str = str .. block2str(stm[5]) -- ./lib/lua-parser/pp.lua:237
+else -- ./lib/lua-parser/pp.lua:237
+str = str .. block2str(stm[4]) -- ./lib/lua-parser/pp.lua:239
+end -- ./lib/lua-parser/pp.lua:239
+str = str .. " }" -- ./lib/lua-parser/pp.lua:241
+elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block } -- ./lib/lua-parser/pp.lua:242
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:243
+str = str .. varlist2str(stm[1]) .. ", " -- ./lib/lua-parser/pp.lua:244
+str = str .. explist2str(stm[2]) .. ", " -- ./lib/lua-parser/pp.lua:245
+str = str .. block2str(stm[3]) -- ./lib/lua-parser/pp.lua:246
+str = str .. " }" -- ./lib/lua-parser/pp.lua:247
+elseif tag == "Local" then -- `Local{ {ident+} {expr+}? } -- ./lib/lua-parser/pp.lua:248
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:249
+str = str .. varlist2str(stm[1]) -- ./lib/lua-parser/pp.lua:250
+if # stm[2] > 0 then -- ./lib/lua-parser/pp.lua:251
+str = str .. ", " .. explist2str(stm[2]) -- ./lib/lua-parser/pp.lua:252
+else -- ./lib/lua-parser/pp.lua:252
+str = str .. ", " .. "{  }" -- ./lib/lua-parser/pp.lua:254
+end -- ./lib/lua-parser/pp.lua:254
+str = str .. " }" -- ./lib/lua-parser/pp.lua:256
+elseif tag == "Localrec" then -- `Localrec{ ident expr } -- ./lib/lua-parser/pp.lua:257
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:258
+str = str .. "{ " .. var2str(stm[1][1]) .. " }, " -- ./lib/lua-parser/pp.lua:259
+str = str .. "{ " .. exp2str(stm[2][1]) .. " }" -- ./lib/lua-parser/pp.lua:260
+str = str .. " }" -- ./lib/lua-parser/pp.lua:261
+elseif tag == "Goto" or tag == "Label" then -- `Label{ <string> } -- ./lib/lua-parser/pp.lua:263
+str = str .. "{ " .. name2str(stm[1]) .. " }" -- ./lib/lua-parser/pp.lua:264
+elseif tag == "Return" then -- `Return{ <expr>* } -- ./lib/lua-parser/pp.lua:265
+str = str .. explist2str(stm) -- ./lib/lua-parser/pp.lua:266
+elseif tag == "Break" then -- ./lib/lua-parser/pp.lua:267
+ -- `Call{ expr expr* } -- ./lib/lua-parser/pp.lua:268
+elseif tag == "Call" then -- `Call{ expr expr* } -- ./lib/lua-parser/pp.lua:268
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:269
+str = str .. exp2str(stm[1]) -- ./lib/lua-parser/pp.lua:270
+if stm[2] then -- ./lib/lua-parser/pp.lua:271
+for i = 2, # stm do -- ./lib/lua-parser/pp.lua:272
+str = str .. ", " .. exp2str(stm[i]) -- ./lib/lua-parser/pp.lua:273
+end -- ./lib/lua-parser/pp.lua:273
+end -- ./lib/lua-parser/pp.lua:273
+str = str .. " }" -- ./lib/lua-parser/pp.lua:276
+elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* } -- ./lib/lua-parser/pp.lua:277
+str = str .. "{ " -- ./lib/lua-parser/pp.lua:278
+str = str .. exp2str(stm[1]) .. ", " -- ./lib/lua-parser/pp.lua:279
+str = str .. exp2str(stm[2]) -- ./lib/lua-parser/pp.lua:280
+if stm[3] then -- ./lib/lua-parser/pp.lua:281
+for i = 3, # stm do -- ./lib/lua-parser/pp.lua:282
+str = str .. ", " .. exp2str(stm[i]) -- ./lib/lua-parser/pp.lua:283
+end -- ./lib/lua-parser/pp.lua:283
+end -- ./lib/lua-parser/pp.lua:283
+str = str .. " }" -- ./lib/lua-parser/pp.lua:286
+else -- ./lib/lua-parser/pp.lua:286
+error("expecting a statement, but got a " .. tag) -- ./lib/lua-parser/pp.lua:288
+end -- ./lib/lua-parser/pp.lua:288
+return str -- ./lib/lua-parser/pp.lua:290
+end -- ./lib/lua-parser/pp.lua:290
+block2str = function(block) -- ./lib/lua-parser/pp.lua:293
+local l = {} -- ./lib/lua-parser/pp.lua:294
+for k, v in ipairs(block) do -- ./lib/lua-parser/pp.lua:295
+l[k] = stm2str(v) -- ./lib/lua-parser/pp.lua:296
+end -- ./lib/lua-parser/pp.lua:296
+return "{ " .. table["concat"](l, ", ") .. " }" -- ./lib/lua-parser/pp.lua:298
+end -- ./lib/lua-parser/pp.lua:298
+pp["tostring"] = function(t) -- ./lib/lua-parser/pp.lua:301
+assert(type(t) == "table") -- ./lib/lua-parser/pp.lua:302
+return block2str(t) -- ./lib/lua-parser/pp.lua:303
+end -- ./lib/lua-parser/pp.lua:303
+pp["print"] = function(t) -- ./lib/lua-parser/pp.lua:306
+assert(type(t) == "table") -- ./lib/lua-parser/pp.lua:307
+print(pp["tostring"](t)) -- ./lib/lua-parser/pp.lua:308
+end -- ./lib/lua-parser/pp.lua:308
+pp["dump"] = function(t, i) -- ./lib/lua-parser/pp.lua:311
+if i == nil then -- ./lib/lua-parser/pp.lua:312
+i = 0 -- ./lib/lua-parser/pp.lua:312
+end -- ./lib/lua-parser/pp.lua:312
 io["write"](string["format"]("{\
-"))
+")) -- ./lib/lua-parser/pp.lua:313
 io["write"](string["format"]("%s[tag] = %s\
-", string["rep"](" ", i + 2), t["tag"] or "nil"))
+", string["rep"](" ", i + 2), t["tag"] or "nil")) -- ./lib/lua-parser/pp.lua:314
 io["write"](string["format"]("%s[pos] = %s\
-", string["rep"](" ", i + 2), t["pos"] or "nil"))
-for k, v in ipairs(t) do
-io["write"](string["format"]("%s[%s] = ", string["rep"](" ", i + 2), tostring(k)))
-if type(v) == "table" then
-pp["dump"](v, i + 2)
-else
+", string["rep"](" ", i + 2), t["pos"] or "nil")) -- ./lib/lua-parser/pp.lua:315
+for k, v in ipairs(t) do -- ./lib/lua-parser/pp.lua:316
+io["write"](string["format"]("%s[%s] = ", string["rep"](" ", i + 2), tostring(k))) -- ./lib/lua-parser/pp.lua:317
+if type(v) == "table" then -- ./lib/lua-parser/pp.lua:318
+pp["dump"](v, i + 2) -- ./lib/lua-parser/pp.lua:319
+else -- ./lib/lua-parser/pp.lua:319
 io["write"](string["format"]("%s\
-", tostring(v)))
-end
-end
+", tostring(v))) -- ./lib/lua-parser/pp.lua:321
+end -- ./lib/lua-parser/pp.lua:321
+end -- ./lib/lua-parser/pp.lua:321
 io["write"](string["format"]("%s}\
-", string["rep"](" ", i)))
-end
-return pp
-end
-local pp = _() or pp
-package["loaded"]["lib.lua-parser.pp"] = pp or true
-local function _()
-local lpeg = require("lpeglabel")
-lpeg["locale"](lpeg)
-local P, S, V = lpeg["P"], lpeg["S"], lpeg["V"]
-local C, Carg, Cb, Cc = lpeg["C"], lpeg["Carg"], lpeg["Cb"], lpeg["Cc"]
-local Cf, Cg, Cmt, Cp, Cs, Ct = lpeg["Cf"], lpeg["Cg"], lpeg["Cmt"], lpeg["Cp"], lpeg["Cs"], lpeg["Ct"]
-local Rec, T = lpeg["Rec"], lpeg["T"]
-local alpha, digit, alnum = lpeg["alpha"], lpeg["digit"], lpeg["alnum"]
-local xdigit = lpeg["xdigit"]
-local space = lpeg["space"]
-local labels = {
-{
-"ErrExtra",
-"unexpected character(s), expected EOF"
-},
-{
-"ErrInvalidStat",
-"unexpected token, invalid start of statement"
-},
-{
-"ErrEndIf",
-"expected 'end' to close the if statement"
-},
-{
-"ErrExprIf",
-"expected a condition after 'if'"
-},
-{
-"ErrThenIf",
-"expected 'then' after the condition"
-},
-{
-"ErrExprEIf",
-"expected a condition after 'elseif'"
-},
-{
-"ErrThenEIf",
-"expected 'then' after the condition"
-},
-{
-"ErrEndDo",
-"expected 'end' to close the do block"
-},
-{
-"ErrExprWhile",
-"expected a condition after 'while'"
-},
-{
-"ErrDoWhile",
-"expected 'do' after the condition"
-},
-{
-"ErrEndWhile",
-"expected 'end' to close the while loop"
-},
-{
-"ErrUntilRep",
-"expected 'until' at the end of the repeat loop"
-},
-{
-"ErrExprRep",
-"expected a conditions after 'until'"
-},
-{
-"ErrForRange",
-"expected a numeric or generic range after 'for'"
-},
-{
-"ErrEndFor",
-"expected 'end' to close the for loop"
-},
-{
-"ErrExprFor1",
-"expected a starting expression for the numeric range"
-},
-{
-"ErrCommaFor",
-"expected ',' to split the start and end of the range"
-},
-{
-"ErrExprFor2",
-"expected an ending expression for the numeric range"
-},
-{
-"ErrExprFor3",
-"expected a step expression for the numeric range after ','"
-},
-{
-"ErrInFor",
-"expected '=' or 'in' after the variable(s)"
-},
-{
-"ErrEListFor",
-"expected one or more expressions after 'in'"
-},
-{
-"ErrDoFor",
-"expected 'do' after the range of the for loop"
-},
-{
-"ErrDefLocal",
-"expected a function definition or assignment after local"
-},
-{
-"ErrDefLet",
-"expected a function definition or assignment after let"
-},
-{
-"ErrNameLFunc",
-"expected a function name after 'function'"
-},
-{
-"ErrEListLAssign",
-"expected one or more expressions after '='"
-},
-{
-"ErrEListAssign",
-"expected one or more expressions after '='"
-},
-{
-"ErrFuncName",
-"expected a function name after 'function'"
-},
-{
-"ErrNameFunc1",
-"expected a function name after '.'"
-},
-{
-"ErrNameFunc2",
-"expected a method name after ':'"
-},
-{
-"ErrOParenPList",
-"expected '(' for the parameter list"
-},
-{
-"ErrCParenPList",
-"expected ')' to close the parameter list"
-},
-{
-"ErrEndFunc",
-"expected 'end' to close the function body"
-},
-{
-"ErrParList",
-"expected a variable name or '...' after ','"
-},
-{
-"ErrLabel",
-"expected a label name after '::'"
-},
-{
-"ErrCloseLabel",
-"expected '::' after the label"
-},
-{
-"ErrGoto",
-"expected a label after 'goto'"
-},
-{
-"ErrRetList",
-"expected an expression after ',' in the return statement"
-},
-{
-"ErrVarList",
-"expected a variable name after ','"
-},
-{
-"ErrExprList",
-"expected an expression after ','"
-},
-{
-"ErrOrExpr",
-"expected an expression after 'or'"
-},
-{
-"ErrAndExpr",
-"expected an expression after 'and'"
-},
-{
-"ErrRelExpr",
-"expected an expression after the relational operator"
-},
-{
-"ErrBOrExpr",
-"expected an expression after '|'"
-},
-{
-"ErrBXorExpr",
-"expected an expression after '~'"
-},
-{
-"ErrBAndExpr",
-"expected an expression after '&'"
-},
-{
-"ErrShiftExpr",
-"expected an expression after the bit shift"
-},
-{
-"ErrConcatExpr",
-"expected an expression after '..'"
-},
-{
-"ErrAddExpr",
-"expected an expression after the additive operator"
-},
-{
-"ErrMulExpr",
-"expected an expression after the multiplicative operator"
-},
-{
-"ErrUnaryExpr",
-"expected an expression after the unary operator"
-},
-{
-"ErrPowExpr",
-"expected an expression after '^'"
-},
-{
-"ErrExprParen",
-"expected an expression after '('"
-},
-{
-"ErrCParenExpr",
-"expected ')' to close the expression"
-},
-{
-"ErrNameIndex",
-"expected a field name after '.'"
-},
-{
-"ErrExprIndex",
-"expected an expression after '['"
-},
-{
-"ErrCBracketIndex",
-"expected ']' to close the indexing expression"
-},
-{
-"ErrNameMeth",
-"expected a method name after ':'"
-},
-{
-"ErrMethArgs",
-"expected some arguments for the method call (or '()')"
-},
-{
-"ErrArgList",
-"expected an expression after ',' in the argument list"
-},
-{
-"ErrCParenArgs",
-"expected ')' to close the argument list"
-},
-{
-"ErrCBraceTable",
-"expected '}' to close the table constructor"
-},
-{
-"ErrEqField",
-"expected '=' after the table key"
-},
-{
-"ErrExprField",
-"expected an expression after '='"
-},
-{
-"ErrExprFKey",
-"expected an expression after '[' for the table key"
-},
-{
-"ErrCBracketFKey",
-"expected ']' to close the table key"
-},
-{
-"ErrCBracketTableCompr",
-"expected ']' to close the table comprehension"
-},
-{
-"ErrDigitHex",
-"expected one or more hexadecimal digits after '0x'"
-},
-{
-"ErrDigitDeci",
-"expected one or more digits after the decimal point"
-},
-{
-"ErrDigitExpo",
-"expected one or more digits for the exponent"
-},
-{
-"ErrQuote",
-"unclosed string"
-},
-{
-"ErrHexEsc",
-"expected exactly two hexadecimal digits after '\\x'"
-},
-{
-"ErrOBraceUEsc",
-"expected '{' after '\\u'"
-},
-{
-"ErrDigitUEsc",
-"expected one or more hexadecimal digits for the UTF-8 code point"
-},
-{
-"ErrCBraceUEsc",
-"expected '}' after the code point"
-},
-{
-"ErrEscSeq",
-"invalid escape sequence"
-},
-{
-"ErrCloseLStr",
-"unclosed long string"
-}
-}
-local function throw(label)
-label = "Err" .. label
-for i, labelinfo in ipairs(labels) do
-if labelinfo[1] == label then
-return T(i)
-end
-end
-error("Label not found: " .. label)
-end
-local function expect(patt, label)
-return patt + throw(label)
-end
-local function token(patt)
-return patt * V("Skip")
-end
-local function sym(str)
-return token(P(str))
-end
-local function kw(str)
-return token(P(str) * - V("IdRest"))
-end
-local function tagC(tag, patt)
-return Ct(Cg(Cp(), "pos") * Cg(Cc(tag), "tag") * patt)
-end
-local function unaryOp(op, e)
-return {
-["tag"] = "Op",
-["pos"] = e["pos"],
-[1] = op,
-[2] = e
-}
-end
-local function binaryOp(e1, op, e2)
-if not op then
-return e1
-else
-return {
-["tag"] = "Op",
-["pos"] = e1["pos"],
-[1] = op,
-[2] = e1,
-[3] = e2
-}
-end
-end
-local function sepBy(patt, sep, label)
-if label then
-return patt * Cg(sep * expect(patt, label)) ^ 0
-else
-return patt * Cg(sep * patt) ^ 0
-end
-end
-local function chainOp(patt, sep, label)
-return Cf(sepBy(patt, sep, label), binaryOp)
-end
-local function commaSep(patt, label)
-return sepBy(patt, sym(","), label)
-end
-local function tagDo(block)
-block["tag"] = "Do"
-return block
-end
-local function fixFuncStat(func)
-if func[1]["is_method"] then
-table["insert"](func[2][1], 1, {
-["tag"] = "Id",
-[1] = "self"
-})
-end
-func[1] = { func[1] }
-func[2] = { func[2] }
-return func
-end
-local function addDots(params, dots)
-if dots then
-table["insert"](params, dots)
-end
-return params
-end
-local function insertIndex(t, index)
-return {
-["tag"] = "Index",
-["pos"] = t["pos"],
-[1] = t,
-[2] = index
-}
-end
-local function markMethod(t, method)
-if method then
-return {
-["tag"] = "Index",
-["pos"] = t["pos"],
-["is_method"] = true,
-[1] = t,
-[2] = method
-}
-end
-return t
-end
-local function makeIndexOrCall(t1, t2)
-if t2["tag"] == "Call" or t2["tag"] == "Invoke" then
-local t = {
-["tag"] = t2["tag"],
-["pos"] = t1["pos"],
-[1] = t1
-}
-for k, v in ipairs(t2) do
-table["insert"](t, v)
-end
-return t
-end
-return {
-["tag"] = "Index",
-["pos"] = t1["pos"],
-[1] = t1,
-[2] = t2[1]
-}
-end
-local function fixShortFunc(t)
-if t[1] == ":" then
-table["insert"](t[2], 1, {
-["tag"] = "Id",
-"self"
-})
-table["remove"](t, 1)
-t["is_method"] = true
-end
-t["is_short"] = true
-return t
-end
-local function statToExpr(t)
-t["tag"] = t["tag"] .. "Expr"
-return t
-end
-local function fixStructure(t)
-local i = 1
-while i <= # t do
-if type(t[i]) == "table" then
-fixStructure(t[i])
-for j = # t[i], 1, - 1 do
-local stat = t[i][j]
-if type(stat) == "table" and stat["move_up_block"] and stat["move_up_block"] > 0 then
-table["remove"](t[i], j)
-table["insert"](t, i + 1, stat)
-if t["tag"] == "Block" or t["tag"] == "Do" then
-stat["move_up_block"] = stat["move_up_block"] - 1
-end
-end
-end
-end
-i = i + 1
-end
-return t
-end
-local function searchEndRec(block, isRecCall)
-for i, stat in ipairs(block) do
-if stat["tag"] == "Set" or stat["tag"] == "Push" or stat["tag"] == "Return" or stat["tag"] == "Local" or stat["tag"] == "Let" or stat["tag"] == "Localrec" then
-local exprlist
-if stat["tag"] == "Set" or stat["tag"] == "Local" or stat["tag"] == "Let" or stat["tag"] == "Localrec" then
-exprlist = stat[# stat]
-elseif stat["tag"] == "Push" or stat["tag"] == "Return" then
-exprlist = stat
-end
-local last = exprlist[# exprlist]
-if last["tag"] == "Function" and last["is_short"] and not last["is_method"] and # last[1] == 1 then
-local p = i
-for j, fstat in ipairs(last[2]) do
-p = i + j
-table["insert"](block, p, fstat)
-if stat["move_up_block"] then
-fstat["move_up_block"] = (fstat["move_up_block"] or 0) + stat["move_up_block"]
-end
-if block["is_singlestatblock"] then
-fstat["move_up_block"] = (fstat["move_up_block"] or 0) + 1
-end
-end
-exprlist[# exprlist] = last[1]
-exprlist[# exprlist]["tag"] = "Paren"
-if not isRecCall then
-for j = p + 1, # block, 1 do
-block[j]["move_up_block"] = (block[j]["move_up_block"] or 0) + 1
-end
-end
-return block, i
-elseif last["tag"]:match("Expr$") then
-local r = searchEndRec({ last })
-if r then
-for j = 2, # r, 1 do
-table["insert"](block, i + j - 1, r[j])
-end
-return block, i
-end
-elseif last["tag"] == "Function" then
-local r = searchEndRec(last[2])
-if r then
-return block, i
-end
-end
-elseif stat["tag"]:match("^If") or stat["tag"]:match("^While") or stat["tag"]:match("^Repeat") or stat["tag"]:match("^Do") or stat["tag"]:match("^Fornum") or stat["tag"]:match("^Forin") then
-local blocks
-if stat["tag"]:match("^If") or stat["tag"]:match("^While") or stat["tag"]:match("^Repeat") or stat["tag"]:match("^Fornum") or stat["tag"]:match("^Forin") then
-blocks = stat
-elseif stat["tag"]:match("^Do") then
-blocks = { stat }
-end
-for _, iblock in ipairs(blocks) do
-if iblock["tag"] == "Block" then
-local oldLen = # iblock
-local newiBlock, newEnd = searchEndRec(iblock, true)
-if newiBlock then
-local p = i
-for j = newEnd + (# iblock - oldLen) + 1, # iblock, 1 do
-p = p + 1
-table["insert"](block, p, iblock[j])
-iblock[j] = nil
-end
-if not isRecCall then
-for j = p + 1, # block, 1 do
-block[j]["move_up_block"] = (block[j]["move_up_block"] or 0) + 1
-end
-end
-return block, i
-end
-end
-end
-end
-end
-return nil
-end
-local function searchEnd(s, p, t)
-local r = searchEndRec(fixStructure(t))
-if not r then
-return false
-end
-return true, r
-end
-local function expectBlockOrSingleStatWithStartEnd(start, startLabel, stopLabel, canFollow)
-if canFollow then
-return (- start * V("SingleStatBlock") * canFollow ^ - 1) + (expect(start, startLabel) * ((V("Block") * (canFollow + kw("end"))) + (Cmt(V("Block"), searchEnd) + throw(stopLabel))))
-else
-return (- start * V("SingleStatBlock")) + (expect(start, startLabel) * ((V("Block") * kw("end")) + (Cmt(V("Block"), searchEnd) + throw(stopLabel))))
-end
-end
-local function expectBlockWithEnd(label)
-return (V("Block") * kw("end")) + (Cmt(V("Block"), searchEnd) + throw(label))
-end
-local function maybeBlockWithEnd()
-return (V("BlockNoErr") * kw("end")) + Cmt(V("BlockNoErr"), searchEnd)
-end
-local G = {
-V("Lua"),
-["Lua"] = (V("Shebang") ^ - 1 * V("Skip") * V("Block") * expect(P(- 1), "Extra")) / fixStructure,
+", string["rep"](" ", i))) -- ./lib/lua-parser/pp.lua:324
+end -- ./lib/lua-parser/pp.lua:324
+return pp -- ./lib/lua-parser/pp.lua:327
+end -- ./lib/lua-parser/pp.lua:327
+local pp = _() or pp -- ./lib/lua-parser/pp.lua:331
+package["loaded"]["lib.lua-parser.pp"] = pp or true -- ./lib/lua-parser/pp.lua:332
+local function _() -- ./lib/lua-parser/pp.lua:335
+local lpeg = require("lpeglabel") -- ./lib/lua-parser/parser.lua:65
+lpeg["locale"](lpeg) -- ./lib/lua-parser/parser.lua:67
+local P, S, V = lpeg["P"], lpeg["S"], lpeg["V"] -- ./lib/lua-parser/parser.lua:69
+local C, Carg, Cb, Cc = lpeg["C"], lpeg["Carg"], lpeg["Cb"], lpeg["Cc"] -- ./lib/lua-parser/parser.lua:70
+local Cf, Cg, Cmt, Cp, Cs, Ct = lpeg["Cf"], lpeg["Cg"], lpeg["Cmt"], lpeg["Cp"], lpeg["Cs"], lpeg["Ct"] -- ./lib/lua-parser/parser.lua:71
+local Rec, T = lpeg["Rec"], lpeg["T"] -- ./lib/lua-parser/parser.lua:72
+local alpha, digit, alnum = lpeg["alpha"], lpeg["digit"], lpeg["alnum"] -- ./lib/lua-parser/parser.lua:74
+local xdigit = lpeg["xdigit"] -- ./lib/lua-parser/parser.lua:75
+local space = lpeg["space"] -- ./lib/lua-parser/parser.lua:76
+local labels = { -- ./lib/lua-parser/parser.lua:81
+{ -- ./lib/lua-parser/parser.lua:82
+"ErrExtra", -- ./lib/lua-parser/parser.lua:82
+"unexpected character(s), expected EOF" -- ./lib/lua-parser/parser.lua:82
+}, -- ./lib/lua-parser/parser.lua:82
+{ -- ./lib/lua-parser/parser.lua:83
+"ErrInvalidStat", -- ./lib/lua-parser/parser.lua:83
+"unexpected token, invalid start of statement" -- ./lib/lua-parser/parser.lua:83
+}, -- ./lib/lua-parser/parser.lua:83
+{ -- ./lib/lua-parser/parser.lua:85
+"ErrEndIf", -- ./lib/lua-parser/parser.lua:85
+"expected 'end' to close the if statement" -- ./lib/lua-parser/parser.lua:85
+}, -- ./lib/lua-parser/parser.lua:85
+{ -- ./lib/lua-parser/parser.lua:86
+"ErrExprIf", -- ./lib/lua-parser/parser.lua:86
+"expected a condition after 'if'" -- ./lib/lua-parser/parser.lua:86
+}, -- ./lib/lua-parser/parser.lua:86
+{ -- ./lib/lua-parser/parser.lua:87
+"ErrThenIf", -- ./lib/lua-parser/parser.lua:87
+"expected 'then' after the condition" -- ./lib/lua-parser/parser.lua:87
+}, -- ./lib/lua-parser/parser.lua:87
+{ -- ./lib/lua-parser/parser.lua:88
+"ErrExprEIf", -- ./lib/lua-parser/parser.lua:88
+"expected a condition after 'elseif'" -- ./lib/lua-parser/parser.lua:88
+}, -- ./lib/lua-parser/parser.lua:88
+{ -- ./lib/lua-parser/parser.lua:89
+"ErrThenEIf", -- ./lib/lua-parser/parser.lua:89
+"expected 'then' after the condition" -- ./lib/lua-parser/parser.lua:89
+}, -- ./lib/lua-parser/parser.lua:89
+{ -- ./lib/lua-parser/parser.lua:91
+"ErrEndDo", -- ./lib/lua-parser/parser.lua:91
+"expected 'end' to close the do block" -- ./lib/lua-parser/parser.lua:91
+}, -- ./lib/lua-parser/parser.lua:91
+{ -- ./lib/lua-parser/parser.lua:92
+"ErrExprWhile", -- ./lib/lua-parser/parser.lua:92
+"expected a condition after 'while'" -- ./lib/lua-parser/parser.lua:92
+}, -- ./lib/lua-parser/parser.lua:92
+{ -- ./lib/lua-parser/parser.lua:93
+"ErrDoWhile", -- ./lib/lua-parser/parser.lua:93
+"expected 'do' after the condition" -- ./lib/lua-parser/parser.lua:93
+}, -- ./lib/lua-parser/parser.lua:93
+{ -- ./lib/lua-parser/parser.lua:94
+"ErrEndWhile", -- ./lib/lua-parser/parser.lua:94
+"expected 'end' to close the while loop" -- ./lib/lua-parser/parser.lua:94
+}, -- ./lib/lua-parser/parser.lua:94
+{ -- ./lib/lua-parser/parser.lua:95
+"ErrUntilRep", -- ./lib/lua-parser/parser.lua:95
+"expected 'until' at the end of the repeat loop" -- ./lib/lua-parser/parser.lua:95
+}, -- ./lib/lua-parser/parser.lua:95
+{ -- ./lib/lua-parser/parser.lua:96
+"ErrExprRep", -- ./lib/lua-parser/parser.lua:96
+"expected a conditions after 'until'" -- ./lib/lua-parser/parser.lua:96
+}, -- ./lib/lua-parser/parser.lua:96
+{ -- ./lib/lua-parser/parser.lua:98
+"ErrForRange", -- ./lib/lua-parser/parser.lua:98
+"expected a numeric or generic range after 'for'" -- ./lib/lua-parser/parser.lua:98
+}, -- ./lib/lua-parser/parser.lua:98
+{ -- ./lib/lua-parser/parser.lua:99
+"ErrEndFor", -- ./lib/lua-parser/parser.lua:99
+"expected 'end' to close the for loop" -- ./lib/lua-parser/parser.lua:99
+}, -- ./lib/lua-parser/parser.lua:99
+{ -- ./lib/lua-parser/parser.lua:100
+"ErrExprFor1", -- ./lib/lua-parser/parser.lua:100
+"expected a starting expression for the numeric range" -- ./lib/lua-parser/parser.lua:100
+}, -- ./lib/lua-parser/parser.lua:100
+{ -- ./lib/lua-parser/parser.lua:101
+"ErrCommaFor", -- ./lib/lua-parser/parser.lua:101
+"expected ',' to split the start and end of the range" -- ./lib/lua-parser/parser.lua:101
+}, -- ./lib/lua-parser/parser.lua:101
+{ -- ./lib/lua-parser/parser.lua:102
+"ErrExprFor2", -- ./lib/lua-parser/parser.lua:102
+"expected an ending expression for the numeric range" -- ./lib/lua-parser/parser.lua:102
+}, -- ./lib/lua-parser/parser.lua:102
+{ -- ./lib/lua-parser/parser.lua:103
+"ErrExprFor3", -- ./lib/lua-parser/parser.lua:103
+"expected a step expression for the numeric range after ','" -- ./lib/lua-parser/parser.lua:103
+}, -- ./lib/lua-parser/parser.lua:103
+{ -- ./lib/lua-parser/parser.lua:104
+"ErrInFor", -- ./lib/lua-parser/parser.lua:104
+"expected '=' or 'in' after the variable(s)" -- ./lib/lua-parser/parser.lua:104
+}, -- ./lib/lua-parser/parser.lua:104
+{ -- ./lib/lua-parser/parser.lua:105
+"ErrEListFor", -- ./lib/lua-parser/parser.lua:105
+"expected one or more expressions after 'in'" -- ./lib/lua-parser/parser.lua:105
+}, -- ./lib/lua-parser/parser.lua:105
+{ -- ./lib/lua-parser/parser.lua:106
+"ErrDoFor", -- ./lib/lua-parser/parser.lua:106
+"expected 'do' after the range of the for loop" -- ./lib/lua-parser/parser.lua:106
+}, -- ./lib/lua-parser/parser.lua:106
+{ -- ./lib/lua-parser/parser.lua:108
+"ErrDefLocal", -- ./lib/lua-parser/parser.lua:108
+"expected a function definition or assignment after local" -- ./lib/lua-parser/parser.lua:108
+}, -- ./lib/lua-parser/parser.lua:108
+{ -- ./lib/lua-parser/parser.lua:109
+"ErrDefLet", -- ./lib/lua-parser/parser.lua:109
+"expected a function definition or assignment after let" -- ./lib/lua-parser/parser.lua:109
+}, -- ./lib/lua-parser/parser.lua:109
+{ -- ./lib/lua-parser/parser.lua:110
+"ErrNameLFunc", -- ./lib/lua-parser/parser.lua:110
+"expected a function name after 'function'" -- ./lib/lua-parser/parser.lua:110
+}, -- ./lib/lua-parser/parser.lua:110
+{ -- ./lib/lua-parser/parser.lua:111
+"ErrEListLAssign", -- ./lib/lua-parser/parser.lua:111
+"expected one or more expressions after '='" -- ./lib/lua-parser/parser.lua:111
+}, -- ./lib/lua-parser/parser.lua:111
+{ -- ./lib/lua-parser/parser.lua:112
+"ErrEListAssign", -- ./lib/lua-parser/parser.lua:112
+"expected one or more expressions after '='" -- ./lib/lua-parser/parser.lua:112
+}, -- ./lib/lua-parser/parser.lua:112
+{ -- ./lib/lua-parser/parser.lua:114
+"ErrFuncName", -- ./lib/lua-parser/parser.lua:114
+"expected a function name after 'function'" -- ./lib/lua-parser/parser.lua:114
+}, -- ./lib/lua-parser/parser.lua:114
+{ -- ./lib/lua-parser/parser.lua:115
+"ErrNameFunc1", -- ./lib/lua-parser/parser.lua:115
+"expected a function name after '.'" -- ./lib/lua-parser/parser.lua:115
+}, -- ./lib/lua-parser/parser.lua:115
+{ -- ./lib/lua-parser/parser.lua:116
+"ErrNameFunc2", -- ./lib/lua-parser/parser.lua:116
+"expected a method name after ':'" -- ./lib/lua-parser/parser.lua:116
+}, -- ./lib/lua-parser/parser.lua:116
+{ -- ./lib/lua-parser/parser.lua:117
+"ErrOParenPList", -- ./lib/lua-parser/parser.lua:117
+"expected '(' for the parameter list" -- ./lib/lua-parser/parser.lua:117
+}, -- ./lib/lua-parser/parser.lua:117
+{ -- ./lib/lua-parser/parser.lua:118
+"ErrCParenPList", -- ./lib/lua-parser/parser.lua:118
+"expected ')' to close the parameter list" -- ./lib/lua-parser/parser.lua:118
+}, -- ./lib/lua-parser/parser.lua:118
+{ -- ./lib/lua-parser/parser.lua:119
+"ErrEndFunc", -- ./lib/lua-parser/parser.lua:119
+"expected 'end' to close the function body" -- ./lib/lua-parser/parser.lua:119
+}, -- ./lib/lua-parser/parser.lua:119
+{ -- ./lib/lua-parser/parser.lua:120
+"ErrParList", -- ./lib/lua-parser/parser.lua:120
+"expected a variable name or '...' after ','" -- ./lib/lua-parser/parser.lua:120
+}, -- ./lib/lua-parser/parser.lua:120
+{ -- ./lib/lua-parser/parser.lua:122
+"ErrLabel", -- ./lib/lua-parser/parser.lua:122
+"expected a label name after '::'" -- ./lib/lua-parser/parser.lua:122
+}, -- ./lib/lua-parser/parser.lua:122
+{ -- ./lib/lua-parser/parser.lua:123
+"ErrCloseLabel", -- ./lib/lua-parser/parser.lua:123
+"expected '::' after the label" -- ./lib/lua-parser/parser.lua:123
+}, -- ./lib/lua-parser/parser.lua:123
+{ -- ./lib/lua-parser/parser.lua:124
+"ErrGoto", -- ./lib/lua-parser/parser.lua:124
+"expected a label after 'goto'" -- ./lib/lua-parser/parser.lua:124
+}, -- ./lib/lua-parser/parser.lua:124
+{ -- ./lib/lua-parser/parser.lua:125
+"ErrRetList", -- ./lib/lua-parser/parser.lua:125
+"expected an expression after ',' in the return statement" -- ./lib/lua-parser/parser.lua:125
+}, -- ./lib/lua-parser/parser.lua:125
+{ -- ./lib/lua-parser/parser.lua:127
+"ErrVarList", -- ./lib/lua-parser/parser.lua:127
+"expected a variable name after ','" -- ./lib/lua-parser/parser.lua:127
+}, -- ./lib/lua-parser/parser.lua:127
+{ -- ./lib/lua-parser/parser.lua:128
+"ErrExprList", -- ./lib/lua-parser/parser.lua:128
+"expected an expression after ','" -- ./lib/lua-parser/parser.lua:128
+}, -- ./lib/lua-parser/parser.lua:128
+{ -- ./lib/lua-parser/parser.lua:130
+"ErrOrExpr", -- ./lib/lua-parser/parser.lua:130
+"expected an expression after 'or'" -- ./lib/lua-parser/parser.lua:130
+}, -- ./lib/lua-parser/parser.lua:130
+{ -- ./lib/lua-parser/parser.lua:131
+"ErrAndExpr", -- ./lib/lua-parser/parser.lua:131
+"expected an expression after 'and'" -- ./lib/lua-parser/parser.lua:131
+}, -- ./lib/lua-parser/parser.lua:131
+{ -- ./lib/lua-parser/parser.lua:132
+"ErrRelExpr", -- ./lib/lua-parser/parser.lua:132
+"expected an expression after the relational operator" -- ./lib/lua-parser/parser.lua:132
+}, -- ./lib/lua-parser/parser.lua:132
+{ -- ./lib/lua-parser/parser.lua:133
+"ErrBOrExpr", -- ./lib/lua-parser/parser.lua:133
+"expected an expression after '|'" -- ./lib/lua-parser/parser.lua:133
+}, -- ./lib/lua-parser/parser.lua:133
+{ -- ./lib/lua-parser/parser.lua:134
+"ErrBXorExpr", -- ./lib/lua-parser/parser.lua:134
+"expected an expression after '~'" -- ./lib/lua-parser/parser.lua:134
+}, -- ./lib/lua-parser/parser.lua:134
+{ -- ./lib/lua-parser/parser.lua:135
+"ErrBAndExpr", -- ./lib/lua-parser/parser.lua:135
+"expected an expression after '&'" -- ./lib/lua-parser/parser.lua:135
+}, -- ./lib/lua-parser/parser.lua:135
+{ -- ./lib/lua-parser/parser.lua:136
+"ErrShiftExpr", -- ./lib/lua-parser/parser.lua:136
+"expected an expression after the bit shift" -- ./lib/lua-parser/parser.lua:136
+}, -- ./lib/lua-parser/parser.lua:136
+{ -- ./lib/lua-parser/parser.lua:137
+"ErrConcatExpr", -- ./lib/lua-parser/parser.lua:137
+"expected an expression after '..'" -- ./lib/lua-parser/parser.lua:137
+}, -- ./lib/lua-parser/parser.lua:137
+{ -- ./lib/lua-parser/parser.lua:138
+"ErrAddExpr", -- ./lib/lua-parser/parser.lua:138
+"expected an expression after the additive operator" -- ./lib/lua-parser/parser.lua:138
+}, -- ./lib/lua-parser/parser.lua:138
+{ -- ./lib/lua-parser/parser.lua:139
+"ErrMulExpr", -- ./lib/lua-parser/parser.lua:139
+"expected an expression after the multiplicative operator" -- ./lib/lua-parser/parser.lua:139
+}, -- ./lib/lua-parser/parser.lua:139
+{ -- ./lib/lua-parser/parser.lua:140
+"ErrUnaryExpr", -- ./lib/lua-parser/parser.lua:140
+"expected an expression after the unary operator" -- ./lib/lua-parser/parser.lua:140
+}, -- ./lib/lua-parser/parser.lua:140
+{ -- ./lib/lua-parser/parser.lua:141
+"ErrPowExpr", -- ./lib/lua-parser/parser.lua:141
+"expected an expression after '^'" -- ./lib/lua-parser/parser.lua:141
+}, -- ./lib/lua-parser/parser.lua:141
+{ -- ./lib/lua-parser/parser.lua:143
+"ErrExprParen", -- ./lib/lua-parser/parser.lua:143
+"expected an expression after '('" -- ./lib/lua-parser/parser.lua:143
+}, -- ./lib/lua-parser/parser.lua:143
+{ -- ./lib/lua-parser/parser.lua:144
+"ErrCParenExpr", -- ./lib/lua-parser/parser.lua:144
+"expected ')' to close the expression" -- ./lib/lua-parser/parser.lua:144
+}, -- ./lib/lua-parser/parser.lua:144
+{ -- ./lib/lua-parser/parser.lua:145
+"ErrNameIndex", -- ./lib/lua-parser/parser.lua:145
+"expected a field name after '.'" -- ./lib/lua-parser/parser.lua:145
+}, -- ./lib/lua-parser/parser.lua:145
+{ -- ./lib/lua-parser/parser.lua:146
+"ErrExprIndex", -- ./lib/lua-parser/parser.lua:146
+"expected an expression after '['" -- ./lib/lua-parser/parser.lua:146
+}, -- ./lib/lua-parser/parser.lua:146
+{ -- ./lib/lua-parser/parser.lua:147
+"ErrCBracketIndex", -- ./lib/lua-parser/parser.lua:147
+"expected ']' to close the indexing expression" -- ./lib/lua-parser/parser.lua:147
+}, -- ./lib/lua-parser/parser.lua:147
+{ -- ./lib/lua-parser/parser.lua:148
+"ErrNameMeth", -- ./lib/lua-parser/parser.lua:148
+"expected a method name after ':'" -- ./lib/lua-parser/parser.lua:148
+}, -- ./lib/lua-parser/parser.lua:148
+{ -- ./lib/lua-parser/parser.lua:149
+"ErrMethArgs", -- ./lib/lua-parser/parser.lua:149
+"expected some arguments for the method call (or '()')" -- ./lib/lua-parser/parser.lua:149
+}, -- ./lib/lua-parser/parser.lua:149
+{ -- ./lib/lua-parser/parser.lua:151
+"ErrArgList", -- ./lib/lua-parser/parser.lua:151
+"expected an expression after ',' in the argument list" -- ./lib/lua-parser/parser.lua:151
+}, -- ./lib/lua-parser/parser.lua:151
+{ -- ./lib/lua-parser/parser.lua:152
+"ErrCParenArgs", -- ./lib/lua-parser/parser.lua:152
+"expected ')' to close the argument list" -- ./lib/lua-parser/parser.lua:152
+}, -- ./lib/lua-parser/parser.lua:152
+{ -- ./lib/lua-parser/parser.lua:154
+"ErrCBraceTable", -- ./lib/lua-parser/parser.lua:154
+"expected '}' to close the table constructor" -- ./lib/lua-parser/parser.lua:154
+}, -- ./lib/lua-parser/parser.lua:154
+{ -- ./lib/lua-parser/parser.lua:155
+"ErrEqField", -- ./lib/lua-parser/parser.lua:155
+"expected '=' after the table key" -- ./lib/lua-parser/parser.lua:155
+}, -- ./lib/lua-parser/parser.lua:155
+{ -- ./lib/lua-parser/parser.lua:156
+"ErrExprField", -- ./lib/lua-parser/parser.lua:156
+"expected an expression after '='" -- ./lib/lua-parser/parser.lua:156
+}, -- ./lib/lua-parser/parser.lua:156
+{ -- ./lib/lua-parser/parser.lua:157
+"ErrExprFKey", -- ./lib/lua-parser/parser.lua:157
+"expected an expression after '[' for the table key" -- ./lib/lua-parser/parser.lua:157
+}, -- ./lib/lua-parser/parser.lua:157
+{ -- ./lib/lua-parser/parser.lua:158
+"ErrCBracketFKey", -- ./lib/lua-parser/parser.lua:158
+"expected ']' to close the table key" -- ./lib/lua-parser/parser.lua:158
+}, -- ./lib/lua-parser/parser.lua:158
+{ -- ./lib/lua-parser/parser.lua:160
+"ErrCBracketTableCompr", -- ./lib/lua-parser/parser.lua:160
+"expected ']' to close the table comprehension" -- ./lib/lua-parser/parser.lua:160
+}, -- ./lib/lua-parser/parser.lua:160
+{ -- ./lib/lua-parser/parser.lua:162
+"ErrDigitHex", -- ./lib/lua-parser/parser.lua:162
+"expected one or more hexadecimal digits after '0x'" -- ./lib/lua-parser/parser.lua:162
+}, -- ./lib/lua-parser/parser.lua:162
+{ -- ./lib/lua-parser/parser.lua:163
+"ErrDigitDeci", -- ./lib/lua-parser/parser.lua:163
+"expected one or more digits after the decimal point" -- ./lib/lua-parser/parser.lua:163
+}, -- ./lib/lua-parser/parser.lua:163
+{ -- ./lib/lua-parser/parser.lua:164
+"ErrDigitExpo", -- ./lib/lua-parser/parser.lua:164
+"expected one or more digits for the exponent" -- ./lib/lua-parser/parser.lua:164
+}, -- ./lib/lua-parser/parser.lua:164
+{ -- ./lib/lua-parser/parser.lua:166
+"ErrQuote", -- ./lib/lua-parser/parser.lua:166
+"unclosed string" -- ./lib/lua-parser/parser.lua:166
+}, -- ./lib/lua-parser/parser.lua:166
+{ -- ./lib/lua-parser/parser.lua:167
+"ErrHexEsc", -- ./lib/lua-parser/parser.lua:167
+"expected exactly two hexadecimal digits after '\\x'" -- ./lib/lua-parser/parser.lua:167
+}, -- ./lib/lua-parser/parser.lua:167
+{ -- ./lib/lua-parser/parser.lua:168
+"ErrOBraceUEsc", -- ./lib/lua-parser/parser.lua:168
+"expected '{' after '\\u'" -- ./lib/lua-parser/parser.lua:168
+}, -- ./lib/lua-parser/parser.lua:168
+{ -- ./lib/lua-parser/parser.lua:169
+"ErrDigitUEsc", -- ./lib/lua-parser/parser.lua:169
+"expected one or more hexadecimal digits for the UTF-8 code point" -- ./lib/lua-parser/parser.lua:169
+}, -- ./lib/lua-parser/parser.lua:169
+{ -- ./lib/lua-parser/parser.lua:170
+"ErrCBraceUEsc", -- ./lib/lua-parser/parser.lua:170
+"expected '}' after the code point" -- ./lib/lua-parser/parser.lua:170
+}, -- ./lib/lua-parser/parser.lua:170
+{ -- ./lib/lua-parser/parser.lua:171
+"ErrEscSeq", -- ./lib/lua-parser/parser.lua:171
+"invalid escape sequence" -- ./lib/lua-parser/parser.lua:171
+}, -- ./lib/lua-parser/parser.lua:171
+{ -- ./lib/lua-parser/parser.lua:172
+"ErrCloseLStr", -- ./lib/lua-parser/parser.lua:172
+"unclosed long string" -- ./lib/lua-parser/parser.lua:172
+} -- ./lib/lua-parser/parser.lua:172
+} -- ./lib/lua-parser/parser.lua:172
+local function throw(label) -- ./lib/lua-parser/parser.lua:175
+label = "Err" .. label -- ./lib/lua-parser/parser.lua:176
+for i, labelinfo in ipairs(labels) do -- ./lib/lua-parser/parser.lua:177
+if labelinfo[1] == label then -- ./lib/lua-parser/parser.lua:178
+return T(i) -- ./lib/lua-parser/parser.lua:179
+end -- ./lib/lua-parser/parser.lua:179
+end -- ./lib/lua-parser/parser.lua:179
+error("Label not found: " .. label) -- ./lib/lua-parser/parser.lua:183
+end -- ./lib/lua-parser/parser.lua:183
+local function expect(patt, label) -- ./lib/lua-parser/parser.lua:186
+return patt + throw(label) -- ./lib/lua-parser/parser.lua:187
+end -- ./lib/lua-parser/parser.lua:187
+local function token(patt) -- ./lib/lua-parser/parser.lua:193
+return patt * V("Skip") -- ./lib/lua-parser/parser.lua:194
+end -- ./lib/lua-parser/parser.lua:194
+local function sym(str) -- ./lib/lua-parser/parser.lua:197
+return token(P(str)) -- ./lib/lua-parser/parser.lua:198
+end -- ./lib/lua-parser/parser.lua:198
+local function kw(str) -- ./lib/lua-parser/parser.lua:201
+return token(P(str) * - V("IdRest")) -- ./lib/lua-parser/parser.lua:202
+end -- ./lib/lua-parser/parser.lua:202
+local function tagC(tag, patt) -- ./lib/lua-parser/parser.lua:205
+return Ct(Cg(Cp(), "pos") * Cg(Cc(tag), "tag") * patt) -- ./lib/lua-parser/parser.lua:206
+end -- ./lib/lua-parser/parser.lua:206
+local function unaryOp(op, e) -- ./lib/lua-parser/parser.lua:209
+return { -- ./lib/lua-parser/parser.lua:210
+["tag"] = "Op", -- ./lib/lua-parser/parser.lua:210
+["pos"] = e["pos"], -- ./lib/lua-parser/parser.lua:210
+[1] = op, -- ./lib/lua-parser/parser.lua:210
+[2] = e -- ./lib/lua-parser/parser.lua:210
+} -- ./lib/lua-parser/parser.lua:210
+end -- ./lib/lua-parser/parser.lua:210
+local function binaryOp(e1, op, e2) -- ./lib/lua-parser/parser.lua:213
+if not op then -- ./lib/lua-parser/parser.lua:214
+return e1 -- ./lib/lua-parser/parser.lua:215
+else -- ./lib/lua-parser/parser.lua:215
+return { -- ./lib/lua-parser/parser.lua:217
+["tag"] = "Op", -- ./lib/lua-parser/parser.lua:217
+["pos"] = e1["pos"], -- ./lib/lua-parser/parser.lua:217
+[1] = op, -- ./lib/lua-parser/parser.lua:217
+[2] = e1, -- ./lib/lua-parser/parser.lua:217
+[3] = e2 -- ./lib/lua-parser/parser.lua:217
+} -- ./lib/lua-parser/parser.lua:217
+end -- ./lib/lua-parser/parser.lua:217
+end -- ./lib/lua-parser/parser.lua:217
+local function sepBy(patt, sep, label) -- ./lib/lua-parser/parser.lua:221
+if label then -- ./lib/lua-parser/parser.lua:222
+return patt * Cg(sep * expect(patt, label)) ^ 0 -- ./lib/lua-parser/parser.lua:223
+else -- ./lib/lua-parser/parser.lua:223
+return patt * Cg(sep * patt) ^ 0 -- ./lib/lua-parser/parser.lua:225
+end -- ./lib/lua-parser/parser.lua:225
+end -- ./lib/lua-parser/parser.lua:225
+local function chainOp(patt, sep, label) -- ./lib/lua-parser/parser.lua:229
+return Cf(sepBy(patt, sep, label), binaryOp) -- ./lib/lua-parser/parser.lua:230
+end -- ./lib/lua-parser/parser.lua:230
+local function commaSep(patt, label) -- ./lib/lua-parser/parser.lua:233
+return sepBy(patt, sym(","), label) -- ./lib/lua-parser/parser.lua:234
+end -- ./lib/lua-parser/parser.lua:234
+local function tagDo(block) -- ./lib/lua-parser/parser.lua:237
+block["tag"] = "Do" -- ./lib/lua-parser/parser.lua:238
+return block -- ./lib/lua-parser/parser.lua:239
+end -- ./lib/lua-parser/parser.lua:239
+local function fixFuncStat(func) -- ./lib/lua-parser/parser.lua:242
+if func[1]["is_method"] then -- ./lib/lua-parser/parser.lua:243
+table["insert"](func[2][1], 1, { -- ./lib/lua-parser/parser.lua:243
+["tag"] = "Id", -- ./lib/lua-parser/parser.lua:243
+[1] = "self" -- ./lib/lua-parser/parser.lua:243
+}) -- ./lib/lua-parser/parser.lua:243
+end -- ./lib/lua-parser/parser.lua:243
+func[1] = { func[1] } -- ./lib/lua-parser/parser.lua:244
+func[2] = { func[2] } -- ./lib/lua-parser/parser.lua:245
+return func -- ./lib/lua-parser/parser.lua:246
+end -- ./lib/lua-parser/parser.lua:246
+local function addDots(params, dots) -- ./lib/lua-parser/parser.lua:249
+if dots then -- ./lib/lua-parser/parser.lua:250
+table["insert"](params, dots) -- ./lib/lua-parser/parser.lua:250
+end -- ./lib/lua-parser/parser.lua:250
+return params -- ./lib/lua-parser/parser.lua:251
+end -- ./lib/lua-parser/parser.lua:251
+local function insertIndex(t, index) -- ./lib/lua-parser/parser.lua:254
+return { -- ./lib/lua-parser/parser.lua:255
+["tag"] = "Index", -- ./lib/lua-parser/parser.lua:255
+["pos"] = t["pos"], -- ./lib/lua-parser/parser.lua:255
+[1] = t, -- ./lib/lua-parser/parser.lua:255
+[2] = index -- ./lib/lua-parser/parser.lua:255
+} -- ./lib/lua-parser/parser.lua:255
+end -- ./lib/lua-parser/parser.lua:255
+local function markMethod(t, method) -- ./lib/lua-parser/parser.lua:258
+if method then -- ./lib/lua-parser/parser.lua:259
+return { -- ./lib/lua-parser/parser.lua:260
+["tag"] = "Index", -- ./lib/lua-parser/parser.lua:260
+["pos"] = t["pos"], -- ./lib/lua-parser/parser.lua:260
+["is_method"] = true, -- ./lib/lua-parser/parser.lua:260
+[1] = t, -- ./lib/lua-parser/parser.lua:260
+[2] = method -- ./lib/lua-parser/parser.lua:260
+} -- ./lib/lua-parser/parser.lua:260
+end -- ./lib/lua-parser/parser.lua:260
+return t -- ./lib/lua-parser/parser.lua:262
+end -- ./lib/lua-parser/parser.lua:262
+local function makeIndexOrCall(t1, t2) -- ./lib/lua-parser/parser.lua:265
+if t2["tag"] == "Call" or t2["tag"] == "Invoke" then -- ./lib/lua-parser/parser.lua:266
+local t = { -- ./lib/lua-parser/parser.lua:267
+["tag"] = t2["tag"], -- ./lib/lua-parser/parser.lua:267
+["pos"] = t1["pos"], -- ./lib/lua-parser/parser.lua:267
+[1] = t1 -- ./lib/lua-parser/parser.lua:267
+} -- ./lib/lua-parser/parser.lua:267
+for k, v in ipairs(t2) do -- ./lib/lua-parser/parser.lua:268
+table["insert"](t, v) -- ./lib/lua-parser/parser.lua:269
+end -- ./lib/lua-parser/parser.lua:269
+return t -- ./lib/lua-parser/parser.lua:271
+end -- ./lib/lua-parser/parser.lua:271
+return { -- ./lib/lua-parser/parser.lua:273
+["tag"] = "Index", -- ./lib/lua-parser/parser.lua:273
+["pos"] = t1["pos"], -- ./lib/lua-parser/parser.lua:273
+[1] = t1, -- ./lib/lua-parser/parser.lua:273
+[2] = t2[1] -- ./lib/lua-parser/parser.lua:273
+} -- ./lib/lua-parser/parser.lua:273
+end -- ./lib/lua-parser/parser.lua:273
+local function fixShortFunc(t) -- ./lib/lua-parser/parser.lua:276
+if t[1] == ":" then -- self method -- ./lib/lua-parser/parser.lua:277
+table["insert"](t[2], 1, { -- ./lib/lua-parser/parser.lua:278
+["tag"] = "Id", -- ./lib/lua-parser/parser.lua:278
+"self" -- ./lib/lua-parser/parser.lua:278
+}) -- ./lib/lua-parser/parser.lua:278
+table["remove"](t, 1) -- ./lib/lua-parser/parser.lua:279
+t["is_method"] = true -- ./lib/lua-parser/parser.lua:280
+end -- ./lib/lua-parser/parser.lua:280
+t["is_short"] = true -- ./lib/lua-parser/parser.lua:282
+return t -- ./lib/lua-parser/parser.lua:283
+end -- ./lib/lua-parser/parser.lua:283
+local function statToExpr(t) -- tag a StatExpr -- ./lib/lua-parser/parser.lua:286
+t["tag"] = t["tag"] .. "Expr" -- ./lib/lua-parser/parser.lua:287
+return t -- ./lib/lua-parser/parser.lua:288
+end -- ./lib/lua-parser/parser.lua:288
+local function fixStructure(t) -- fix the AST structure if needed -- ./lib/lua-parser/parser.lua:291
+local i = 1 -- ./lib/lua-parser/parser.lua:292
+while i <= # t do -- ./lib/lua-parser/parser.lua:293
+if type(t[i]) == "table" then -- ./lib/lua-parser/parser.lua:294
+fixStructure(t[i]) -- ./lib/lua-parser/parser.lua:295
+for j = # t[i], 1, - 1 do -- ./lib/lua-parser/parser.lua:296
+local stat = t[i][j] -- ./lib/lua-parser/parser.lua:297
+if type(stat) == "table" and stat["move_up_block"] and stat["move_up_block"] > 0 then -- ./lib/lua-parser/parser.lua:298
+table["remove"](t[i], j) -- ./lib/lua-parser/parser.lua:299
+table["insert"](t, i + 1, stat) -- ./lib/lua-parser/parser.lua:300
+if t["tag"] == "Block" or t["tag"] == "Do" then -- ./lib/lua-parser/parser.lua:301
+stat["move_up_block"] = stat["move_up_block"] - 1 -- ./lib/lua-parser/parser.lua:302
+end -- ./lib/lua-parser/parser.lua:302
+end -- ./lib/lua-parser/parser.lua:302
+end -- ./lib/lua-parser/parser.lua:302
+end -- ./lib/lua-parser/parser.lua:302
+i = i + 1 -- ./lib/lua-parser/parser.lua:307
+end -- ./lib/lua-parser/parser.lua:307
+return t -- ./lib/lua-parser/parser.lua:309
+end -- ./lib/lua-parser/parser.lua:309
+local function searchEndRec(block, isRecCall) -- recursively search potential "end" keyword wrongly consumed by a short anonymous function on stat end (yeah, too late to change the syntax to something easier to parse) -- ./lib/lua-parser/parser.lua:312
+for i, stat in ipairs(block) do -- ./lib/lua-parser/parser.lua:313
+if stat["tag"] == "Set" or stat["tag"] == "Push" or stat["tag"] == "Return" or stat["tag"] == "Local" or stat["tag"] == "Let" or stat["tag"] == "Localrec" then -- ./lib/lua-parser/parser.lua:315
+local exprlist -- ./lib/lua-parser/parser.lua:316
+if stat["tag"] == "Set" or stat["tag"] == "Local" or stat["tag"] == "Let" or stat["tag"] == "Localrec" then -- ./lib/lua-parser/parser.lua:318
+exprlist = stat[# stat] -- ./lib/lua-parser/parser.lua:319
+elseif stat["tag"] == "Push" or stat["tag"] == "Return" then -- ./lib/lua-parser/parser.lua:320
+exprlist = stat -- ./lib/lua-parser/parser.lua:321
+end -- ./lib/lua-parser/parser.lua:321
+local last = exprlist[# exprlist] -- last value in ExprList -- ./lib/lua-parser/parser.lua:324
+if last["tag"] == "Function" and last["is_short"] and not last["is_method"] and # last[1] == 1 then -- ./lib/lua-parser/parser.lua:328
+local p = i -- ./lib/lua-parser/parser.lua:329
+for j, fstat in ipairs(last[2]) do -- ./lib/lua-parser/parser.lua:330
+p = i + j -- ./lib/lua-parser/parser.lua:331
+table["insert"](block, p, fstat) -- copy stats from func body to block -- ./lib/lua-parser/parser.lua:332
+if stat["move_up_block"] then -- extracted stats inherit move_up_block from statement -- ./lib/lua-parser/parser.lua:334
+fstat["move_up_block"] = (fstat["move_up_block"] or 0) + stat["move_up_block"] -- ./lib/lua-parser/parser.lua:335
+end -- ./lib/lua-parser/parser.lua:335
+if block["is_singlestatblock"] then -- if it's a single stat block, mark them to move them outside of the block -- ./lib/lua-parser/parser.lua:338
+fstat["move_up_block"] = (fstat["move_up_block"] or 0) + 1 -- ./lib/lua-parser/parser.lua:339
+end -- ./lib/lua-parser/parser.lua:339
+end -- ./lib/lua-parser/parser.lua:339
+exprlist[# exprlist] = last[1] -- replace func with paren and expressions -- ./lib/lua-parser/parser.lua:343
+exprlist[# exprlist]["tag"] = "Paren" -- ./lib/lua-parser/parser.lua:344
+if not isRecCall then -- if superfluous statements won't be moved in a next recursion, let fixStructure handle things -- ./lib/lua-parser/parser.lua:346
+for j = p + 1, # block, 1 do -- ./lib/lua-parser/parser.lua:347
+block[j]["move_up_block"] = (block[j]["move_up_block"] or 0) + 1 -- ./lib/lua-parser/parser.lua:348
+end -- ./lib/lua-parser/parser.lua:348
+end -- ./lib/lua-parser/parser.lua:348
+return block, i -- ./lib/lua-parser/parser.lua:352
+elseif last["tag"]:match("Expr$") then -- ./lib/lua-parser/parser.lua:355
+local r = searchEndRec({ last }) -- ./lib/lua-parser/parser.lua:356
+if r then -- ./lib/lua-parser/parser.lua:357
+for j = 2, # r, 1 do -- ./lib/lua-parser/parser.lua:358
+table["insert"](block, i + j - 1, r[j]) -- move back superflous statements from our new table to our real block -- ./lib/lua-parser/parser.lua:359
+end -- move back superflous statements from our new table to our real block -- ./lib/lua-parser/parser.lua:359
+return block, i -- ./lib/lua-parser/parser.lua:361
+end -- ./lib/lua-parser/parser.lua:361
+elseif last["tag"] == "Function" then -- ./lib/lua-parser/parser.lua:363
+local r = searchEndRec(last[2]) -- ./lib/lua-parser/parser.lua:364
+if r then -- ./lib/lua-parser/parser.lua:365
+return block, i -- ./lib/lua-parser/parser.lua:366
+end -- ./lib/lua-parser/parser.lua:366
+end -- ./lib/lua-parser/parser.lua:366
+elseif stat["tag"]:match("^If") or stat["tag"]:match("^While") or stat["tag"]:match("^Repeat") or stat["tag"]:match("^Do") or stat["tag"]:match("^Fornum") or stat["tag"]:match("^Forin") then -- ./lib/lua-parser/parser.lua:371
+local blocks -- ./lib/lua-parser/parser.lua:372
+if stat["tag"]:match("^If") or stat["tag"]:match("^While") or stat["tag"]:match("^Repeat") or stat["tag"]:match("^Fornum") or stat["tag"]:match("^Forin") then -- ./lib/lua-parser/parser.lua:374
+blocks = stat -- ./lib/lua-parser/parser.lua:375
+elseif stat["tag"]:match("^Do") then -- ./lib/lua-parser/parser.lua:376
+blocks = { stat } -- ./lib/lua-parser/parser.lua:377
+end -- ./lib/lua-parser/parser.lua:377
+for _, iblock in ipairs(blocks) do -- ./lib/lua-parser/parser.lua:380
+if iblock["tag"] == "Block" then -- blocks -- ./lib/lua-parser/parser.lua:381
+local oldLen = # iblock -- ./lib/lua-parser/parser.lua:382
+local newiBlock, newEnd = searchEndRec(iblock, true) -- ./lib/lua-parser/parser.lua:383
+if newiBlock then -- if end in the block -- ./lib/lua-parser/parser.lua:384
+local p = i -- ./lib/lua-parser/parser.lua:385
+for j = newEnd + (# iblock - oldLen) + 1, # iblock, 1 do -- move all statements after the newely added statements to the parent block -- ./lib/lua-parser/parser.lua:386
+p = p + 1 -- ./lib/lua-parser/parser.lua:387
+table["insert"](block, p, iblock[j]) -- ./lib/lua-parser/parser.lua:388
+iblock[j] = nil -- ./lib/lua-parser/parser.lua:389
+end -- ./lib/lua-parser/parser.lua:389
+if not isRecCall then -- if superfluous statements won't be moved in a next recursion, let fixStructure handle things -- ./lib/lua-parser/parser.lua:392
+for j = p + 1, # block, 1 do -- ./lib/lua-parser/parser.lua:393
+block[j]["move_up_block"] = (block[j]["move_up_block"] or 0) + 1 -- ./lib/lua-parser/parser.lua:394
+end -- ./lib/lua-parser/parser.lua:394
+end -- ./lib/lua-parser/parser.lua:394
+return block, i -- ./lib/lua-parser/parser.lua:398
+end -- ./lib/lua-parser/parser.lua:398
+end -- ./lib/lua-parser/parser.lua:398
+end -- ./lib/lua-parser/parser.lua:398
+end -- ./lib/lua-parser/parser.lua:398
+end -- ./lib/lua-parser/parser.lua:398
+return nil -- ./lib/lua-parser/parser.lua:404
+end -- ./lib/lua-parser/parser.lua:404
+local function searchEnd(s, p, t) -- match time capture which try to restructure the AST to free an "end" for us -- ./lib/lua-parser/parser.lua:407
+local r = searchEndRec(fixStructure(t)) -- ./lib/lua-parser/parser.lua:408
+if not r then -- ./lib/lua-parser/parser.lua:409
+return false -- ./lib/lua-parser/parser.lua:410
+end -- ./lib/lua-parser/parser.lua:410
+return true, r -- ./lib/lua-parser/parser.lua:412
+end -- ./lib/lua-parser/parser.lua:412
+local function expectBlockOrSingleStatWithStartEnd(start, startLabel, stopLabel, canFollow) -- will try a SingleStat if start doesn't match -- ./lib/lua-parser/parser.lua:415
+if canFollow then -- ./lib/lua-parser/parser.lua:416
+return (- start * V("SingleStatBlock") * canFollow ^ - 1) + (expect(start, startLabel) * ((V("Block") * (canFollow + kw("end"))) + (Cmt(V("Block"), searchEnd) + throw(stopLabel)))) -- ./lib/lua-parser/parser.lua:419
+else -- ./lib/lua-parser/parser.lua:419
+return (- start * V("SingleStatBlock")) + (expect(start, startLabel) * ((V("Block") * kw("end")) + (Cmt(V("Block"), searchEnd) + throw(stopLabel)))) -- ./lib/lua-parser/parser.lua:423
+end -- ./lib/lua-parser/parser.lua:423
+end -- ./lib/lua-parser/parser.lua:423
+local function expectBlockWithEnd(label) -- can't work *optionnaly* with SingleStat unfortunatly -- ./lib/lua-parser/parser.lua:427
+return (V("Block") * kw("end")) + (Cmt(V("Block"), searchEnd) + throw(label)) -- ./lib/lua-parser/parser.lua:429
+end -- ./lib/lua-parser/parser.lua:429
+local function maybeBlockWithEnd() -- same as above but don't error if it doesn't match -- ./lib/lua-parser/parser.lua:432
+return (V("BlockNoErr") * kw("end")) + Cmt(V("BlockNoErr"), searchEnd) -- ./lib/lua-parser/parser.lua:434
+end -- ./lib/lua-parser/parser.lua:434
+local G = { -- ./lib/lua-parser/parser.lua:438
+V("Lua"), -- ./lib/lua-parser/parser.lua:438
+["Lua"] = (V("Shebang") ^ - 1 * V("Skip") * V("Block") * expect(P(- 1), "Extra")) / fixStructure, -- ./lib/lua-parser/parser.lua:439
 ["Shebang"] = P("#!") * (P(1) - P("\
-")) ^ 0,
-["Block"] = tagC("Block", (V("Stat") + - V("BlockEnd") * throw("InvalidStat")) ^ 0 * ((V("RetStat") + V("ImplicitPushStat")) * sym(";") ^ - 1) ^ - 1),
-["Stat"] = V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat") + V("LocalStat") + V("FuncStat") + V("BreakStat") + V("LabelStat") + V("GoToStat") + V("FuncCall") + V("Assignment") + V("LetStat") + V("ContinueStat") + V("PushStat") + sym(";"),
-["BlockEnd"] = P("return") + "end" + "elseif" + "else" + "until" + "]" + - 1 + V("ImplicitPushStat") + V("Assignment"),
-["SingleStatBlock"] = tagC("Block", V("Stat") + V("RetStat") + V("ImplicitPushStat")) / function(t)
-t["is_singlestatblock"] = true
-return t
-end,
-["BlockNoErr"] = tagC("Block", V("Stat") ^ 0 * ((V("RetStat") + V("ImplicitPushStat")) * sym(";") ^ - 1) ^ - 1),
-["IfStat"] = tagC("If", V("IfPart")),
-["IfPart"] = kw("if") * expect(V("Expr"), "ExprIf") * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenIf", "EndIf", V("ElseIfPart") + V("ElsePart")),
-["ElseIfPart"] = kw("elseif") * expect(V("Expr"), "ExprEIf") * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenEIf", "EndIf", V("ElseIfPart") + V("ElsePart")),
-["ElsePart"] = kw("else") * expectBlockWithEnd("EndIf"),
-["DoStat"] = kw("do") * expectBlockWithEnd("EndDo") / tagDo,
-["WhileStat"] = tagC("While", kw("while") * expect(V("Expr"), "ExprWhile") * V("WhileBody")),
-["WhileBody"] = expectBlockOrSingleStatWithStartEnd(kw("do"), "DoWhile", "EndWhile"),
-["RepeatStat"] = tagC("Repeat", kw("repeat") * V("Block") * expect(kw("until"), "UntilRep") * expect(V("Expr"), "ExprRep")),
-["ForStat"] = kw("for") * expect(V("ForNum") + V("ForIn"), "ForRange"),
-["ForNum"] = tagC("Fornum", V("Id") * sym("=") * V("NumRange") * V("ForBody")),
-["NumRange"] = expect(V("Expr"), "ExprFor1") * expect(sym(","), "CommaFor") * expect(V("Expr"), "ExprFor2") * (sym(",") * expect(V("Expr"), "ExprFor3")) ^ - 1,
-["ForIn"] = tagC("Forin", V("NameList") * expect(kw("in"), "InFor") * expect(V("ExprList"), "EListFor") * V("ForBody")),
-["ForBody"] = expectBlockOrSingleStatWithStartEnd(kw("do"), "DoFor", "EndFor"),
-["LocalStat"] = kw("local") * expect(V("LocalFunc") + V("LocalAssign"), "DefLocal"),
-["LocalFunc"] = tagC("Localrec", kw("function") * expect(V("Id"), "NameLFunc") * V("FuncBody")) / fixFuncStat,
-["LocalAssign"] = tagC("Local", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))),
-["LetStat"] = kw("let") * expect(V("LetAssign"), "DefLet"),
-["LetAssign"] = tagC("Let", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))),
-["Assignment"] = tagC("Set", V("VarList") * V("BinOp") ^ - 1 * (P("=") / "=") * V("BinOp") ^ - 1 * V("Skip") * expect(V("ExprList"), "EListAssign")),
-["FuncStat"] = tagC("Set", kw("function") * expect(V("FuncName"), "FuncName") * V("FuncBody")) / fixFuncStat,
-["FuncName"] = Cf(V("Id") * (sym(".") * expect(V("StrId"), "NameFunc1")) ^ 0, insertIndex) * (sym(":") * expect(V("StrId"), "NameFunc2")) ^ - 1 / markMethod,
-["FuncBody"] = tagC("Function", V("FuncParams") * expectBlockWithEnd("EndFunc")),
-["FuncParams"] = expect(sym("("), "OParenPList") * V("ParList") * expect(sym(")"), "CParenPList"),
-["ParList"] = V("NamedParList") * (sym(",") * expect(tagC("Dots", sym("...")), "ParList")) ^ - 1 / addDots + Ct(tagC("Dots", sym("..."))) + Ct(Cc()),
-["ShortFuncDef"] = tagC("Function", V("ShortFuncParams") * maybeBlockWithEnd()) / fixShortFunc,
-["ShortFuncParams"] = (sym(":") / ":") ^ - 1 * sym("(") * V("ParList") * sym(")"),
-["NamedParList"] = tagC("NamedParList", commaSep(V("NamedPar"))),
-["NamedPar"] = tagC("ParPair", V("ParKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Id"),
-["ParKey"] = V("Id") * # ("=" * - P("=")),
-["LabelStat"] = tagC("Label", sym("::") * expect(V("Name"), "Label") * expect(sym("::"), "CloseLabel")),
-["GoToStat"] = tagC("Goto", kw("goto") * expect(V("Name"), "Goto")),
-["BreakStat"] = tagC("Break", kw("break")),
-["ContinueStat"] = tagC("Continue", kw("continue")),
-["RetStat"] = tagC("Return", kw("return") * commaSep(V("Expr"), "RetList") ^ - 1),
-["PushStat"] = tagC("Push", kw("push") * commaSep(V("Expr"), "RetList") ^ - 1),
-["ImplicitPushStat"] = tagC("Push", commaSep(V("Expr"), "RetList")),
-["NameList"] = tagC("NameList", commaSep(V("Id"))),
-["VarList"] = tagC("VarList", commaSep(V("VarExpr"))),
-["ExprList"] = tagC("ExpList", commaSep(V("Expr"), "ExprList")),
-["Expr"] = V("OrExpr"),
-["OrExpr"] = chainOp(V("AndExpr"), V("OrOp"), "OrExpr"),
-["AndExpr"] = chainOp(V("RelExpr"), V("AndOp"), "AndExpr"),
-["RelExpr"] = chainOp(V("BOrExpr"), V("RelOp"), "RelExpr"),
-["BOrExpr"] = chainOp(V("BXorExpr"), V("BOrOp"), "BOrExpr"),
-["BXorExpr"] = chainOp(V("BAndExpr"), V("BXorOp"), "BXorExpr"),
-["BAndExpr"] = chainOp(V("ShiftExpr"), V("BAndOp"), "BAndExpr"),
-["ShiftExpr"] = chainOp(V("ConcatExpr"), V("ShiftOp"), "ShiftExpr"),
-["ConcatExpr"] = V("AddExpr") * (V("ConcatOp") * expect(V("ConcatExpr"), "ConcatExpr")) ^ - 1 / binaryOp,
-["AddExpr"] = chainOp(V("MulExpr"), V("AddOp"), "AddExpr"),
-["MulExpr"] = chainOp(V("UnaryExpr"), V("MulOp"), "MulExpr"),
-["UnaryExpr"] = V("UnaryOp") * expect(V("UnaryExpr"), "UnaryExpr") / unaryOp + V("PowExpr"),
-["PowExpr"] = V("SimpleExpr") * (V("PowOp") * expect(V("UnaryExpr"), "PowExpr")) ^ - 1 / binaryOp,
-["SimpleExpr"] = tagC("Number", V("Number")) + tagC("String", V("String")) + tagC("Nil", kw("nil")) + tagC("Boolean", kw("false") * Cc(false)) + tagC("Boolean", kw("true") * Cc(true)) + tagC("Dots", sym("...")) + V("FuncDef") + V("Table") + V("ShortFuncDef") + V("SuffixedExpr") + V("TableCompr") + V("StatExpr"),
-["StatExpr"] = (V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat")) / statToExpr,
-["FuncCall"] = Cmt(V("SuffixedExpr"), function(s, i, exp)
-return exp["tag"] == "Call" or exp["tag"] == "Invoke", exp
-end),
-["VarExpr"] = Cmt(V("SuffixedExpr"), function(s, i, exp)
-return exp["tag"] == "Id" or exp["tag"] == "Index", exp
-end),
-["SuffixedExpr"] = Cf(V("PrimaryExpr") * (V("Index") + V("Call")) ^ 0, makeIndexOrCall),
-["PrimaryExpr"] = V("SelfId") * (V("SelfCall") + V("SelfIndex")) + V("Id") + tagC("Paren", sym("(") * expect(V("Expr"), "ExprParen") * expect(sym(")"), "CParenExpr")),
-["Index"] = tagC("DotIndex", sym("." * - P(".")) * expect(V("StrId"), "NameIndex")) + tagC("ArrayIndex", sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprIndex") * expect(sym("]"), "CBracketIndex")),
-["Call"] = tagC("Invoke", Cg(sym(":" * - P(":")) * expect(V("StrId"), "NameMeth") * expect(V("FuncArgs"), "MethArgs"))) + tagC("Call", V("FuncArgs")),
-["SelfIndex"] = tagC("DotIndex", V("StrId")),
-["SelfCall"] = tagC("Invoke", Cg(V("StrId") * V("FuncArgs"))),
-["FuncDef"] = (kw("function") * V("FuncBody")),
-["FuncArgs"] = sym("(") * commaSep(V("Expr"), "ArgList") ^ - 1 * expect(sym(")"), "CParenArgs") + V("Table") + tagC("String", V("String")),
-["Table"] = tagC("Table", sym("{") * V("FieldList") ^ - 1 * expect(sym("}"), "CBraceTable")),
-["FieldList"] = sepBy(V("Field"), V("FieldSep")) * V("FieldSep") ^ - 1,
-["Field"] = tagC("Pair", V("FieldKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Expr"),
-["FieldKey"] = sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprFKey") * expect(sym("]"), "CBracketFKey") + V("StrId") * # ("=" * - P("=")),
-["FieldSep"] = sym(",") + sym(";"),
-["TableCompr"] = tagC("TableCompr", sym("[") * V("Block") * expect(sym("]"), "CBracketTableCompr")),
-["SelfId"] = tagC("Id", sym("@") / "self"),
-["Id"] = tagC("Id", V("Name")) + V("SelfId"),
-["StrId"] = tagC("String", V("Name")),
-["Skip"] = (V("Space") + V("Comment")) ^ 0,
-["Space"] = space ^ 1,
-["Comment"] = P("--") * V("LongStr") / function()
-return 
+")) ^ 0, -- ./lib/lua-parser/parser.lua:440
+["Block"] = tagC("Block", (V("Stat") + - V("BlockEnd") * throw("InvalidStat")) ^ 0 * ((V("RetStat") + V("ImplicitPushStat")) * sym(";") ^ - 1) ^ - 1), -- ./lib/lua-parser/parser.lua:442
+["Stat"] = V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat") + V("LocalStat") + V("FuncStat") + V("BreakStat") + V("LabelStat") + V("GoToStat") + V("FuncCall") + V("Assignment") + V("LetStat") + V("ContinueStat") + V("PushStat") + sym(";"), -- ./lib/lua-parser/parser.lua:447
+["BlockEnd"] = P("return") + "end" + "elseif" + "else" + "until" + "]" + - 1 + V("ImplicitPushStat") + V("Assignment"), -- ./lib/lua-parser/parser.lua:448
+["SingleStatBlock"] = tagC("Block", V("Stat") + V("RetStat") + V("ImplicitPushStat")) / function(t) -- ./lib/lua-parser/parser.lua:450
+t["is_singlestatblock"] = true -- ./lib/lua-parser/parser.lua:450
+return t -- ./lib/lua-parser/parser.lua:450
+end, -- ./lib/lua-parser/parser.lua:450
+["BlockNoErr"] = tagC("Block", V("Stat") ^ 0 * ((V("RetStat") + V("ImplicitPushStat")) * sym(";") ^ - 1) ^ - 1), -- used to check if something a valid block without throwing an error -- ./lib/lua-parser/parser.lua:451
+["IfStat"] = tagC("If", V("IfPart")), -- ./lib/lua-parser/parser.lua:453
+["IfPart"] = kw("if") * expect(V("Expr"), "ExprIf") * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenIf", "EndIf", V("ElseIfPart") + V("ElsePart")), -- ./lib/lua-parser/parser.lua:454
+["ElseIfPart"] = kw("elseif") * expect(V("Expr"), "ExprEIf") * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenEIf", "EndIf", V("ElseIfPart") + V("ElsePart")), -- ./lib/lua-parser/parser.lua:455
+["ElsePart"] = kw("else") * expectBlockWithEnd("EndIf"), -- ./lib/lua-parser/parser.lua:456
+["DoStat"] = kw("do") * expectBlockWithEnd("EndDo") / tagDo, -- ./lib/lua-parser/parser.lua:458
+["WhileStat"] = tagC("While", kw("while") * expect(V("Expr"), "ExprWhile") * V("WhileBody")), -- ./lib/lua-parser/parser.lua:459
+["WhileBody"] = expectBlockOrSingleStatWithStartEnd(kw("do"), "DoWhile", "EndWhile"), -- ./lib/lua-parser/parser.lua:460
+["RepeatStat"] = tagC("Repeat", kw("repeat") * V("Block") * expect(kw("until"), "UntilRep") * expect(V("Expr"), "ExprRep")), -- ./lib/lua-parser/parser.lua:461
+["ForStat"] = kw("for") * expect(V("ForNum") + V("ForIn"), "ForRange"), -- ./lib/lua-parser/parser.lua:463
+["ForNum"] = tagC("Fornum", V("Id") * sym("=") * V("NumRange") * V("ForBody")), -- ./lib/lua-parser/parser.lua:464
+["NumRange"] = expect(V("Expr"), "ExprFor1") * expect(sym(","), "CommaFor") * expect(V("Expr"), "ExprFor2") * (sym(",") * expect(V("Expr"), "ExprFor3")) ^ - 1, -- ./lib/lua-parser/parser.lua:466
+["ForIn"] = tagC("Forin", V("NameList") * expect(kw("in"), "InFor") * expect(V("ExprList"), "EListFor") * V("ForBody")), -- ./lib/lua-parser/parser.lua:467
+["ForBody"] = expectBlockOrSingleStatWithStartEnd(kw("do"), "DoFor", "EndFor"), -- ./lib/lua-parser/parser.lua:468
+["LocalStat"] = kw("local") * expect(V("LocalFunc") + V("LocalAssign"), "DefLocal"), -- ./lib/lua-parser/parser.lua:470
+["LocalFunc"] = tagC("Localrec", kw("function") * expect(V("Id"), "NameLFunc") * V("FuncBody")) / fixFuncStat, -- ./lib/lua-parser/parser.lua:471
+["LocalAssign"] = tagC("Local", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))), -- ./lib/lua-parser/parser.lua:472
+["LetStat"] = kw("let") * expect(V("LetAssign"), "DefLet"), -- ./lib/lua-parser/parser.lua:474
+["LetAssign"] = tagC("Let", V("NameList") * (sym("=") * expect(V("ExprList"), "EListLAssign") + Ct(Cc()))), -- ./lib/lua-parser/parser.lua:475
+["Assignment"] = tagC("Set", V("VarList") * V("BinOp") ^ - 1 * (P("=") / "=") * V("BinOp") ^ - 1 * V("Skip") * expect(V("ExprList"), "EListAssign")), -- ./lib/lua-parser/parser.lua:477
+["FuncStat"] = tagC("Set", kw("function") * expect(V("FuncName"), "FuncName") * V("FuncBody")) / fixFuncStat, -- ./lib/lua-parser/parser.lua:479
+["FuncName"] = Cf(V("Id") * (sym(".") * expect(V("StrId"), "NameFunc1")) ^ 0, insertIndex) * (sym(":") * expect(V("StrId"), "NameFunc2")) ^ - 1 / markMethod, -- ./lib/lua-parser/parser.lua:481
+["FuncBody"] = tagC("Function", V("FuncParams") * expectBlockWithEnd("EndFunc")), -- ./lib/lua-parser/parser.lua:482
+["FuncParams"] = expect(sym("("), "OParenPList") * V("ParList") * expect(sym(")"), "CParenPList"), -- ./lib/lua-parser/parser.lua:483
+["ParList"] = V("NamedParList") * (sym(",") * expect(tagC("Dots", sym("...")), "ParList")) ^ - 1 / addDots + Ct(tagC("Dots", sym("..."))) + Ct(Cc()), -- Cc({}) generates a bug since the {} would be shared across parses -- ./lib/lua-parser/parser.lua:486
+["ShortFuncDef"] = tagC("Function", V("ShortFuncParams") * maybeBlockWithEnd()) / fixShortFunc, -- ./lib/lua-parser/parser.lua:488
+["ShortFuncParams"] = (sym(":") / ":") ^ - 1 * sym("(") * V("ParList") * sym(")"), -- ./lib/lua-parser/parser.lua:489
+["NamedParList"] = tagC("NamedParList", commaSep(V("NamedPar"))), -- ./lib/lua-parser/parser.lua:491
+["NamedPar"] = tagC("ParPair", V("ParKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Id"), -- ./lib/lua-parser/parser.lua:493
+["ParKey"] = V("Id") * # ("=" * - P("=")), -- ./lib/lua-parser/parser.lua:494
+["LabelStat"] = tagC("Label", sym("::") * expect(V("Name"), "Label") * expect(sym("::"), "CloseLabel")), -- ./lib/lua-parser/parser.lua:496
+["GoToStat"] = tagC("Goto", kw("goto") * expect(V("Name"), "Goto")), -- ./lib/lua-parser/parser.lua:497
+["BreakStat"] = tagC("Break", kw("break")), -- ./lib/lua-parser/parser.lua:498
+["ContinueStat"] = tagC("Continue", kw("continue")), -- ./lib/lua-parser/parser.lua:499
+["RetStat"] = tagC("Return", kw("return") * commaSep(V("Expr"), "RetList") ^ - 1), -- ./lib/lua-parser/parser.lua:500
+["PushStat"] = tagC("Push", kw("push") * commaSep(V("Expr"), "RetList") ^ - 1), -- ./lib/lua-parser/parser.lua:502
+["ImplicitPushStat"] = tagC("Push", commaSep(V("Expr"), "RetList")), -- ./lib/lua-parser/parser.lua:503
+["NameList"] = tagC("NameList", commaSep(V("Id"))), -- ./lib/lua-parser/parser.lua:505
+["VarList"] = tagC("VarList", commaSep(V("VarExpr"))), -- ./lib/lua-parser/parser.lua:506
+["ExprList"] = tagC("ExpList", commaSep(V("Expr"), "ExprList")), -- ./lib/lua-parser/parser.lua:507
+["Expr"] = V("OrExpr"), -- ./lib/lua-parser/parser.lua:509
+["OrExpr"] = chainOp(V("AndExpr"), V("OrOp"), "OrExpr"), -- ./lib/lua-parser/parser.lua:510
+["AndExpr"] = chainOp(V("RelExpr"), V("AndOp"), "AndExpr"), -- ./lib/lua-parser/parser.lua:511
+["RelExpr"] = chainOp(V("BOrExpr"), V("RelOp"), "RelExpr"), -- ./lib/lua-parser/parser.lua:512
+["BOrExpr"] = chainOp(V("BXorExpr"), V("BOrOp"), "BOrExpr"), -- ./lib/lua-parser/parser.lua:513
+["BXorExpr"] = chainOp(V("BAndExpr"), V("BXorOp"), "BXorExpr"), -- ./lib/lua-parser/parser.lua:514
+["BAndExpr"] = chainOp(V("ShiftExpr"), V("BAndOp"), "BAndExpr"), -- ./lib/lua-parser/parser.lua:515
+["ShiftExpr"] = chainOp(V("ConcatExpr"), V("ShiftOp"), "ShiftExpr"), -- ./lib/lua-parser/parser.lua:516
+["ConcatExpr"] = V("AddExpr") * (V("ConcatOp") * expect(V("ConcatExpr"), "ConcatExpr")) ^ - 1 / binaryOp, -- ./lib/lua-parser/parser.lua:517
+["AddExpr"] = chainOp(V("MulExpr"), V("AddOp"), "AddExpr"), -- ./lib/lua-parser/parser.lua:518
+["MulExpr"] = chainOp(V("UnaryExpr"), V("MulOp"), "MulExpr"), -- ./lib/lua-parser/parser.lua:519
+["UnaryExpr"] = V("UnaryOp") * expect(V("UnaryExpr"), "UnaryExpr") / unaryOp + V("PowExpr"), -- ./lib/lua-parser/parser.lua:521
+["PowExpr"] = V("SimpleExpr") * (V("PowOp") * expect(V("UnaryExpr"), "PowExpr")) ^ - 1 / binaryOp, -- ./lib/lua-parser/parser.lua:522
+["SimpleExpr"] = tagC("Number", V("Number")) + tagC("String", V("String")) + tagC("Nil", kw("nil")) + tagC("Boolean", kw("false") * Cc(false)) + tagC("Boolean", kw("true") * Cc(true)) + tagC("Dots", sym("...")) + V("FuncDef") + V("Table") + V("ShortFuncDef") + V("SuffixedExpr") + V("TableCompr") + V("StatExpr"), -- ./lib/lua-parser/parser.lua:535
+["StatExpr"] = (V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat")) / statToExpr, -- ./lib/lua-parser/parser.lua:537
+["FuncCall"] = Cmt(V("SuffixedExpr"), function(s, i, exp) -- ./lib/lua-parser/parser.lua:539
+return exp["tag"] == "Call" or exp["tag"] == "Invoke", exp -- ./lib/lua-parser/parser.lua:539
+end), -- ./lib/lua-parser/parser.lua:539
+["VarExpr"] = Cmt(V("SuffixedExpr"), function(s, i, exp) -- ./lib/lua-parser/parser.lua:540
+return exp["tag"] == "Id" or exp["tag"] == "Index", exp -- ./lib/lua-parser/parser.lua:540
+end), -- ./lib/lua-parser/parser.lua:540
+["SuffixedExpr"] = Cf(V("PrimaryExpr") * (V("Index") + V("Call")) ^ 0, makeIndexOrCall), -- ./lib/lua-parser/parser.lua:542
+["PrimaryExpr"] = V("SelfId") * (V("SelfCall") + V("SelfIndex")) + V("Id") + tagC("Paren", sym("(") * expect(V("Expr"), "ExprParen") * expect(sym(")"), "CParenExpr")), -- ./lib/lua-parser/parser.lua:545
+["Index"] = tagC("DotIndex", sym("." * - P(".")) * expect(V("StrId"), "NameIndex")) + tagC("ArrayIndex", sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprIndex") * expect(sym("]"), "CBracketIndex")), -- ./lib/lua-parser/parser.lua:547
+["Call"] = tagC("Invoke", Cg(sym(":" * - P(":")) * expect(V("StrId"), "NameMeth") * expect(V("FuncArgs"), "MethArgs"))) + tagC("Call", V("FuncArgs")), -- ./lib/lua-parser/parser.lua:549
+["SelfIndex"] = tagC("DotIndex", V("StrId")), -- ./lib/lua-parser/parser.lua:550
+["SelfCall"] = tagC("Invoke", Cg(V("StrId") * V("FuncArgs"))), -- ./lib/lua-parser/parser.lua:551
+["FuncDef"] = (kw("function") * V("FuncBody")), -- ./lib/lua-parser/parser.lua:553
+["FuncArgs"] = sym("(") * commaSep(V("Expr"), "ArgList") ^ - 1 * expect(sym(")"), "CParenArgs") + V("Table") + tagC("String", V("String")), -- ./lib/lua-parser/parser.lua:556
+["Table"] = tagC("Table", sym("{") * V("FieldList") ^ - 1 * expect(sym("}"), "CBraceTable")), -- ./lib/lua-parser/parser.lua:558
+["FieldList"] = sepBy(V("Field"), V("FieldSep")) * V("FieldSep") ^ - 1, -- ./lib/lua-parser/parser.lua:559
+["Field"] = tagC("Pair", V("FieldKey") * expect(sym("="), "EqField") * expect(V("Expr"), "ExprField")) + V("Expr"), -- ./lib/lua-parser/parser.lua:561
+["FieldKey"] = sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprFKey") * expect(sym("]"), "CBracketFKey") + V("StrId") * # ("=" * - P("=")), -- ./lib/lua-parser/parser.lua:563
+["FieldSep"] = sym(",") + sym(";"), -- ./lib/lua-parser/parser.lua:564
+["TableCompr"] = tagC("TableCompr", sym("[") * V("Block") * expect(sym("]"), "CBracketTableCompr")), -- ./lib/lua-parser/parser.lua:566
+["SelfId"] = tagC("Id", sym("@") / "self"), -- ./lib/lua-parser/parser.lua:568
+["Id"] = tagC("Id", V("Name")) + V("SelfId"), -- ./lib/lua-parser/parser.lua:569
+["StrId"] = tagC("String", V("Name")), -- ./lib/lua-parser/parser.lua:570
+["Skip"] = (V("Space") + V("Comment")) ^ 0, -- ./lib/lua-parser/parser.lua:573
+["Space"] = space ^ 1, -- ./lib/lua-parser/parser.lua:574
+["Comment"] = P("--") * V("LongStr") / function() -- ./lib/lua-parser/parser.lua:575
+return  -- ./lib/lua-parser/parser.lua:575
 end + P("--") * (P(1) - P("\
-")) ^ 0,
-["Name"] = token(- V("Reserved") * C(V("Ident"))),
-["Reserved"] = V("Keywords") * - V("IdRest"),
-["Keywords"] = P("and") + "break" + "do" + "elseif" + "else" + "end" + "false" + "for" + "function" + "goto" + "if" + "in" + "local" + "nil" + "not" + "or" + "repeat" + "return" + "then" + "true" + "until" + "while",
-["Ident"] = V("IdStart") * V("IdRest") ^ 0,
-["IdStart"] = alpha + P("_"),
-["IdRest"] = alnum + P("_"),
-["Number"] = token(C(V("Hex") + V("Float") + V("Int"))),
-["Hex"] = (P("0x") + "0X") * ((xdigit ^ 0 * V("DeciHex")) + (expect(xdigit ^ 1, "DigitHex") * V("DeciHex") ^ - 1)) * V("ExpoHex") ^ - 1,
-["Float"] = V("Decimal") * V("Expo") ^ - 1 + V("Int") * V("Expo"),
-["Decimal"] = digit ^ 1 * "." * digit ^ 0 + P(".") * - P(".") * expect(digit ^ 1, "DigitDeci"),
-["DeciHex"] = P(".") * xdigit ^ 0,
-["Expo"] = S("eE") * S("+-") ^ - 1 * expect(digit ^ 1, "DigitExpo"),
-["ExpoHex"] = S("pP") * S("+-") ^ - 1 * expect(xdigit ^ 1, "DigitExpo"),
-["Int"] = digit ^ 1,
-["String"] = token(V("ShortStr") + V("LongStr")),
+")) ^ 0, -- ./lib/lua-parser/parser.lua:576
+["Name"] = token(- V("Reserved") * C(V("Ident"))), -- ./lib/lua-parser/parser.lua:578
+["Reserved"] = V("Keywords") * - V("IdRest"), -- ./lib/lua-parser/parser.lua:579
+["Keywords"] = P("and") + "break" + "do" + "elseif" + "else" + "end" + "false" + "for" + "function" + "goto" + "if" + "in" + "local" + "nil" + "not" + "or" + "repeat" + "return" + "then" + "true" + "until" + "while", -- ./lib/lua-parser/parser.lua:583
+["Ident"] = V("IdStart") * V("IdRest") ^ 0, -- ./lib/lua-parser/parser.lua:584
+["IdStart"] = alpha + P("_"), -- ./lib/lua-parser/parser.lua:585
+["IdRest"] = alnum + P("_"), -- ./lib/lua-parser/parser.lua:586
+["Number"] = token(C(V("Hex") + V("Float") + V("Int"))), -- ./lib/lua-parser/parser.lua:588
+["Hex"] = (P("0x") + "0X") * ((xdigit ^ 0 * V("DeciHex")) + (expect(xdigit ^ 1, "DigitHex") * V("DeciHex") ^ - 1)) * V("ExpoHex") ^ - 1, -- ./lib/lua-parser/parser.lua:589
+["Float"] = V("Decimal") * V("Expo") ^ - 1 + V("Int") * V("Expo"), -- ./lib/lua-parser/parser.lua:591
+["Decimal"] = digit ^ 1 * "." * digit ^ 0 + P(".") * - P(".") * expect(digit ^ 1, "DigitDeci"), -- ./lib/lua-parser/parser.lua:593
+["DeciHex"] = P(".") * xdigit ^ 0, -- ./lib/lua-parser/parser.lua:594
+["Expo"] = S("eE") * S("+-") ^ - 1 * expect(digit ^ 1, "DigitExpo"), -- ./lib/lua-parser/parser.lua:595
+["ExpoHex"] = S("pP") * S("+-") ^ - 1 * expect(xdigit ^ 1, "DigitExpo"), -- ./lib/lua-parser/parser.lua:596
+["Int"] = digit ^ 1, -- ./lib/lua-parser/parser.lua:597
+["String"] = token(V("ShortStr") + V("LongStr")), -- ./lib/lua-parser/parser.lua:599
 ["ShortStr"] = P("\"") * Cs((V("EscSeq") + (P(1) - S("\"\
 "))) ^ 0) * expect(P("\""), "Quote") + P("'") * Cs((V("EscSeq") + (P(1) - S("'\
-"))) ^ 0) * expect(P("'"), "Quote"),
-["EscSeq"] = P("\\") / "" * (P("a") / "\7" + P("b") / "\8" + P("f") / "\12" + P("n") / "\
-" + P("r") / "\13" + P("t") / "\9" + P("v") / "\11" + P("\
+"))) ^ 0) * expect(P("'"), "Quote"), -- ./lib/lua-parser/parser.lua:601
+["EscSeq"] = P("\\") / "" * (P("a") / "" + P("b") / "" + P("f") / "" + P("n") / "\
+" + P("r") / "\r" + P("t") / "	" + P("v") / "" + P("\
 ") / "\
-" + P("\13") / "\
-" + P("\\") / "\\" + P("\"") / "\"" + P("'") / "'" + P("z") * space ^ 0 / "" + digit * digit ^ - 2 / tonumber / string["char"] + P("x") * expect(C(xdigit * xdigit), "HexEsc") * Cc(16) / tonumber / string["char"] + P("u") * expect("{", "OBraceUEsc") * expect(C(xdigit ^ 1), "DigitUEsc") * Cc(16) * expect("}", "CBraceUEsc") / tonumber / (utf8 and utf8["char"] or string["char"]) + throw("EscSeq")),
-["LongStr"] = V("Open") * C((P(1) - V("CloseEq")) ^ 0) * expect(V("Close"), "CloseLStr") / function(s, eqs)
-return s
-end,
+" + P("\r") / "\
+" + P("\\") / "\\" + P("\"") / "\"" + P("'") / "'" + P("z") * space ^ 0 / "" + digit * digit ^ - 2 / tonumber / string["char"] + P("x") * expect(C(xdigit * xdigit), "HexEsc") * Cc(16) / tonumber / string["char"] + P("u") * expect("{", "OBraceUEsc") * expect(C(xdigit ^ 1), "DigitUEsc") * Cc(16) * expect("}", "CBraceUEsc") / tonumber / (utf8 and utf8["char"] or string["char"]) + throw("EscSeq")), -- ./lib/lua-parser/parser.lua:631
+["LongStr"] = V("Open") * C((P(1) - V("CloseEq")) ^ 0) * expect(V("Close"), "CloseLStr") / function(s, eqs) -- ./lib/lua-parser/parser.lua:634
+return s -- ./lib/lua-parser/parser.lua:634
+end, -- ./lib/lua-parser/parser.lua:634
 ["Open"] = "[" * Cg(V("Equals"), "openEq") * "[" * P("\
-") ^ - 1,
-["Close"] = "]" * C(V("Equals")) * "]",
-["Equals"] = P("=") ^ 0,
-["CloseEq"] = Cmt(V("Close") * Cb("openEq"), function(s, i, closeEq, openEq)
-return # openEq == # closeEq
-end),
-["OrOp"] = kw("or") / "or",
-["AndOp"] = kw("and") / "and",
-["RelOp"] = sym("~=") / "ne" + sym("==") / "eq" + sym("<=") / "le" + sym(">=") / "ge" + sym("<") / "lt" + sym(">") / "gt",
-["BOrOp"] = sym("|") / "bor",
-["BXorOp"] = sym("~" * - P("=")) / "bxor",
-["BAndOp"] = sym("&") / "band",
-["ShiftOp"] = sym("<<") / "shl" + sym(">>") / "shr",
-["ConcatOp"] = sym("..") / "concat",
-["AddOp"] = sym("+") / "add" + sym("-") / "sub",
-["MulOp"] = sym("*") / "mul" + sym("//") / "idiv" + sym("/") / "div" + sym("%") / "mod",
-["UnaryOp"] = kw("not") / "not" + sym("-") / "unm" + sym("#") / "len" + sym("~") / "bnot",
-["PowOp"] = sym("^") / "pow",
-["BinOp"] = V("OrOp") + V("AndOp") + V("BOrOp") + V("BXorOp") + V("BAndOp") + V("ShiftOp") + V("ConcatOp") + V("AddOp") + V("MulOp") + V("PowOp")
-}
-local parser = {}
-local validator = require("lib.lua-parser.validator")
-local validate = validator["validate"]
-local syntaxerror = validator["syntaxerror"]
-parser["parse"] = function(subject, filename)
-local errorinfo = {
-["subject"] = subject,
-["filename"] = filename
-}
-lpeg["setmaxstack"](1000)
-local ast, label, sfail = lpeg["match"](G, subject, nil, errorinfo)
-if not ast then
-local errpos = # subject - # sfail + 1
-local errmsg = labels[label][2]
-return ast, syntaxerror(errorinfo, errpos, errmsg)
-end
-return validate(ast, errorinfo)
-end
-return parser
-end
-local parser = _() or parser
-package["loaded"]["lib.lua-parser.parser"] = parser or true
-local candran = { ["VERSION"] = "0.6.0" }
-candran["default"] = {
-["target"] = "lua53",
-["indentation"] = "",
+") ^ - 1, -- ./lib/lua-parser/parser.lua:635
+["Close"] = "]" * C(V("Equals")) * "]", -- ./lib/lua-parser/parser.lua:636
+["Equals"] = P("=") ^ 0, -- ./lib/lua-parser/parser.lua:637
+["CloseEq"] = Cmt(V("Close") * Cb("openEq"), function(s, i, closeEq, openEq) -- ./lib/lua-parser/parser.lua:638
+return # openEq == # closeEq -- ./lib/lua-parser/parser.lua:638
+end), -- ./lib/lua-parser/parser.lua:638
+["OrOp"] = kw("or") / "or", -- ./lib/lua-parser/parser.lua:640
+["AndOp"] = kw("and") / "and", -- ./lib/lua-parser/parser.lua:641
+["RelOp"] = sym("~=") / "ne" + sym("==") / "eq" + sym("<=") / "le" + sym(">=") / "ge" + sym("<") / "lt" + sym(">") / "gt", -- ./lib/lua-parser/parser.lua:647
+["BOrOp"] = sym("|") / "bor", -- ./lib/lua-parser/parser.lua:648
+["BXorOp"] = sym("~" * - P("=")) / "bxor", -- ./lib/lua-parser/parser.lua:649
+["BAndOp"] = sym("&") / "band", -- ./lib/lua-parser/parser.lua:650
+["ShiftOp"] = sym("<<") / "shl" + sym(">>") / "shr", -- ./lib/lua-parser/parser.lua:652
+["ConcatOp"] = sym("..") / "concat", -- ./lib/lua-parser/parser.lua:653
+["AddOp"] = sym("+") / "add" + sym("-") / "sub", -- ./lib/lua-parser/parser.lua:655
+["MulOp"] = sym("*") / "mul" + sym("//") / "idiv" + sym("/") / "div" + sym("%") / "mod", -- ./lib/lua-parser/parser.lua:659
+["UnaryOp"] = kw("not") / "not" + sym("-") / "unm" + sym("#") / "len" + sym("~") / "bnot", -- ./lib/lua-parser/parser.lua:663
+["PowOp"] = sym("^") / "pow", -- ./lib/lua-parser/parser.lua:664
+["BinOp"] = V("OrOp") + V("AndOp") + V("BOrOp") + V("BXorOp") + V("BAndOp") + V("ShiftOp") + V("ConcatOp") + V("AddOp") + V("MulOp") + V("PowOp") -- ./lib/lua-parser/parser.lua:665
+} -- ./lib/lua-parser/parser.lua:665
+local parser = {} -- ./lib/lua-parser/parser.lua:668
+local validator = require("lib.lua-parser.validator") -- ./lib/lua-parser/parser.lua:670
+local validate = validator["validate"] -- ./lib/lua-parser/parser.lua:671
+local syntaxerror = validator["syntaxerror"] -- ./lib/lua-parser/parser.lua:672
+parser["parse"] = function(subject, filename) -- ./lib/lua-parser/parser.lua:674
+local errorinfo = { -- ./lib/lua-parser/parser.lua:675
+["subject"] = subject, -- ./lib/lua-parser/parser.lua:675
+["filename"] = filename -- ./lib/lua-parser/parser.lua:675
+} -- ./lib/lua-parser/parser.lua:675
+lpeg["setmaxstack"](1000) -- ./lib/lua-parser/parser.lua:676
+local ast, label, sfail = lpeg["match"](G, subject, nil, errorinfo) -- ./lib/lua-parser/parser.lua:677
+if not ast then -- ./lib/lua-parser/parser.lua:678
+local errpos = # subject - # sfail + 1 -- ./lib/lua-parser/parser.lua:679
+local errmsg = labels[label][2] -- ./lib/lua-parser/parser.lua:680
+return ast, syntaxerror(errorinfo, errpos, errmsg) -- ./lib/lua-parser/parser.lua:681
+end -- ./lib/lua-parser/parser.lua:681
+return validate(ast, errorinfo) -- ./lib/lua-parser/parser.lua:683
+end -- ./lib/lua-parser/parser.lua:683
+return parser -- ./lib/lua-parser/parser.lua:686
+end -- ./lib/lua-parser/parser.lua:686
+local parser = _() or parser -- ./lib/lua-parser/parser.lua:690
+package["loaded"]["lib.lua-parser.parser"] = parser or true -- ./lib/lua-parser/parser.lua:691
+local candran = { ["VERSION"] = "0.6.0" } -- candran.can:13
+candran["default"] = { -- candran.can:17
+["target"] = "lua53", -- candran.can:18
+["indentation"] = "", -- candran.can:19
 ["newline"] = "\
-",
-["variablePrefix"] = "__CAN_",
-["mapLines"] = true,
-["chunkname"] = "nil",
-["rewriteErrors"] = true
-}
-candran["preprocess"] = function(input, options)
-if options == nil then options = {} end
-options = util["merge"](candran["default"], options)
-local preprocessor = ""
-local i = 0
+", -- candran.can:20
+["variablePrefix"] = "__CAN_", -- candran.can:21
+["mapLines"] = true, -- candran.can:22
+["chunkname"] = "nil", -- candran.can:23
+["rewriteErrors"] = true -- candran.can:24
+} -- candran.can:24
+candran["preprocess"] = function(input, options) -- candran.can:31
+if options == nil then options = {} end -- candran.can:31
+options = util["merge"](candran["default"], options) -- candran.can:32
+local preprocessor = "" -- candran.can:35
+local i = 0 -- candran.can:36
 for line in (input .. "\
 "):gmatch("(.-\
-)") do
-i = i + (1)
-if line:match("^%s*#") and not line:match("^#!") then
-preprocessor = preprocessor .. (line:gsub("^%s*#", ""))
-else
-local l = line:sub(1, - 2)
-if options["mapLines"] and not l:match("%-%- (.-)%:(%d+)$") then
+)") do -- candran.can:37
+i = i + (1) -- candran.can:38
+if line:match("^%s*#") and not line:match("^#!") then -- exclude shebang -- candran.can:39
+preprocessor = preprocessor .. (line:gsub("^%s*#", "")) -- candran.can:40
+else -- candran.can:40
+local l = line:sub(1, - 2) -- candran.can:42
+if options["mapLines"] and not l:match("%-%- (.-)%:(%d+)$") then -- candran.can:43
 preprocessor = preprocessor .. (("write(%q)"):format(l .. " -- " .. options["chunkname"] .. ":" .. i) .. "\
-")
-else
+") -- candran.can:44
+else -- candran.can:44
 preprocessor = preprocessor .. (("write(%q)"):format(line:sub(1, - 2)) .. "\
-")
-end
-end
-end
-preprocessor = preprocessor .. ("return output")
-local env = util["merge"](_G, options)
-env["candran"] = candran
-env["output"] = ""
-env["import"] = function(modpath, margs)
-if margs == nil then margs = {} end
-local filepath = assert(util["search"](modpath), "No module named \"" .. modpath .. "\"")
-local f = io["open"](filepath)
-if not f then
-error("Can't open the module file to import")
-end
-margs = util["merge"](options, {
-["chunkname"] = filepath,
-["loadLocal"] = true,
-["loadPackage"] = true
-}, margs)
-local modcontent = candran["preprocess"](f:read("*a"), margs)
-f:close()
-local modname = modpath:match("[^%.]+$")
+") -- candran.can:46
+end -- candran.can:46
+end -- candran.can:46
+end -- candran.can:46
+preprocessor = preprocessor .. ("return output") -- candran.can:50
+local env = util["merge"](_G, options) -- candran.can:53
+env["candran"] = candran -- candran.can:55
+env["output"] = "" -- candran.can:57
+env["import"] = function(modpath, margs) -- candran.can:64
+if margs == nil then margs = {} end -- candran.can:64
+local filepath = assert(util["search"](modpath), "No module named \"" .. modpath .. "\"") -- candran.can:65
+local f = io["open"](filepath) -- candran.can:68
+if not f then -- candran.can:69
+error("Can't open the module file to import") -- candran.can:69
+end -- candran.can:69
+margs = util["merge"](options, { -- candran.can:71
+["chunkname"] = filepath, -- candran.can:71
+["loadLocal"] = true, -- candran.can:71
+["loadPackage"] = true -- candran.can:71
+}, margs) -- candran.can:71
+local modcontent = candran["preprocess"](f:read("*a"), margs) -- candran.can:72
+f:close() -- candran.can:73
+local modname = modpath:match("[^%.]+$") -- candran.can:76
 env["write"]("-- MODULE " .. modpath .. " --\
 " .. "local function _()\
 " .. modcontent .. "\
 " .. "end\
 " .. (margs["loadLocal"] and ("local %s = _() or %s\
 "):format(modname, modname) or "") .. (margs["loadPackage"] and ("package.loaded[%q] = %s or true\
-"):format(modpath, margs["loadLocal"] and modname or "_()") or "") .. "-- END OF MODULE " .. modpath .. " --")
-end
-env["include"] = function(file)
-local f = io["open"](file)
-if not f then
-error("Can't open the file " .. file .. " to include")
-end
-env["write"](f:read("*a"))
-f:close()
-end
-env["write"] = function(...)
-env["output"] = env["output"] .. (table["concat"]({ ... }, "\9") .. "\
-")
-end
-env["placeholder"] = function(name)
-if env[name] then
-env["write"](env[name])
-end
-end
-local preprocess, err = util["load"](candran["compile"](preprocessor, args), "candran preprocessor", env)
-if not preprocess then
-error("Error while creating Candran preprocessor: " .. err)
-end
-local success, output = pcall(preprocess)
-if not success then
-error("Error while preprocessing file: " .. output)
-end
-return output
-end
-candran["compile"] = function(input, options)
-if options == nil then options = {} end
-options = util["merge"](candran["default"], options)
-local ast, errmsg = parser["parse"](input, options["chunkname"])
-if not ast then
-error("Compiler: error while parsing file: " .. errmsg)
-end
-return require("compiler." .. options["target"])(input, ast, options)
-end
-candran["make"] = function(code, options)
-return candran["compile"](candran["preprocess"](code, options), options)
-end
-local errorRewritingActive = false
-local codeCache = {}
-candran["loadfile"] = function(filepath, env, options)
-local f, err = io["open"](filepath)
-if not f then
-error("can't open the file: " .. err)
-end
-local content = f:read("*a")
-f:close()
-return candran["load"](content, filepath, env, options)
-end
-candran["load"] = function(chunk, chunkname, env, options)
-if options == nil then options = {} end
-options = util["merge"]({ ["chunkname"] = tostring(chunkname or chunk) }, options)
-codeCache[options["chunkname"]] = candran["make"](chunk, options)
-local f = util["load"](codeCache[options["chunkname"]], options["chunkname"], env)
-if options["rewriteErrors"] == false then
-return f
-else
-return function(...)
-local params = { ... }
-if not errorRewritingActive then
-errorRewritingActive = true
-local t = { xpcall(function()
-return f(unpack(params))
-end, candran["messageHandler"]) }
-errorRewritingActive = false
-if t[1] == false then
-error(t[2], 0)
-end
-return unpack(t, 2)
-else
-return f(...)
-end
-end
-end
-end
-candran["dofile"] = function(filename, options)
-return candran["loadfile"](filename, nil, options)()
-end
-candran["messageHandler"] = function(message)
+"):format(modpath, margs["loadLocal"] and modname or "_()") or "") .. "-- END OF MODULE " .. modpath .. " --") -- candran.can:85
+end -- candran.can:85
+env["include"] = function(file) -- candran.can:90
+local f = io["open"](file) -- candran.can:91
+if not f then -- candran.can:92
+error("Can't open the file " .. file .. " to include") -- candran.can:92
+end -- candran.can:92
+env["write"](f:read("*a")) -- candran.can:93
+f:close() -- candran.can:94
+end -- candran.can:94
+env["write"] = function(...) -- candran.can:98
+env["output"] = env["output"] .. (table["concat"]({ ... }, "	") .. "\
+") -- candran.can:99
+end -- candran.can:99
+env["placeholder"] = function(name) -- candran.can:103
+if env[name] then -- candran.can:104
+env["write"](env[name]) -- candran.can:105
+end -- candran.can:105
+end -- candran.can:105
+local preprocess, err = util["load"](candran["compile"](preprocessor, args), "candran preprocessor", env) -- candran.can:110
+if not preprocess then -- candran.can:111
+error("Error while creating Candran preprocessor: " .. err) -- candran.can:111
+end -- candran.can:111
+local success, output = pcall(preprocess) -- candran.can:114
+if not success then -- candran.can:115
+error("Error while preprocessing file: " .. output) -- candran.can:115
+end -- candran.can:115
+return output -- candran.can:117
+end -- candran.can:117
+candran["compile"] = function(input, options) -- candran.can:124
+if options == nil then options = {} end -- candran.can:124
+options = util["merge"](candran["default"], options) -- candran.can:125
+local ast, errmsg = parser["parse"](input, options["chunkname"]) -- candran.can:127
+if not ast then -- candran.can:129
+error("Compiler: error while parsing file: " .. errmsg) -- candran.can:130
+end -- candran.can:130
+return require("compiler." .. options["target"])(input, ast, options) -- candran.can:133
+end -- candran.can:133
+candran["make"] = function(code, options) -- candran.can:140
+return candran["compile"](candran["preprocess"](code, options), options) -- candran.can:141
+end -- candran.can:141
+local errorRewritingActive = false -- candran.can:144
+local codeCache = {} -- candran.can:145
+candran["loadfile"] = function(filepath, env, options) -- candran.can:148
+local f, err = io["open"](filepath) -- candran.can:149
+if not f then -- candran.can:150
+error("can't open the file: " .. err) -- candran.can:150
+end -- candran.can:150
+local content = f:read("*a") -- candran.can:151
+f:close() -- candran.can:152
+return candran["load"](content, filepath, env, options) -- candran.can:154
+end -- candran.can:154
+candran["load"] = function(chunk, chunkname, env, options) -- candran.can:159
+if options == nil then options = {} end -- candran.can:159
+options = util["merge"]({ ["chunkname"] = tostring(chunkname or chunk) }, options) -- candran.can:160
+codeCache[options["chunkname"]] = candran["make"](chunk, options) -- candran.can:162
+local f = util["load"](codeCache[options["chunkname"]], options["chunkname"], env) -- candran.can:163
+if options["rewriteErrors"] == false then -- candran.can:165
+return f -- candran.can:166
+else -- candran.can:166
+return function(...) -- candran.can:168
+local params = { ... } -- candran.can:169
+if not errorRewritingActive then -- candran.can:170
+errorRewritingActive = true -- candran.can:171
+local t = { xpcall(function() -- candran.can:172
+return f(unpack(params)) -- candran.can:172
+end, candran["messageHandler"]) } -- candran.can:172
+errorRewritingActive = false -- candran.can:173
+if t[1] == false then -- candran.can:174
+error(t[2], 0) -- candran.can:175
+end -- candran.can:175
+return unpack(t, 2) -- candran.can:177
+else -- candran.can:177
+return f(...) -- candran.can:179
+end -- candran.can:179
+end -- candran.can:179
+end -- candran.can:179
+end -- candran.can:179
+candran["dofile"] = function(filename, options) -- candran.can:187
+return candran["loadfile"](filename, nil, options)() -- candran.can:188
+end -- candran.can:188
+candran["messageHandler"] = function(message) -- candran.can:193
 return debug["traceback"](message, 2):gsub("(\
 ?%s*)([^\
-]-)%:(%d+)%:", function(indentation, source, line)
-line = tonumber(line)
-local originalFile
-local strName = source:match("%[string \"(.-)\"%]")
-if strName then
-if codeCache[strName] then
-originalFile = codeCache[strName]
-source = strName
-end
-else
-local fi = io["open"](source, "r")
-if fi then
-originalFile = fi:read("*a")
-end
-fi:close()
-end
-if originalFile then
-local i = 0
+]-)%:(%d+)%:", function(indentation, source, line) -- candran.can:194
+line = tonumber(line) -- candran.can:195
+local originalFile -- candran.can:197
+local strName = source:match("%[string \"(.-)\"%]") -- candran.can:198
+if strName then -- candran.can:199
+if codeCache[strName] then -- candran.can:200
+originalFile = codeCache[strName] -- candran.can:201
+source = strName -- candran.can:202
+end -- candran.can:202
+else -- candran.can:202
+local fi = io["open"](source, "r") -- candran.can:205
+if fi then -- candran.can:206
+originalFile = fi:read("*a") -- candran.can:207
+end -- candran.can:207
+fi:close() -- candran.can:209
+end -- candran.can:209
+if originalFile then -- candran.can:212
+local i = 0 -- candran.can:213
 for l in originalFile:gmatch("([^\
-]*)") do
-i = i + 1
-if i == line then
-local extSource, lineMap = l:match("%-%- (.-)%:(%d+)$")
-if lineMap then
-if extSource ~= source then
-return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):"
-else
-return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):"
-end
-end
-break
-end
-end
-end
-end)
-end
-candran["searcher"] = function(modpath)
-local filepath = util["search"](modpath, { "can" })
-if not filepath then
+]*)") do -- candran.can:214
+i = i + 1 -- candran.can:215
+if i == line then -- candran.can:216
+local extSource, lineMap = l:match("%-%- (.-)%:(%d+)$") -- candran.can:217
+if lineMap then -- candran.can:218
+if extSource ~= source then -- candran.can:219
+return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:220
+else -- candran.can:220
+return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):" -- candran.can:222
+end -- candran.can:222
+end -- candran.can:222
+break -- candran.can:225
+end -- candran.can:225
+end -- candran.can:225
+end -- candran.can:225
+end) -- candran.can:225
+end -- candran.can:225
+candran["searcher"] = function(modpath) -- candran.can:233
+local filepath = util["search"](modpath, { "can" }) -- candran.can:234
+if not filepath then -- candran.can:235
 return "\
-\9no candran file in package.path"
-end
-return candran["loadfile"](filepath)
-end
-candran["setup"] = function()
-if _VERSION == "Lua 5.1" then
-table["insert"](package["loaders"], 2, candran["searcher"])
-else
-table["insert"](package["searchers"], 2, candran["searcher"])
-end
-return candran
-end
-return candran
+	no candran file in package.path" -- candran.can:236
+end -- candran.can:236
+return candran["loadfile"](filepath) -- candran.can:238
+end -- candran.can:238
+candran["setup"] = function() -- candran.can:242
+if _VERSION == "Lua 5.1" then -- candran.can:243
+table["insert"](package["loaders"], 2, candran["searcher"]) -- candran.can:244
+else -- candran.can:244
+table["insert"](package["searchers"], 2, candran["searcher"]) -- candran.can:246
+end -- candran.can:246
+return candran -- candran.can:248
+end -- candran.can:248
+return candran -- candran.can:251
