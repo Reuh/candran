@@ -160,7 +160,14 @@ function candran.load(chunk, chunkname, env, options={})
 	options = util.merge({ chunkname = tostring(chunkname or chunk) }, options)
 
 	codeCache[options.chunkname] = candran.make(chunk, options)
-	local f = util.load(codeCache[options.chunkname], options.chunkname, env)
+	local f, err = util.load(codeCache[options.chunkname], options.chunkname, env)
+
+	-- Um. Candran isn't supposed to generate invalid Lua code, so this is a major issue.
+	-- This is not going to raise an error because this is supposed to behave similarly to Lua's load function.
+	-- But the error message will likely be useless unless you know how Candran works.
+	if f == nil then
+		return f, "Candran unexpectedly generated invalid code: "..err
+	end
 
 	if options.rewriteErrors == false then
 		return f
@@ -185,7 +192,13 @@ end
 --- Candran equivalent to the Lua 5.3's dofile funtion.
 -- Will rewrite errors by default.
 function candran.dofile(filename, options)
-	return candran.loadfile(filename, nil, options)()
+	local f, err = candran.loadfile(filename, nil, options)
+
+	if f == nil then
+		error(err)
+	else
+		return f()
+	end
 end
 
 --- Candran error message handler.

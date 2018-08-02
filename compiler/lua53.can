@@ -232,7 +232,7 @@ return function(code, ast, options)
 				end
 				r ..= lua(t[5])
 				if hasContinue then
-					r ..= "until true" .. unindent()
+					r ..= unindent() .. "until true"
 				end
 				return r .. unindent() .. "end"
 			else
@@ -257,7 +257,7 @@ return function(code, ast, options)
 			end
 			r ..= lua(t[3])
 			if hasContinue then
-				r ..= "until true" .. unindent()
+				r ..= unindent() .. "until true"
 			end
 			return r .. unindent() .. "end"
 		end,
