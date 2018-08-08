@@ -21,7 +21,7 @@ source = {
 
 dependencies = {
 	"lua >= 5.1",
-	"lpeglabel >= 1.0.0"
+	"lpeglabel >= 1.5.0"
 }
 
 build = {

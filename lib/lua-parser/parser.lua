@@ -674,9 +674,8 @@ local syntaxerror = validator.syntaxerror
 function parser.parse (subject, filename)
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
-  local ast, label, sfail = lpeg.match(G, subject, nil, errorinfo)
+  local ast, label, errpos = lpeg.match(G, subject, nil, errorinfo)
   if not ast then
-    local errpos = #subject-#sfail+1
     local errmsg = labels[label][2]
     return ast, syntaxerror(errorinfo, errpos, errmsg)
   end

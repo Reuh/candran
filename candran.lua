@@ -2894,19 +2894,18 @@ local errorinfo = { -- ./lib/lua-parser/parser.lua:675
 ["filename"] = filename -- ./lib/lua-parser/parser.lua:675
 } -- ./lib/lua-parser/parser.lua:675
 lpeg["setmaxstack"](1000) -- ./lib/lua-parser/parser.lua:676
-local ast, label, sfail = lpeg["match"](G, subject, nil, errorinfo) -- ./lib/lua-parser/parser.lua:677
+local ast, label, errpos = lpeg["match"](G, subject, nil, errorinfo) -- ./lib/lua-parser/parser.lua:677
 if not ast then -- ./lib/lua-parser/parser.lua:678
-local errpos = # subject - # sfail + 1 -- ./lib/lua-parser/parser.lua:679
-local errmsg = labels[label][2] -- ./lib/lua-parser/parser.lua:680
-return ast, syntaxerror(errorinfo, errpos, errmsg) -- ./lib/lua-parser/parser.lua:681
-end -- ./lib/lua-parser/parser.lua:681
-return validate(ast, errorinfo) -- ./lib/lua-parser/parser.lua:683
-end -- ./lib/lua-parser/parser.lua:683
-return parser -- ./lib/lua-parser/parser.lua:686
-end -- ./lib/lua-parser/parser.lua:686
-local parser = _() or parser -- ./lib/lua-parser/parser.lua:690
-package["loaded"]["lib.lua-parser.parser"] = parser or true -- ./lib/lua-parser/parser.lua:691
-local candran = { ["VERSION"] = "0.6.0" } -- candran.can:13
+local errmsg = labels[label][2] -- ./lib/lua-parser/parser.lua:679
+return ast, syntaxerror(errorinfo, errpos, errmsg) -- ./lib/lua-parser/parser.lua:680
+end -- ./lib/lua-parser/parser.lua:680
+return validate(ast, errorinfo) -- ./lib/lua-parser/parser.lua:682
+end -- ./lib/lua-parser/parser.lua:682
+return parser -- ./lib/lua-parser/parser.lua:685
+end -- ./lib/lua-parser/parser.lua:685
+local parser = _() or parser -- ./lib/lua-parser/parser.lua:689
+package["loaded"]["lib.lua-parser.parser"] = parser or true -- ./lib/lua-parser/parser.lua:690
+local candran = { ["VERSION"] = "0.6.2" } -- candran.can:13
 candran["default"] = { -- candran.can:17
 ["target"] = "lua53", -- candran.can:18
 ["indentation"] = "", -- candran.can:19
