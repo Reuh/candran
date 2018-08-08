@@ -95,6 +95,24 @@ test("preprocessor options", [[
 return true
 ]], true, { foo = "sky" })
 
+test("preprocessor long comment", [[
+--[[
+#error("preprocessor should ignore long comments")
+]].."]]"..[[
+return true
+]], true)
+
+test("preprocessor long comment in long string", [[
+a=]].."[["..[[
+--[[
+#error("preprocessor should ignore long strings")
+]].."]]"..[[
+return a
+]], [[
+--[[
+#error("preprocessor should ignore long strings")
+]])
+
 ----------------------
 -- SYNTAX ADDITIONS --
 ----------------------

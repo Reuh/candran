@@ -34,13 +34,27 @@ function candran.preprocess(input, options={})
 	-- generate preprocessor code
 	local preprocessor = ""
 	local i = 0
+	local inLongString = false
+	local inComment = false
 	for line in (input.."\n"):gmatch("(.-\n)") do
 		i += 1
-		if line:match("^%s*#") and not line:match("^#!") then -- exclude shebang
+		-- Simple multiline comment/string detection
+		if inComment then
+			inComment = not line:match("%]%]")
+		elseif inLongString then
+			inLongString = not line:match("%]%]")
+		else
+			if line:match("[^%-]%[%[") then
+				inLongString = true
+			elseif line:match("%-%-%[%[") then
+				inComment = true
+			end
+		end
+		if not inComment and not inLongString and line:match("^%s*#") and not line:match("^#!") then -- exclude shebang
 			preprocessor ..= line:gsub("^%s*#", "")
 		else
 			local l = line:sub(1, -2)
-			if options.mapLines and not l:match("%-%- (.-)%:(%d+)$") then
+			if not inLongString and options.mapLines and not l:match("%-%- (.-)%:(%d+)$") then
 				preprocessor ..= ("write(%q)"):format(l .. " -- "..options.chunkname..":" .. i) .. "\n"
 			else
 				preprocessor ..= ("write(%q)"):format(line:sub(1, -2)) .. "\n"
@@ -218,8 +232,8 @@ function candran.messageHandler(message)
 			local fi = io.open(source, "r")
 			if fi then
 				originalFile = fi:read("*a")
+				fi:close()
 			end
-			fi:close()
 		end
 
 		if originalFile then
