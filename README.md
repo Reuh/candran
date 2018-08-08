@@ -51,9 +51,9 @@ local a = if condition then "one" else "two" end -- statement as expressions
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
 #### Quick setup
-Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.6.1-1.rockspec```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.6.2-1.rockspec```.
 
-Or manually install LPegLabel (```luarocks install LPegLabel```), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
+Or manually install LPegLabel (```luarocks install LPegLabel```, version 1.5 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
 You can register the Candran package searcher in your main Lua file (`require("candran").setup()`) and any subsequent `require` call in your project will automatically search for Candran modules.
 
@@ -174,7 +174,7 @@ Add one or more value to the returned value list. If you use a `return` afterwar
 
 This keyword is mainly useful when used through implicit `push` with table comprehension and statement expressions.
 
-**Please note** that, in order to stay compatible with vanilla Lua syntax, any `push` immediatly followed by a `"string expression"`, `{table expression}` or `(paranthesis)` will be interpreted as a function call. Preferably use implicit `push` when you can.
+**Please note** that, in order to stay compatible with vanilla Lua syntax, any `push` immediatly followed by a `"string expression"`, `{table expression}` or `(paranthesis)` will be interpreted as a function call. It's recommended to use the implicit `push` instead (when possible).
 
 ##### Implicit `push`
 ```lua
