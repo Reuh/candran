@@ -629,68 +629,80 @@ end, -- ./compiler/lua53.can:494
 return lua(t, "_statexpr", "Forin") -- ./compiler/lua53.can:498
 end, -- ./compiler/lua53.can:498
 ["Call"] = function(t) -- ./compiler/lua53.can:504
-return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua53.can:505
-end, -- ./compiler/lua53.can:505
-["Invoke"] = function(t) -- ./compiler/lua53.can:509
-return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")" -- ./compiler/lua53.can:510
-end, -- ./compiler/lua53.can:510
-["_lhs"] = function(t, start, newlines) -- ./compiler/lua53.can:514
-if start == nil then start = 1 end -- ./compiler/lua53.can:514
-local r -- ./compiler/lua53.can:515
-if t[start] then -- ./compiler/lua53.can:516
-r = lua(t[start]) -- ./compiler/lua53.can:517
-for i = start + 1, # t, 1 do -- ./compiler/lua53.can:518
-r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i])) -- ./compiler/lua53.can:519
-end -- ./compiler/lua53.can:519
-else -- ./compiler/lua53.can:519
-r = "" -- ./compiler/lua53.can:522
-end -- ./compiler/lua53.can:522
-return r -- ./compiler/lua53.can:524
-end, -- ./compiler/lua53.can:524
-["Id"] = function(t) -- ./compiler/lua53.can:527
-return t[1] -- ./compiler/lua53.can:528
-end, -- ./compiler/lua53.can:528
-["Index"] = function(t) -- ./compiler/lua53.can:531
-return lua(t[1]) .. "[" .. lua(t[2]) .. "]" -- ./compiler/lua53.can:532
+if t[1]["tag"] == "String" or t[1]["tag"] == "Table" then -- ./compiler/lua53.can:505
+return "(" .. lua(t[1]) .. ")(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua53.can:506
+else -- ./compiler/lua53.can:506
+return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua53.can:508
+end -- ./compiler/lua53.can:508
+end, -- ./compiler/lua53.can:508
+["Invoke"] = function(t) -- ./compiler/lua53.can:513
+if t[1]["tag"] == "String" or t[1]["tag"] == "Table" then -- ./compiler/lua53.can:514
+return "(" .. lua(t[1]) .. "):" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")" -- ./compiler/lua53.can:515
+else -- ./compiler/lua53.can:515
+return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")" -- ./compiler/lua53.can:517
+end -- ./compiler/lua53.can:517
+end, -- ./compiler/lua53.can:517
+["_lhs"] = function(t, start, newlines) -- ./compiler/lua53.can:522
+if start == nil then start = 1 end -- ./compiler/lua53.can:522
+local r -- ./compiler/lua53.can:523
+if t[start] then -- ./compiler/lua53.can:524
+r = lua(t[start]) -- ./compiler/lua53.can:525
+for i = start + 1, # t, 1 do -- ./compiler/lua53.can:526
+r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i])) -- ./compiler/lua53.can:527
+end -- ./compiler/lua53.can:527
+else -- ./compiler/lua53.can:527
+r = "" -- ./compiler/lua53.can:530
+end -- ./compiler/lua53.can:530
+return r -- ./compiler/lua53.can:532
 end, -- ./compiler/lua53.can:532
-["_opid"] = { -- ./compiler/lua53.can:536
-["add"] = "+", -- ./compiler/lua53.can:537
-["sub"] = "-", -- ./compiler/lua53.can:537
-["mul"] = "*", -- ./compiler/lua53.can:537
-["div"] = "/", -- ./compiler/lua53.can:537
-["idiv"] = "//", -- ./compiler/lua53.can:538
-["mod"] = "%", -- ./compiler/lua53.can:538
-["pow"] = "^", -- ./compiler/lua53.can:538
-["concat"] = "..", -- ./compiler/lua53.can:538
-["band"] = "&", -- ./compiler/lua53.can:539
-["bor"] = "|", -- ./compiler/lua53.can:539
-["bxor"] = "~", -- ./compiler/lua53.can:539
-["shl"] = "<<", -- ./compiler/lua53.can:539
-["shr"] = ">>", -- ./compiler/lua53.can:539
-["eq"] = "==", -- ./compiler/lua53.can:540
-["ne"] = "~=", -- ./compiler/lua53.can:540
-["lt"] = "<", -- ./compiler/lua53.can:540
-["gt"] = ">", -- ./compiler/lua53.can:540
-["le"] = "<=", -- ./compiler/lua53.can:540
-["ge"] = ">=", -- ./compiler/lua53.can:540
-["and"] = "and", -- ./compiler/lua53.can:541
-["or"] = "or", -- ./compiler/lua53.can:541
-["unm"] = "-", -- ./compiler/lua53.can:541
-["len"] = "#", -- ./compiler/lua53.can:541
-["bnot"] = "~", -- ./compiler/lua53.can:541
-["not"] = "not" -- ./compiler/lua53.can:541
-} -- ./compiler/lua53.can:541
-}, { ["__index"] = function(self, key) -- ./compiler/lua53.can:544
-error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3") -- ./compiler/lua53.can:545
-end }) -- ./compiler/lua53.can:545
-local code = lua(ast) .. newline() -- ./compiler/lua53.can:551
-return requireStr .. code -- ./compiler/lua53.can:552
-end -- ./compiler/lua53.can:552
-end -- ./compiler/lua53.can:552
-local lua53 = _() or lua53 -- ./compiler/lua53.can:557
-package["loaded"]["compiler.lua53"] = lua53 or true -- ./compiler/lua53.can:558
-local function _() -- ./compiler/lua53.can:561
-local function _() -- ./compiler/lua53.can:563
+["Id"] = function(t) -- ./compiler/lua53.can:535
+return t[1] -- ./compiler/lua53.can:536
+end, -- ./compiler/lua53.can:536
+["Index"] = function(t) -- ./compiler/lua53.can:539
+if t[1]["tag"] == "String" or t[1]["tag"] == "Table" then -- ./compiler/lua53.can:540
+return "(" .. lua(t[1]) .. ")[" .. lua(t[2]) .. "]" -- ./compiler/lua53.can:541
+else -- ./compiler/lua53.can:541
+return lua(t[1]) .. "[" .. lua(t[2]) .. "]" -- ./compiler/lua53.can:543
+end -- ./compiler/lua53.can:543
+end, -- ./compiler/lua53.can:543
+["_opid"] = { -- ./compiler/lua53.can:548
+["add"] = "+", -- ./compiler/lua53.can:549
+["sub"] = "-", -- ./compiler/lua53.can:549
+["mul"] = "*", -- ./compiler/lua53.can:549
+["div"] = "/", -- ./compiler/lua53.can:549
+["idiv"] = "//", -- ./compiler/lua53.can:550
+["mod"] = "%", -- ./compiler/lua53.can:550
+["pow"] = "^", -- ./compiler/lua53.can:550
+["concat"] = "..", -- ./compiler/lua53.can:550
+["band"] = "&", -- ./compiler/lua53.can:551
+["bor"] = "|", -- ./compiler/lua53.can:551
+["bxor"] = "~", -- ./compiler/lua53.can:551
+["shl"] = "<<", -- ./compiler/lua53.can:551
+["shr"] = ">>", -- ./compiler/lua53.can:551
+["eq"] = "==", -- ./compiler/lua53.can:552
+["ne"] = "~=", -- ./compiler/lua53.can:552
+["lt"] = "<", -- ./compiler/lua53.can:552
+["gt"] = ">", -- ./compiler/lua53.can:552
+["le"] = "<=", -- ./compiler/lua53.can:552
+["ge"] = ">=", -- ./compiler/lua53.can:552
+["and"] = "and", -- ./compiler/lua53.can:553
+["or"] = "or", -- ./compiler/lua53.can:553
+["unm"] = "-", -- ./compiler/lua53.can:553
+["len"] = "#", -- ./compiler/lua53.can:553
+["bnot"] = "~", -- ./compiler/lua53.can:553
+["not"] = "not" -- ./compiler/lua53.can:553
+} -- ./compiler/lua53.can:553
+}, { ["__index"] = function(self, key) -- ./compiler/lua53.can:556
+error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3") -- ./compiler/lua53.can:557
+end }) -- ./compiler/lua53.can:557
+local code = lua(ast) .. newline() -- ./compiler/lua53.can:563
+return requireStr .. code -- ./compiler/lua53.can:564
+end -- ./compiler/lua53.can:564
+end -- ./compiler/lua53.can:564
+local lua53 = _() or lua53 -- ./compiler/lua53.can:569
+package["loaded"]["compiler.lua53"] = lua53 or true -- ./compiler/lua53.can:570
+local function _() -- ./compiler/lua53.can:573
+local function _() -- ./compiler/lua53.can:575
 return function(code, ast, options) -- ./compiler/lua53.can:1
 local lastInputPos = 1 -- last token position in the input code -- ./compiler/lua53.can:3
 local prevLinePos = 1 -- last token position in the previous line of code in the input code -- ./compiler/lua53.can:4
@@ -1188,60 +1200,72 @@ end, -- ./compiler/lua53.can:494
 return lua(t, "_statexpr", "Forin") -- ./compiler/lua53.can:498
 end, -- ./compiler/lua53.can:498
 ["Call"] = function(t) -- ./compiler/lua53.can:504
-return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua53.can:505
-end, -- ./compiler/lua53.can:505
-["Invoke"] = function(t) -- ./compiler/lua53.can:509
-return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")" -- ./compiler/lua53.can:510
-end, -- ./compiler/lua53.can:510
-["_lhs"] = function(t, start, newlines) -- ./compiler/lua53.can:514
-if start == nil then start = 1 end -- ./compiler/lua53.can:514
-local r -- ./compiler/lua53.can:515
-if t[start] then -- ./compiler/lua53.can:516
-r = lua(t[start]) -- ./compiler/lua53.can:517
-for i = start + 1, # t, 1 do -- ./compiler/lua53.can:518
-r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i])) -- ./compiler/lua53.can:519
-end -- ./compiler/lua53.can:519
-else -- ./compiler/lua53.can:519
-r = "" -- ./compiler/lua53.can:522
-end -- ./compiler/lua53.can:522
-return r -- ./compiler/lua53.can:524
-end, -- ./compiler/lua53.can:524
-["Id"] = function(t) -- ./compiler/lua53.can:527
-return t[1] -- ./compiler/lua53.can:528
-end, -- ./compiler/lua53.can:528
-["Index"] = function(t) -- ./compiler/lua53.can:531
-return lua(t[1]) .. "[" .. lua(t[2]) .. "]" -- ./compiler/lua53.can:532
+if t[1]["tag"] == "String" or t[1]["tag"] == "Table" then -- ./compiler/lua53.can:505
+return "(" .. lua(t[1]) .. ")(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua53.can:506
+else -- ./compiler/lua53.can:506
+return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua53.can:508
+end -- ./compiler/lua53.can:508
+end, -- ./compiler/lua53.can:508
+["Invoke"] = function(t) -- ./compiler/lua53.can:513
+if t[1]["tag"] == "String" or t[1]["tag"] == "Table" then -- ./compiler/lua53.can:514
+return "(" .. lua(t[1]) .. "):" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")" -- ./compiler/lua53.can:515
+else -- ./compiler/lua53.can:515
+return lua(t[1]) .. ":" .. lua(t[2], "Id") .. "(" .. lua(t, "_lhs", 3) .. ")" -- ./compiler/lua53.can:517
+end -- ./compiler/lua53.can:517
+end, -- ./compiler/lua53.can:517
+["_lhs"] = function(t, start, newlines) -- ./compiler/lua53.can:522
+if start == nil then start = 1 end -- ./compiler/lua53.can:522
+local r -- ./compiler/lua53.can:523
+if t[start] then -- ./compiler/lua53.can:524
+r = lua(t[start]) -- ./compiler/lua53.can:525
+for i = start + 1, # t, 1 do -- ./compiler/lua53.can:526
+r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i])) -- ./compiler/lua53.can:527
+end -- ./compiler/lua53.can:527
+else -- ./compiler/lua53.can:527
+r = "" -- ./compiler/lua53.can:530
+end -- ./compiler/lua53.can:530
+return r -- ./compiler/lua53.can:532
 end, -- ./compiler/lua53.can:532
-["_opid"] = { -- ./compiler/lua53.can:536
-["add"] = "+", -- ./compiler/lua53.can:537
-["sub"] = "-", -- ./compiler/lua53.can:537
-["mul"] = "*", -- ./compiler/lua53.can:537
-["div"] = "/", -- ./compiler/lua53.can:537
-["idiv"] = "//", -- ./compiler/lua53.can:538
-["mod"] = "%", -- ./compiler/lua53.can:538
-["pow"] = "^", -- ./compiler/lua53.can:538
-["concat"] = "..", -- ./compiler/lua53.can:538
-["band"] = "&", -- ./compiler/lua53.can:539
-["bor"] = "|", -- ./compiler/lua53.can:539
-["bxor"] = "~", -- ./compiler/lua53.can:539
-["shl"] = "<<", -- ./compiler/lua53.can:539
-["shr"] = ">>", -- ./compiler/lua53.can:539
-["eq"] = "==", -- ./compiler/lua53.can:540
-["ne"] = "~=", -- ./compiler/lua53.can:540
-["lt"] = "<", -- ./compiler/lua53.can:540
-["gt"] = ">", -- ./compiler/lua53.can:540
-["le"] = "<=", -- ./compiler/lua53.can:540
-["ge"] = ">=", -- ./compiler/lua53.can:540
-["and"] = "and", -- ./compiler/lua53.can:541
-["or"] = "or", -- ./compiler/lua53.can:541
-["unm"] = "-", -- ./compiler/lua53.can:541
-["len"] = "#", -- ./compiler/lua53.can:541
-["bnot"] = "~", -- ./compiler/lua53.can:541
-["not"] = "not" -- ./compiler/lua53.can:541
-} -- ./compiler/lua53.can:541
-}, { ["__index"] = function(self, key) -- ./compiler/lua53.can:544
-error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3") -- ./compiler/lua53.can:545
-end }) -- ./compiler/lua53.can:545
+["Id"] = function(t) -- ./compiler/lua53.can:535
+return t[1] -- ./compiler/lua53.can:536
+end, -- ./compiler/lua53.can:536
+["Index"] = function(t) -- ./compiler/lua53.can:539
+if t[1]["tag"] == "String" or t[1]["tag"] == "Table" then -- ./compiler/lua53.can:540
+return "(" .. lua(t[1]) .. ")[" .. lua(t[2]) .. "]" -- ./compiler/lua53.can:541
+else -- ./compiler/lua53.can:541
+return lua(t[1]) .. "[" .. lua(t[2]) .. "]" -- ./compiler/lua53.can:543
+end -- ./compiler/lua53.can:543
+end, -- ./compiler/lua53.can:543
+["_opid"] = { -- ./compiler/lua53.can:548
+["add"] = "+", -- ./compiler/lua53.can:549
+["sub"] = "-", -- ./compiler/lua53.can:549
+["mul"] = "*", -- ./compiler/lua53.can:549
+["div"] = "/", -- ./compiler/lua53.can:549
+["idiv"] = "//", -- ./compiler/lua53.can:550
+["mod"] = "%", -- ./compiler/lua53.can:550
+["pow"] = "^", -- ./compiler/lua53.can:550
+["concat"] = "..", -- ./compiler/lua53.can:550
+["band"] = "&", -- ./compiler/lua53.can:551
+["bor"] = "|", -- ./compiler/lua53.can:551
+["bxor"] = "~", -- ./compiler/lua53.can:551
+["shl"] = "<<", -- ./compiler/lua53.can:551
+["shr"] = ">>", -- ./compiler/lua53.can:551
+["eq"] = "==", -- ./compiler/lua53.can:552
+["ne"] = "~=", -- ./compiler/lua53.can:552
+["lt"] = "<", -- ./compiler/lua53.can:552
+["gt"] = ">", -- ./compiler/lua53.can:552
+["le"] = "<=", -- ./compiler/lua53.can:552
+["ge"] = ">=", -- ./compiler/lua53.can:552
+["and"] = "and", -- ./compiler/lua53.can:553
+["or"] = "or", -- ./compiler/lua53.can:553
+["unm"] = "-", -- ./compiler/lua53.can:553
+["len"] = "#", -- ./compiler/lua53.can:553
+["bnot"] = "~", -- ./compiler/lua53.can:553
+["not"] = "not" -- ./compiler/lua53.can:553
+} -- ./compiler/lua53.can:553
+}, { ["__index"] = function(self, key) -- ./compiler/lua53.can:556
+error("don't know how to compile a " .. tostring(key) .. " to Lua 5.3") -- ./compiler/lua53.can:557
+end }) -- ./compiler/lua53.can:557
 UNPACK = function(list, i, j) -- ./compiler/luajit.can:1
 return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/luajit.can:2
 end -- ./compiler/luajit.can:2
@@ -1275,11 +1299,11 @@ tags["_opid"]["bnot"] = function(right) -- ./compiler/luajit.can:31
 addRequire("bit", "bnot", "bnot") -- ./compiler/luajit.can:32
 return var("bnot") .. "(" .. lua(right) .. ")" -- ./compiler/luajit.can:33
 end -- ./compiler/luajit.can:33
-local code = lua(ast) .. newline() -- ./compiler/lua53.can:551
-return requireStr .. code -- ./compiler/lua53.can:552
-end -- ./compiler/lua53.can:552
-end -- ./compiler/lua53.can:552
-local lua53 = _() or lua53 -- ./compiler/lua53.can:557
+local code = lua(ast) .. newline() -- ./compiler/lua53.can:563
+return requireStr .. code -- ./compiler/lua53.can:564
+end -- ./compiler/lua53.can:564
+end -- ./compiler/lua53.can:564
+local lua53 = _() or lua53 -- ./compiler/lua53.can:569
 return lua53 -- ./compiler/luajit.can:40
 end -- ./compiler/luajit.can:40
 local luajit = _() or luajit -- ./compiler/luajit.can:44
@@ -2806,16 +2830,16 @@ end, -- ./lib/lua-parser/parser.lua:450
 ["MulExpr"] = chainOp(V("UnaryExpr"), V("MulOp"), "MulExpr"), -- ./lib/lua-parser/parser.lua:519
 ["UnaryExpr"] = V("UnaryOp") * expect(V("UnaryExpr"), "UnaryExpr") / unaryOp + V("PowExpr"), -- ./lib/lua-parser/parser.lua:521
 ["PowExpr"] = V("SimpleExpr") * (V("PowOp") * expect(V("UnaryExpr"), "PowExpr")) ^ - 1 / binaryOp, -- ./lib/lua-parser/parser.lua:522
-["SimpleExpr"] = tagC("Number", V("Number")) + tagC("String", V("String")) + tagC("Nil", kw("nil")) + tagC("Boolean", kw("false") * Cc(false)) + tagC("Boolean", kw("true") * Cc(true)) + tagC("Dots", sym("...")) + V("FuncDef") + V("Table") + V("ShortFuncDef") + V("SuffixedExpr") + V("TableCompr") + V("StatExpr"), -- ./lib/lua-parser/parser.lua:535
-["StatExpr"] = (V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat")) / statToExpr, -- ./lib/lua-parser/parser.lua:537
-["FuncCall"] = Cmt(V("SuffixedExpr"), function(s, i, exp) -- ./lib/lua-parser/parser.lua:539
-return exp["tag"] == "Call" or exp["tag"] == "Invoke", exp -- ./lib/lua-parser/parser.lua:539
-end), -- ./lib/lua-parser/parser.lua:539
-["VarExpr"] = Cmt(V("SuffixedExpr"), function(s, i, exp) -- ./lib/lua-parser/parser.lua:540
-return exp["tag"] == "Id" or exp["tag"] == "Index", exp -- ./lib/lua-parser/parser.lua:540
-end), -- ./lib/lua-parser/parser.lua:540
-["SuffixedExpr"] = Cf(V("PrimaryExpr") * (V("Index") + V("Call")) ^ 0, makeIndexOrCall), -- ./lib/lua-parser/parser.lua:542
-["PrimaryExpr"] = V("SelfId") * (V("SelfCall") + V("SelfIndex")) + V("Id") + tagC("Paren", sym("(") * expect(V("Expr"), "ExprParen") * expect(sym(")"), "CParenExpr")), -- ./lib/lua-parser/parser.lua:545
+["SimpleExpr"] = tagC("Number", V("Number")) + tagC("Nil", kw("nil")) + tagC("Boolean", kw("false") * Cc(false)) + tagC("Boolean", kw("true") * Cc(true)) + tagC("Dots", sym("...")) + V("FuncDef") + V("ShortFuncDef") + V("SuffixedExpr") + V("StatExpr"), -- ./lib/lua-parser/parser.lua:532
+["StatExpr"] = (V("IfStat") + V("DoStat") + V("WhileStat") + V("RepeatStat") + V("ForStat")) / statToExpr, -- ./lib/lua-parser/parser.lua:534
+["FuncCall"] = Cmt(V("SuffixedExpr"), function(s, i, exp) -- ./lib/lua-parser/parser.lua:536
+return exp["tag"] == "Call" or exp["tag"] == "Invoke", exp -- ./lib/lua-parser/parser.lua:536
+end), -- ./lib/lua-parser/parser.lua:536
+["VarExpr"] = Cmt(V("SuffixedExpr"), function(s, i, exp) -- ./lib/lua-parser/parser.lua:537
+return exp["tag"] == "Id" or exp["tag"] == "Index", exp -- ./lib/lua-parser/parser.lua:537
+end), -- ./lib/lua-parser/parser.lua:537
+["SuffixedExpr"] = Cf(V("PrimaryExpr") * (V("Index") + V("Call")) ^ 0, makeIndexOrCall), -- ./lib/lua-parser/parser.lua:539
+["PrimaryExpr"] = V("SelfId") * (V("SelfCall") + V("SelfIndex")) + V("Id") + tagC("Paren", sym("(") * expect(V("Expr"), "ExprParen") * expect(sym(")"), "CParenExpr")) + tagC("String", V("String")) + V("Table") + V("TableCompr"), -- ./lib/lua-parser/parser.lua:545
 ["Index"] = tagC("DotIndex", sym("." * - P(".")) * expect(V("StrId"), "NameIndex")) + tagC("ArrayIndex", sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprIndex") * expect(sym("]"), "CBracketIndex")), -- ./lib/lua-parser/parser.lua:547
 ["Call"] = tagC("Invoke", Cg(sym(":" * - P(":")) * expect(V("StrId"), "NameMeth") * expect(V("FuncArgs"), "MethArgs"))) + tagC("Call", V("FuncArgs")), -- ./lib/lua-parser/parser.lua:549
 ["SelfIndex"] = tagC("DotIndex", V("StrId")), -- ./lib/lua-parser/parser.lua:550
@@ -2905,7 +2929,7 @@ return parser -- ./lib/lua-parser/parser.lua:685
 end -- ./lib/lua-parser/parser.lua:685
 local parser = _() or parser -- ./lib/lua-parser/parser.lua:689
 package["loaded"]["lib.lua-parser.parser"] = parser or true -- ./lib/lua-parser/parser.lua:690
-local candran = { ["VERSION"] = "0.6.2" } -- candran.can:13
+local candran = { ["VERSION"] = "0.7.0-dev" } -- candran.can:13
 candran["default"] = { -- candran.can:17
 ["target"] = "lua53", -- candran.can:18
 ["indentation"] = "", -- candran.can:19

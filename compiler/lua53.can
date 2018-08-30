@@ -502,12 +502,20 @@ return function(code, ast, options)
 
 		-- Call{ expr expr* }
 		Call = (t)
-			return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")"
+			if t[1].tag == "String" or t[1].tag == "Table" then
+				return "("..lua(t[1]) .. ")(" .. lua(t, "_lhs", 2) .. ")"
+			else
+				return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")"
+			end
 		end,
 
 		-- Invoke{ expr `String{ <string> } expr* }
 		Invoke = (t)
-			return lua(t[1])..":"..lua(t[2], "Id").."("..lua(t, "_lhs", 3)..")"
+			if t[1].tag == "String" or t[1].tag == "Table" then
+				return "("..lua(t[1]).."):"..lua(t[2], "Id").."("..lua(t, "_lhs", 3)..")"
+			else
+				return lua(t[1])..":"..lua(t[2], "Id").."("..lua(t, "_lhs", 3)..")"
+			end
 		end,
 
 		-- lhs --
@@ -529,7 +537,11 @@ return function(code, ast, options)
 		end,
 		-- Index{ expr expr }
 		Index = (t)
-			return lua(t[1]).."["..lua(t[2]).."]"
+			if t[1].tag == "String" or t[1].tag == "Table" then
+				return "("..lua(t[1])..")["..lua(t[2]).."]"
+			else
+				return lua(t[1]).."["..lua(t[2]).."]"
+			end
 		end,
 
 		-- opid --

@@ -252,6 +252,24 @@ end
 
 `if`, `elseif`, `for`, and `while` statements can be writtent without `do`, `then` or `end`, in which case they contain a single statement.
 
+##### Suffixable string and table litterals
+_Not in the latest release, install the `candran-scm-1.rockspec` version if you want this feature._
+```lua
+"some text":upper() -- same as ("some text"):upper() in Lua
+"string".upper -- the actual string.upper function. "string"["upper"] also works.
+-- Also works with calls, for example "string"(), but it isn't really useful for strings.
+
+{thing = 3}.thing -- 3. Also works with tables!
+[for i=0,5 do i*i end][3] -- 9. And table comprehensions!
+
+-- Functions calls have priority:
+someFunction"thing":upper() -- same as (someFunction("thing")):upper() (i.e., the way it would be parsed by Lua)
+```
+
+String litterals, table litterals, and comprehensions can be suffixed with `:` method calls, `.` or `[` indexing, or `(` functions calls, without needing to be enclosed in parantheses.
+
+*Please note*, that "normal" functions calls have priority over this syntax, in order to maintain Lua compatibility.
+
 ### Preprocessor
 Before compiling, Candran's preprocessor is run. It execute every line starting with a _#_ (ignoring prefixing whitespace, long strings and comments) as Candran code.
 For example,

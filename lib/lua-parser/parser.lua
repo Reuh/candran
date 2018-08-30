@@ -522,16 +522,13 @@ local G = { V"Lua",
   PowExpr     = V"SimpleExpr" * (V"PowOp" * expect(V"UnaryExpr", "PowExpr"))^-1 / binaryOp;
 
   SimpleExpr = tagC("Number", V"Number")
-             + tagC("String", V"String")
              + tagC("Nil", kw("nil"))
              + tagC("Boolean", kw("false") * Cc(false))
              + tagC("Boolean", kw("true") * Cc(true))
              + tagC("Dots", sym("..."))
              + V"FuncDef"
-             + V"Table"
              + V"ShortFuncDef"
              + V"SuffixedExpr"
-             + V"TableCompr"
              + V"StatExpr";
 
   StatExpr = (V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat") / statToExpr;
@@ -542,7 +539,10 @@ local G = { V"Lua",
   SuffixedExpr  = Cf(V"PrimaryExpr" * (V"Index" + V"Call")^0, makeIndexOrCall);
   PrimaryExpr   = V"SelfId" * (V"SelfCall" + V"SelfIndex")
                 + V"Id"
-                + tagC("Paren", sym("(") * expect(V"Expr", "ExprParen") * expect(sym(")"), "CParenExpr"));
+                + tagC("Paren", sym("(") * expect(V"Expr", "ExprParen") * expect(sym(")"), "CParenExpr"))
+                + tagC("String", V"String")
+                + V"Table"
+                + V"TableCompr";
   Index         = tagC("DotIndex", sym("." * -P".") * expect(V"StrId", "NameIndex"))
                 + tagC("ArrayIndex", sym("[" * -P(S"=[")) * expect(V"Expr", "ExprIndex") * expect(sym("]"), "CBracketIndex"));
   Call          = tagC("Invoke", Cg(sym(":" * -P":") * expect(V"StrId", "NameMeth") * expect(V"FuncArgs", "MethArgs")))

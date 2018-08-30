@@ -518,6 +518,85 @@ while a < 5
 return a
 ]], 5)
 
+-- suffixable string litals, table, table comprehension
+test("suffixable string litteral method", [[
+return "foo":len()
+]], 3)
+test("suffixable string litteral method lua conflict", [[
+local s = function() return "four" end
+return s"foo":len()
+]], 4)
+test("suffixable string litteral dot index", [[
+local a = "foo".len
+return a("foo")
+]], 3)
+test("suffixable string litteral dot index lua conflict", [[
+local s = function() return {len=4} end
+local a = s"foo".len
+return a
+]], 4)
+test("suffixable string litteral array index", [[
+local a = "foo"["len"]
+return a("foo")
+]], 3)
+test("suffixable string litteral dot index lua conflict", [[
+local s = function() return {len=4} end
+local a = s"foo"["len"]
+return a
+]], 4)
+test("suffixable string litteral call", [[
+local r, e = pcall(function() "foo"() end)
+return not r and e:match("attempt to call a string value")
+]], "attempt to call a string value")
+test("suffixable string litteral call lua conflict", [[
+local s = function() return function() return 4 end end
+return s"foo"()
+]], 4)
+
+test("suffixable table litteral method", [[
+return {a=3,len=function(t) return t.a end}:len()
+]], 3)
+test("suffixable table litteral method lua conflict", [[
+local s = function() return "four" end
+return s{a=3,len=function(t) return t.a end}:len()
+]], 4)
+test("suffixable table litteral dot index", [[
+return {len=3}.len
+]], 3)
+test("suffixable table litteral dot index lua conflict", [[
+local s = function() return {len=4} end
+return s{len=3}.len
+]], 4)
+test("suffixable table litteral array index", [[
+return {len=3}["len"]
+]], 3)
+test("suffixable table litteral dot index lua conflict", [[
+local s = function() return {len=4} end
+return s{len=3}["len"]
+]], 4)
+test("suffixable table litteral call", [[
+local r, e = pcall(function() {}() end)
+return not r and e:match("attempt to call a table value")
+]], "attempt to call a table value")
+test("suffixable table litteral call lua conflict", [[
+local s = function() return function() return 4 end end
+return s{}()
+]], 4)
+
+test("suffixable table comprehension method", [[
+return [@len = function() return 3 end]:len()
+]], 3)
+test("suffixable table comprehension dot index", [[
+return [@len = 3].len
+]], 3)
+test("suffixable table comprehension array index", [[
+return [@len=3]["len"]
+]], 3)
+test("suffixable table comprehension call", [[
+local r, e = pcall(function() []() end)
+return not r and e:match("attempt to call a table value")
+]], "attempt to call a table value")
+
 -- results
 local resultCounter = {}
 local testCounter = 0
