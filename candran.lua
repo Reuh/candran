@@ -2838,10 +2838,12 @@ end), -- ./lib/lua-parser/parser.lua:536
 ["VarExpr"] = Cmt(V("SuffixedExpr"), function(s, i, exp) -- ./lib/lua-parser/parser.lua:537
 return exp["tag"] == "Id" or exp["tag"] == "Index", exp -- ./lib/lua-parser/parser.lua:537
 end), -- ./lib/lua-parser/parser.lua:537
-["SuffixedExpr"] = Cf(V("PrimaryExpr") * (V("Index") + V("Call")) ^ 0, makeIndexOrCall), -- ./lib/lua-parser/parser.lua:539
-["PrimaryExpr"] = V("SelfId") * (V("SelfCall") + V("SelfIndex")) + V("Id") + tagC("Paren", sym("(") * expect(V("Expr"), "ExprParen") * expect(sym(")"), "CParenExpr")) + tagC("String", V("String")) + V("Table") + V("TableCompr"), -- ./lib/lua-parser/parser.lua:545
+["SuffixedExpr"] = Cf(V("PrimaryExpr") * (V("Index") + V("Invoke") + V("Call")) ^ 0 + V("NoCallPrimaryExpr") * - V("Call") * (V("Index") + V("Invoke") + V("Call")) ^ 0 + V("NoCallPrimaryExpr"), makeIndexOrCall), -- ./lib/lua-parser/parser.lua:541
+["PrimaryExpr"] = V("SelfId") * (V("SelfCall") + V("SelfIndex")) + V("Id") + tagC("Paren", sym("(") * expect(V("Expr"), "ExprParen") * expect(sym(")"), "CParenExpr")), -- ./lib/lua-parser/parser.lua:544
+["NoCallPrimaryExpr"] = tagC("String", V("String")) + V("Table") + V("TableCompr"), -- ./lib/lua-parser/parser.lua:545
 ["Index"] = tagC("DotIndex", sym("." * - P(".")) * expect(V("StrId"), "NameIndex")) + tagC("ArrayIndex", sym("[" * - P(S("=["))) * expect(V("Expr"), "ExprIndex") * expect(sym("]"), "CBracketIndex")), -- ./lib/lua-parser/parser.lua:547
-["Call"] = tagC("Invoke", Cg(sym(":" * - P(":")) * expect(V("StrId"), "NameMeth") * expect(V("FuncArgs"), "MethArgs"))) + tagC("Call", V("FuncArgs")), -- ./lib/lua-parser/parser.lua:549
+["Call"] = tagC("Call", V("FuncArgs")), -- ./lib/lua-parser/parser.lua:548
+["Invoke"] = tagC("Invoke", Cg(sym(":" * - P(":")) * expect(V("StrId"), "NameMeth") * expect(V("FuncArgs"), "MethArgs"))), -- ./lib/lua-parser/parser.lua:549
 ["SelfIndex"] = tagC("DotIndex", V("StrId")), -- ./lib/lua-parser/parser.lua:550
 ["SelfCall"] = tagC("Invoke", Cg(V("StrId") * V("FuncArgs"))), -- ./lib/lua-parser/parser.lua:551
 ["FuncDef"] = (kw("function") * V("FuncBody")), -- ./lib/lua-parser/parser.lua:553

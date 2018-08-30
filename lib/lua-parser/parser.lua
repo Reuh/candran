@@ -536,19 +536,19 @@ local G = { V"Lua",
   FuncCall  = Cmt(V"SuffixedExpr", function(s, i, exp) return exp.tag == "Call" or exp.tag == "Invoke", exp end);
   VarExpr   = Cmt(V"SuffixedExpr", function(s, i, exp) return exp.tag == "Id" or exp.tag == "Index", exp end);
 
-  SuffixedExpr  = Cf(V"PrimaryExpr" * (V"Index" + V"Call")^0, makeIndexOrCall);
-  PrimaryExpr   = V"SelfId" * (V"SelfCall" + V"SelfIndex")
-                + V"Id"
-                + tagC("Paren", sym("(") * expect(V"Expr", "ExprParen") * expect(sym(")"), "CParenExpr"))
-                + tagC("String", V"String")
-                + V"Table"
-                + V"TableCompr";
-  Index         = tagC("DotIndex", sym("." * -P".") * expect(V"StrId", "NameIndex"))
-                + tagC("ArrayIndex", sym("[" * -P(S"=[")) * expect(V"Expr", "ExprIndex") * expect(sym("]"), "CBracketIndex"));
-  Call          = tagC("Invoke", Cg(sym(":" * -P":") * expect(V"StrId", "NameMeth") * expect(V"FuncArgs", "MethArgs")))
-                + tagC("Call", V"FuncArgs");
-  SelfIndex     = tagC("DotIndex", V"StrId");
-  SelfCall      = tagC("Invoke", Cg(V"StrId" * V"FuncArgs"));
+  SuffixedExpr      = Cf(V"PrimaryExpr" * (V"Index" + V"Invoke" + V"Call")^0
+                       + V"NoCallPrimaryExpr" * -V"Call" * (V"Index" + V"Invoke" + V"Call")^0
+                       + V"NoCallPrimaryExpr", makeIndexOrCall);
+  PrimaryExpr       = V"SelfId" * (V"SelfCall" + V"SelfIndex")
+                    + V"Id"
+                    + tagC("Paren", sym("(") * expect(V"Expr", "ExprParen") * expect(sym(")"), "CParenExpr"));
+  NoCallPrimaryExpr = tagC("String", V"String") + V"Table" + V"TableCompr";
+  Index             = tagC("DotIndex", sym("." * -P".") * expect(V"StrId", "NameIndex"))
+                    + tagC("ArrayIndex", sym("[" * -P(S"=[")) * expect(V"Expr", "ExprIndex") * expect(sym("]"), "CBracketIndex"));
+  Call              = tagC("Call", V"FuncArgs");
+  Invoke            = tagC("Invoke", Cg(sym(":" * -P":") * expect(V"StrId", "NameMeth") * expect(V"FuncArgs", "MethArgs")));
+  SelfIndex         = tagC("DotIndex", V"StrId");
+  SelfCall          = tagC("Invoke", Cg(V"StrId" * V"FuncArgs"));
 
   FuncDef   = (kw("function") * V"FuncBody");
   FuncArgs  = sym("(") * commaSep(V"Expr", "ArgList")^-1 * expect(sym(")"), "CParenArgs")

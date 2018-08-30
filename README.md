@@ -257,7 +257,6 @@ _Not in the latest release, install the `candran-scm-1.rockspec` version if you 
 ```lua
 "some text":upper() -- same as ("some text"):upper() in Lua
 "string".upper -- the actual string.upper function. "string"["upper"] also works.
--- Also works with calls, for example "string"(), but it isn't really useful for strings.
 
 {thing = 3}.thing -- 3. Also works with tables!
 [for i=0,5 do i*i end][3] -- 9. And table comprehensions!
@@ -266,7 +265,7 @@ _Not in the latest release, install the `candran-scm-1.rockspec` version if you 
 someFunction"thing":upper() -- same as (someFunction("thing")):upper() (i.e., the way it would be parsed by Lua)
 ```
 
-String litterals, table litterals, and comprehensions can be suffixed with `:` method calls, `.` or `[` indexing, or `(` functions calls, without needing to be enclosed in parantheses.
+String litterals, table litterals, and comprehensions can be suffixed with `:` method calls, `.` indexing, or `[` indexing, without needing to be enclosed in parantheses.
 
 *Please note*, that "normal" functions calls have priority over this syntax, in order to maintain Lua compatibility.
 
