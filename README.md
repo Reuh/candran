@@ -46,12 +46,14 @@ local count = [for i=1,10 i] -- single line statements
 
 local a = if condition then "one" else "two" end -- statement as expressions
 
+print("Hello %s":format("world")) -- methods calls on strings (and tables) litterals without enclosing parantheses
+
 ````
 
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
 #### Quick setup
-Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.6.2-1.rockspec```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.7.0-1.rockspec```.
 
 Or manually install LPegLabel (```luarocks install LPegLabel```, version 1.5 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
@@ -60,6 +62,7 @@ You can register the Candran package searcher in your main Lua file (`require("c
 #### Editor support
 Most editors should be able to use their existing Lua support for Candran code. If you want full support for the additional syntax in your editor:
 * **Atom**: [language-candran](https://atom.io/packages/language-candran) support the full Candran syntax
+* **Sublime Text 3**: [sublime-candran](https://github.com/Reuh/sublime-candran) support the full Candran syntax
 
 The language
 ------------
@@ -253,7 +256,6 @@ end
 `if`, `elseif`, `for`, and `while` statements can be writtent without `do`, `then` or `end`, in which case they contain a single statement.
 
 ##### Suffixable string and table litterals
-_Not in the latest release, install the `candran-scm-1.rockspec` version if you want this feature._
 ```lua
 "some text":upper() -- same as ("some text"):upper() in Lua
 "string".upper -- the actual string.upper function. "string"["upper"] also works.
@@ -267,7 +269,7 @@ someFunction"thing":upper() -- same as (someFunction("thing")):upper() (i.e., th
 
 String litterals, table litterals, and comprehensions can be suffixed with `:` method calls, `.` indexing, or `[` indexing, without needing to be enclosed in parantheses.
 
-*Please note*, that "normal" functions calls have priority over this syntax, in order to maintain Lua compatibility.
+**Please note**, that "normal" functions calls have priority over this syntax, in order to maintain Lua compatibility.
 
 ### Preprocessor
 Before compiling, Candran's preprocessor is run. It execute every line starting with a _#_ (ignoring prefixing whitespace, long strings and comments) as Candran code.
@@ -299,7 +301,9 @@ Candran is based on the Lua 5.3 syntax, but can be compiled to both Lua 5.3 and 
 
 To chose a compile target, set the ```target``` option to ```lua53``` (default) or ```luajit``` in the option table when using the library or the command line tools.
 
-Lua 5.3 specific syntax (bitwise operators, integer division) will automatically be translated in valid Lua 5.1 code, using LuaJIT's ```bit``` library if necessary. Unless you require LuaJIT's library, you won't be able to use bitwise operators with simple Lua 5.1.
+Lua 5.3 specific syntax (bitwise operators, integer division) will automatically be translated in valid Lua 5.1 code, using LuaJIT's ```bit``` library if necessary. Unless you require LuaJIT's library, you won't be able to use bitwise operators with simple Lua 5.1 ("PUC Lua").
+
+**Please note** that Candran only translates syntax, and will not try to do anything about changes in the Lua standard library (for example, the new utf8 module). If you need this, you should be able to use [lua-compat-5.3](https://github.com/keplerproject/lua-compat-5.3) along with Candran.
 
 Usage
 -----
@@ -342,7 +346,7 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
     Start a simplisitic Candran REPL.
 
-*	````canc [options] filename````
+*	````can [options] filename````
 
     Preprocess, compile and run _filename_ using the options provided.
 
@@ -365,6 +369,10 @@ load(compiled)()
 
 -- or simpler...
 candran.dofile("foo.can")
+
+-- or, if you want to be able to directly load Candran files using require("module")
+candran.setup()
+local foo = require("foo")
 ````
 Will load Candran, read the file _foo.can_, compile its contents with the argument _lang_ set to _"fr"_, and then execute the result.
 
@@ -408,8 +416,7 @@ compiling the files, you can simply call
 require("candran").setup()
 ```
 
-at the top of your main Lua file. If a Candran is found when you call ```require()```, it will be automatically compiled and loaded. If both a Lua and Candran file match a module name, the Candran
-file will be loaded.
+at the top of your main Lua file. If a Candran file is found when you call ```require()```, it will be automatically compiled and loaded. If both a Lua and Candran file match a module name, the Candran file will be loaded.
 
 * ```candran.searcher(modpath)``` : Candran package searcher function. Use the existing package.path.
 * ```candran.setup()``` : Register the Candran package searcher, and return the `candran` table.
