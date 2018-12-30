@@ -5,12 +5,25 @@ local cmdline = require("lib.cmdline")
 local args = cmdline(arg)
 
 if args.help or args.h then
-	print("Candran interpreter version "..candran.VERSION.." by Reuh")
-	print("Usage: "..arg[0].." [target=<target>] [options] filename")
+	print("Candran "..candran.VERSION.." interpreter by Reuh")
+	print("Usage: "..arg[0].." [options] filename")
+	print("Use - instead of a filename to read from the standard input.")
+	print("Default options:")
+	for opt, val in pairs(candran.default) do
+		if type(val) == "string" then val = val:gsub("\n", "\\n") end
+		print(("  %s=%q"):format(opt, val))
+	end
 	return
 end
 
-if #args >= 1 then
+if arg[#arg] == "-" then
+	local f, err = candran.load(io.read("*a"), "stdin", nil, args)
+	if not f then
+		io.stderr:write("can: "..err.."\n")
+		os.exit(1)
+	end
+	f()
+elseif #args >= 1 then
 	candran.dofile(args[1], args)
 else -- REPL
 	print("Candran " .. candran.VERSION)

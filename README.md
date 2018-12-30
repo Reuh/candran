@@ -322,11 +322,17 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
     You can choose to use another directory where files should be written using the ```dest=destinationDirectory``` argument.
 
+    You can choose the output filename using ```out=filename```. By default, compiled files have the same name as their input file, but with a ```.lua``` extension. _(not in latest release)_
+
     ```canc``` can write to the standard output instead of creating files using the ```-print``` argument.
 
-	You can choosed to run only the preprocessor or compile using the ```-preprocess``` and ```-compile``` flags.
+	You can choose to run only the preprocessor or compile using the ```-preprocess``` and ```-compile``` flags.
+
+	You can choose to only parse the file and check it for syntaxic errors using the ```-parse``` flag. Errors will be printed to stderr in a similar format to ```luac -p```. _(not in latest release)_
 
 	The ```-ast``` flag is also available for debugging, and will disable preprocessing, compiling and file writing, and instead directly dump the AST generated from the input file(s) to stdout.
+
+	Instead of providing filenames, you can use ```-``` to read from standard input. _(not in latest release)_
 
 	* example uses :
 
@@ -342,6 +348,10 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
 		preprocess _foo.can_ with _verbose_ set to _true_, compile it and execute it.
 
+		````canc -parse foo.can````
+
+		checks foo.can for syntaxic errors. _(not in latest release)_
+
 *   ```can```
 
     Start a simplisitic Candran REPL.
@@ -353,6 +363,8 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 	This will automatically register the Candran package searcher so required file will be compiled as they are needed.
 
 	This command will use error rewriting if enabled.
+
+	Instead of providing a filename, you can use ```-``` to read from standard input. _(not in latest release)_
 
 ### Library usage
 Candran can also be used as a Lua library. For example,

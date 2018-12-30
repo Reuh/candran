@@ -5,33 +5,74 @@ local parse = require("lib.lua-parser.parser").parse
 local pp = require("lib.lua-parser.pp")
 
 if #arg < 1 then
-	print("Candran compiler version "..candran.VERSION.." by Reuh")
-	print("Usage: "..arg[0].." [target=<target>] [dest=<destination directory>] [-print] [-preprocess] [-compile] [-ast] [options] filename...")
+	print("Candran "..candran.VERSION.." compiler by Reuh")
+	print("Usage: "..arg[0].." [options] filenames...")
+	print("Use - instead of filenames to read from the standard input. The output file will be named stdin.lua by default.")
+	print("Compiler options:")
+	print("  dest=\"directory\"  where compiled files should be written")
+	print("  out=\"name.lua\"    output filename. By default, will use the same name as the input file with a .lua extension.")
+	print("  -print            write to the standard output instead of creating files")
+	print("  -preprocess       only run the preprocessor")
+	print("  -compile          only run the compiler")
+	print("  -parse            only parse the file and prints errors to stdout")
+	print("  -ast              (for debugging purposes) only parse the files and dump the AST to stdout")
+	print("Default options:")
+	for opt, val in pairs(candran.default) do
+		if type(val) == "string" then val = val:gsub("\n", "\\n") end
+		print(("  %s=%q"):format(opt, val))
+	end
 	return
 end
 
 local args = cmdline(arg)
 
+if arg[#arg] == "-" then
+	table.insert(args, io.stdin)
+end
+
 for _, file in ipairs(args) do
-	local dest = file:gsub("%.can$", "")..".lua"
+	-- Read
+	local dest, input
+	if file == io.stdin then
+		dest = args.out or "stdin.lua"
+
+		input = io.read("*a")
+
+		args.chunkname = "stdin"
+	else
+		dest = args.out or (file:gsub("%.can$", "")..".lua")
+
+		local inputFile, err = io.open(file, "r")
+		if not inputFile then
+			io.stderr:write("canc: cannot open "..file..": "..err)
+			os.exit(1)
+		end
+		input = inputFile:read("*a")
+		inputFile:close()
+
+		args.chunkname = file
+	end
+
+	-- Parse-only situations
+	if args.parse or args.ast then
+		local ast, err = parse(input, args.chunkname)
+		if not ast then
+			io.stderr:write("canc: "..err.."\n")
+			os.exit(1)
+		end
+		if args.ast then
+			pp.dump(ast)
+		end
+		return
+	end
+
+	-- Compile and output
 	if args.dest then
 		dest = args.dest .. "/" .. dest
 	end
 
 	if not args.print then
-		print("Compiling "..file.." in "..dest)
-	end
-
-	local inputFile, err = io.open(file, "r")
-	if not inputFile then error("Error while opening input file: "..err) end
-	local input = inputFile:read("*a")
-	inputFile:close()
-
-	args.chunkname = file
-
-	if args.ast then
-		pp.dump(assert(parse(input, args.chunkname)))
-		return
+		print("Compiling "..args.chunkname.." in "..dest)
 	end
 
 	local out = input
@@ -48,12 +89,13 @@ for _, file in ipairs(args) do
 	if args.print then
 		print(out)
 	else
-		local outFile = io.open(dest, "w")
+		local outFile, err = io.open(dest, "w")
 		if not outFile then
 			os.execute("mkdir -p "..dest:gsub("[^/]+%.lua$", ""))
 			outFile, err = io.open(dest, "w")
 			if not outFile then
-				error("Error while writing output file: "..err)
+				io.stderr:write("canc: cannot open "..dest..": "..err)
+				os.exit(1)
 			end
 		end
 		outFile:write(out)
