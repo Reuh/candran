@@ -2933,7 +2933,7 @@ local parser = _() or parser -- ./lib/lua-parser/parser.lua:689
 package["loaded"]["lib.lua-parser.parser"] = parser or true -- ./lib/lua-parser/parser.lua:690
 local candran = { ["VERSION"] = "0.7.0-dev" } -- candran.can:13
 candran["default"] = { -- candran.can:17
-["target"] = "lua53", -- candran.can:18
+["target"] = _VERSION == "Lua 5.1" and "luajit" or "lua53", -- candran.can:18
 ["indentation"] = "", -- candran.can:19
 ["newline"] = "\
 ", -- candran.can:20
@@ -3116,7 +3116,7 @@ for l in originalFile:gmatch("([^\
 ]*)") do -- candran.can:241
 i = i + 1 -- candran.can:242
 if i == line then -- candran.can:243
-local extSource, lineMap = l:match("%-%- (.-)%:(%d+)$") -- candran.can:244
+local extSource, lineMap = l:match("%-%- ([^:]-)%:(%d+)$") -- candran.can:244
 if lineMap then -- candran.can:245
 if extSource ~= source then -- candran.can:246
 return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:247
