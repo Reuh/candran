@@ -241,7 +241,7 @@ function candran.messageHandler(message)
 			for l in originalFile:gmatch("([^\n]*)") do
 				i = i +1
 				if i == line then
-					local extSource, lineMap = l:match("%-%- ([^:]-)%:(%d+)$")
+					local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$")
 					if lineMap then
 						if extSource ~= source then
 							return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):"
