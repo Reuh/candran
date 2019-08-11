@@ -20,7 +20,7 @@ end
 let a = {
 	hey = true,
 
-	newHop = :(foo, thing) -- short function declaration, with self
+	method = :(foo, thing) -- short function declaration, with self
 		@hey = thing(foo) -- @ as an alias for self
 	end,
 
@@ -29,11 +29,11 @@ let a = {
 	end
 }
 
-a:newHop(42, (foo)
+a:method(42, (foo)
 	return "something " .. foo
 end)
 
-local list = [ -- table comprehension (kind of)
+local odd = [ -- table comprehension (kind of)
 	for i=1, 10 do
 		if i%2 == 0 then
 			continue -- continue keyword
@@ -53,7 +53,7 @@ print("Hello %s":format("world")) -- methods calls on strings (and tables) litte
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
 #### Quick setup
-Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.7.0-1.rockspec```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.8.0-1.rockspec```.
 
 Or manually install LPegLabel (```luarocks install LPegLabel```, version 1.5 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
@@ -61,8 +61,10 @@ You can register the Candran package searcher in your main Lua file (`require("c
 
 #### Editor support
 Most editors should be able to use their existing Lua support for Candran code. If you want full support for the additional syntax in your editor:
+* **Sublime Text 3**:
+	* [sublime-candran](https://github.com/Reuh/sublime-candran) support the full Candran syntax
+	* [SublimeLinter-candran-contrib](https://github.com/Reuh/SublimeLinter-contrib-candran) SublimeLinter plugin for Candran
 * **Atom**: [language-candran](https://atom.io/packages/language-candran) support the full Candran syntax
-* **Sublime Text 3**: [sublime-candran](https://github.com/Reuh/sublime-candran) support the full Candran syntax
 
 The language
 ------------
@@ -105,6 +107,20 @@ It is equivalent to doing ```if arg == nil then arg = default end``` for each ar
 
 The default values can be complete Lua expressions, and will be evaluated each time the function is run.
 
+##### Short anonymous function declaration
+```lua
+a = (arg1, arg2)
+	print(arg1)
+end
+
+b = :(hop)
+	print(self, hop)
+end
+```
+Anonymous function (functions values) can be created in a more concise way by omitting the ```function``` keyword.
+
+A ```:``` can prefix the parameters paranthesis to automatically add a ```self``` parameter.
+
 ##### `@` self aliases
 ```lua
 a = {
@@ -120,20 +136,6 @@ end
 When a variable name is prefied with ```@```, the name will be accessed in ```self```.
 
 When used by itself, ```@``` is an alias for ```self```.
-
-##### Short anonymous function declaration
-```lua
-a = (arg1, arg2)
-	print(arg1)
-end
-
-b = :(hop)
-	print(self, hop)
-end
-```
-Anonymous function (functions values) can be created in a more concise way by omitting the ```function``` keyword.
-
-A ```:``` can prefix the parameters paranthesis to automatically add a ```self``` parameter.
 
 ##### `let` variable declaration
 ```lua
@@ -197,21 +199,6 @@ Any list of expressions placed *at the end of a block* will be converted into a 
 
 **Please note** that this doesn't work with `v()` function calls, because these are already valid statements. Use `push v()` instead.
 
-##### Statement expressions
-```lua
-a = if false then
-	"foo" -- i.e. push "foo", i.e. return "foo"
-else
-	"bar"
-end
-print(a) -- bar
-
-a, b, c = for i=1,2 do i end
-print(a, b, c) -- 1, 2, nil
-```
-
-Candran allows to use `if`, `do`, `while`, `repeat` and `for` statements as expressions. Their content will be run as if they were run in a separate function which is immediatly run.
-
 ##### Table comprehension
 ```lua
 a = [
@@ -239,22 +226,6 @@ Values returned by the function will be inserted in the generated table in the o
 
 The table generation function also have access to the `self` (or its alias `@`) variable, which is the table which is being created, so you can set arbitrary fields of the table.
 
-##### One line statements
-```lua
-if condition()
-	a()
-elseif foo()
-	b()
-
-if other()
-	a()
-else -- "end" is always needed for else!
-	c()
-end
-```
-
-`if`, `elseif`, `for`, and `while` statements can be writtent without `do`, `then` or `end`, in which case they contain a single statement.
-
 ##### Suffixable string and table litterals
 ```lua
 "some text":upper() -- same as ("some text"):upper() in Lua
@@ -270,6 +241,37 @@ someFunction"thing":upper() -- same as (someFunction("thing")):upper() (i.e., th
 String litterals, table litterals, and comprehensions can be suffixed with `:` method calls, `.` indexing, or `[` indexing, without needing to be enclosed in parantheses.
 
 **Please note**, that "normal" functions calls have priority over this syntax, in order to maintain Lua compatibility.
+
+##### Statement expressions
+```lua
+a = if false then
+	"foo" -- i.e. push "foo", i.e. return "foo"
+else
+	"bar"
+end
+print(a) -- bar
+
+a, b, c = for i=1,2 do i end
+print(a, b, c) -- 1, 2, nil
+```
+
+Candran allows to use `if`, `do`, `while`, `repeat` and `for` statements as expressions. Their content will be run as if they were run in a separate function which is immediatly run.
+
+##### One line statements
+```lua
+if condition()
+	a()
+elseif foo()
+	b()
+
+if other()
+	a()
+else -- "end" is always needed for else!
+	c()
+end
+```
+
+`if`, `elseif`, `for`, and `while` statements can be writtent without `do`, `then` or `end`, in which case they contain a single statement.
 
 ### Preprocessor
 Before compiling, Candran's preprocessor is run. It execute every line starting with a _#_ (ignoring prefixing whitespace, long strings and comments) as Candran code.
@@ -437,7 +439,7 @@ at the top of your main Lua file. If a Candran file is found when you call ```re
 You can give arbitrary options which will be gived to the preprocessor, but Candran already provide and uses these with their associated default values:
 
 ```lua
-target = "lua53" -- Compiler target. "lua53" or "luajit".
+target = "lua53" -- Compiler target. "lua53" or "luajit" (default is automatically selected based on the Lua version used).
 indentation = "" -- Character(s) used for indentation in the compiled file.
 newline = "\n" -- Character(s) used for newlines in the compiled file.
 variablePrefix = "__CAN_" -- Prefix used when Candran needs to set a local variable to provide some functionality (example: to load LuaJIT's bit lib when using bitwise operators).
@@ -464,6 +466,6 @@ canc candran.can
 You can then run the tests on your build :
 
 ````
-cd tests
+cd test
 lua test.lua ../candran.lua
 ````

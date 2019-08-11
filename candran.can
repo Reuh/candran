@@ -10,7 +10,7 @@
 #import("lib.lua-parser.parser")
 
 local candran = {
-	VERSION = "0.7.0-dev"
+	VERSION = "0.8.0"
 }
 
 --- Default options.

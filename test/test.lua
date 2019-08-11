@@ -544,14 +544,6 @@ local s = function() return {len=4} end
 local a = s"foo"["len"]
 return a
 ]], 4)
-test("suffixable string litteral call", [[
-local r, e = pcall(function() "foo"() end)
-return not r and e:match("attempt to call a string value")
-]], "attempt to call a string value")
-test("suffixable string litteral call lua conflict", [[
-local s = function() return function() return 4 end end
-return s"foo"()
-]], 4)
 
 test("suffixable table litteral method", [[
 return {a=3,len=function(t) return t.a end}:len()
@@ -574,14 +566,6 @@ test("suffixable table litteral dot index lua conflict", [[
 local s = function() return {len=4} end
 return s{len=3}["len"]
 ]], 4)
-test("suffixable table litteral call", [[
-local r, e = pcall(function() {}() end)
-return not r and e:match("attempt to call a table value")
-]], "attempt to call a table value")
-test("suffixable table litteral call lua conflict", [[
-local s = function() return function() return 4 end end
-return s{}()
-]], 4)
 
 test("suffixable table comprehension method", [[
 return [@len = function() return 3 end]:len()
@@ -592,10 +576,6 @@ return [@len = 3].len
 test("suffixable table comprehension array index", [[
 return [@len=3]["len"]
 ]], 3)
-test("suffixable table comprehension call", [[
-local r, e = pcall(function() []() end)
-return not r and e:match("attempt to call a table value")
-]], "attempt to call a table value")
 
 -- results
 local resultCounter = {}

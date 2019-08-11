@@ -1,6 +1,6 @@
 package = "candran"
 
-version = "0.7.0-1"
+version = "0.8.0-1"
 
 description = {
 	summary = "A simple Lua dialect and preprocessor.",
@@ -10,14 +10,14 @@ description = {
 	]],
 	license = "MIT",
 	homepage = "https://github.com/Reuh/candran",
-	--issues_url = "https://github.com/Reuh/candran", -- LuaRocks 3.0
+	issues_url = "https://github.com/Reuh/candran",
 	maintainer = "Étienne 'Reuh' Fildadut <fildadut@reuh.eu>",
-	--labels = {} -- LuaRocks 3.0
+	labels = {"lpeg", "commandline"}
 }
 
 source = {
 	url = "git://github.com/Reuh/candran",
-	tag = "v0.7.0"
+	tag = "v0.8.0"
 }
 
 dependencies = {
@@ -33,5 +33,4 @@ build = {
 	install = {
 		bin = { "bin/can", "bin/canc" }
 	}
-	--copy_directories = { "doc", "test" }
 }
