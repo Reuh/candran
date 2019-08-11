@@ -1,3 +1,5 @@
+rockspec_format = "3.0"
+
 package = "candran"
 
 version = "scm-1"
@@ -10,9 +12,9 @@ description = {
 	]],
 	license = "MIT",
 	homepage = "https://github.com/Reuh/candran",
-	--issues_url = "https://github.com/Reuh/candran", -- LuaRocks 3.0
+	issues_url = "https://github.com/Reuh/candran",
 	maintainer = "Étienne 'Reuh' Fildadut <fildadut@reuh.eu>",
-	--labels = {} -- LuaRocks 3.0
+	labels = {"lpeg", "commandline"}
 }
 
 source = {
@@ -32,5 +34,4 @@ build = {
 	install = {
 		bin = { "bin/can", "bin/canc" }
 	}
-	--copy_directories = { "doc", "test" }
 }

@@ -1,3 +1,5 @@
+rockspec_format = "3.0"
+
 package = "candran"
 
 version = "0.8.0-1"
