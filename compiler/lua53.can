@@ -123,10 +123,10 @@ return function(code, ast, options)
 		return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end"
 	end
 	local CONTINUE_START = () -- at the start of loops using continue
-		return ""
+		return "do" .. indent()
 	end
 	local CONTINUE_STOP = () -- at the start of loops using continue
-		return newline() .. "::" .. var("continue") .. "::"
+		return unindent() .. "end" .. newline() .. "::" .. var("continue") .. "::"
 	end
 
 	--- Tag constructors

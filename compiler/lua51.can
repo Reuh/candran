@@ -19,6 +19,13 @@ tags.Break = ()
 	end
 end
 
+tags.Goto = ()
+	error("Lua 5.1 does not support the goto keyword")
+end
+tags.Label = ()
+	error("Lua 5.1 does not support labels")
+end
+
 #local patch = output
 #output = ""
 #import("compiler.luajit", { patch = patch, loadPackage = false })

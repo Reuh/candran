@@ -245,10 +245,10 @@ local APPEND = function(t, toAppend) -- append values "toAppend" (multiple value
 return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end" -- ./compiler/lua53.can:123
 end -- ./compiler/lua53.can:123
 local CONTINUE_START = function() -- at the start of loops using continue -- ./compiler/lua53.can:125
-return "" -- ./compiler/lua53.can:126
+return "do" .. indent() -- ./compiler/lua53.can:126
 end -- ./compiler/lua53.can:126
 local CONTINUE_STOP = function() -- at the start of loops using continue -- ./compiler/lua53.can:128
-return newline() .. "::" .. var("continue") .. "::" -- ./compiler/lua53.can:129
+return unindent() .. "end" .. newline() .. "::" .. var("continue") .. "::" -- ./compiler/lua53.can:129
 end -- ./compiler/lua53.can:129
 tags = setmetatable({ -- ./compiler/lua53.can:133
 ["Block"] = function(t) -- ./compiler/lua53.can:135
@@ -822,10 +822,10 @@ local APPEND = function(t, toAppend) -- append values "toAppend" (multiple value
 return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end" -- ./compiler/lua53.can:123
 end -- ./compiler/lua53.can:123
 local CONTINUE_START = function() -- at the start of loops using continue -- ./compiler/lua53.can:125
-return "" -- ./compiler/lua53.can:126
+return "do" .. indent() -- ./compiler/lua53.can:126
 end -- ./compiler/lua53.can:126
 local CONTINUE_STOP = function() -- at the start of loops using continue -- ./compiler/lua53.can:128
-return newline() .. "::" .. var("continue") .. "::" -- ./compiler/lua53.can:129
+return unindent() .. "end" .. newline() .. "::" .. var("continue") .. "::" -- ./compiler/lua53.can:129
 end -- ./compiler/lua53.can:129
 tags = setmetatable({ -- ./compiler/lua53.can:133
 ["Block"] = function(t) -- ./compiler/lua53.can:135
@@ -1436,10 +1436,10 @@ local APPEND = function(t, toAppend) -- append values "toAppend" (multiple value
 return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end" -- ./compiler/lua53.can:123
 end -- ./compiler/lua53.can:123
 local CONTINUE_START = function() -- at the start of loops using continue -- ./compiler/lua53.can:125
-return "" -- ./compiler/lua53.can:126
+return "do" .. indent() -- ./compiler/lua53.can:126
 end -- ./compiler/lua53.can:126
 local CONTINUE_STOP = function() -- at the start of loops using continue -- ./compiler/lua53.can:128
-return newline() .. "::" .. var("continue") .. "::" -- ./compiler/lua53.can:129
+return unindent() .. "end" .. newline() .. "::" .. var("continue") .. "::" -- ./compiler/lua53.can:129
 end -- ./compiler/lua53.can:129
 tags = setmetatable({ -- ./compiler/lua53.can:133
 ["Block"] = function(t) -- ./compiler/lua53.can:135
@@ -1943,6 +1943,12 @@ else -- ./compiler/lua51.can:16
 return "break" -- ./compiler/lua51.can:18
 end -- ./compiler/lua51.can:18
 end -- ./compiler/lua51.can:18
+tags["Goto"] = function() -- ./compiler/lua51.can:22
+error("Lua 5.1 does not support the goto keyword") -- ./compiler/lua51.can:23
+end -- ./compiler/lua51.can:23
+tags["Label"] = function() -- ./compiler/lua51.can:25
+error("Lua 5.1 does not support labels") -- ./compiler/lua51.can:26
+end -- ./compiler/lua51.can:26
 local code = lua(ast) .. newline() -- ./compiler/lua53.can:569
 return requireStr .. code -- ./compiler/lua53.can:570
 end -- ./compiler/lua53.can:570
@@ -1951,11 +1957,11 @@ local lua53 = _() or lua53 -- ./compiler/lua53.can:575
 return lua53 -- ./compiler/luajit.can:42
 end -- ./compiler/luajit.can:42
 local luajit = _() or luajit -- ./compiler/luajit.can:46
-return luajit -- ./compiler/lua51.can:26
-end -- ./compiler/lua51.can:26
-local lua51 = _() or lua51 -- ./compiler/lua51.can:30
-package["loaded"]["compiler.lua51"] = lua51 or true -- ./compiler/lua51.can:31
-local function _() -- ./compiler/lua51.can:35
+return luajit -- ./compiler/lua51.can:33
+end -- ./compiler/lua51.can:33
+local lua51 = _() or lua51 -- ./compiler/lua51.can:37
+package["loaded"]["compiler.lua51"] = lua51 or true -- ./compiler/lua51.can:38
+local function _() -- ./compiler/lua51.can:42
 local scope = {} -- ./lib/lua-parser/scope.lua:4
 scope["lineno"] = function(s, i) -- ./lib/lua-parser/scope.lua:6
 if i == 1 then -- ./lib/lua-parser/scope.lua:7
