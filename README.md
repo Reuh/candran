@@ -1,6 +1,6 @@
 Candran
 =======
-Candran is a dialect of the [Lua 5.3](http://www.lua.org) programming language which compiles to Lua 5.3 and Lua 5.1/LuaJit. It adds several useful syntax additions which aims to make Lua faster and easier to write, and a simple preprocessor.
+Candran is a dialect of the [Lua 5.3](http://www.lua.org) programming language which compiles to Lua 5.3, LuaJIT and Lua 5.1. It adds several useful syntax additions which aims to make Lua faster and easier to write, and a simple preprocessor.
 
 Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing Lua code can run on Candran unmodified.
 
@@ -299,11 +299,11 @@ The preprocessor has access to the following variables :
 
 Compile targets
 ---------------
-Candran is based on the Lua 5.3 syntax, but can be compiled to both Lua 5.3 and Lua 5.1/LuaJit.
+Candran is based on the Lua 5.3 syntax, but can be compiled to Lua 5.3, LuaJIT, and Lua 5.1.
 
-To chose a compile target, set the ```target``` option to ```lua53``` (default) or ```luajit``` in the option table when using the library or the command line tools.
+To chose a compile target, set the ```target``` option to ```lua53```, ```luajit```, or ```lua51``` in the option table when using the library or the command line tools. Candran will try detect the currently used Lua version and use it as a target by default.
 
-Lua 5.3 specific syntax (bitwise operators, integer division) will automatically be translated in valid Lua 5.1 code, using LuaJIT's ```bit``` library if necessary. Unless you require LuaJIT's library, you won't be able to use bitwise operators with simple Lua 5.1 ("PUC Lua").
+For the ```luajit``` and ```lua51``` targets, Lua 5.3 specific syntax (bitwise operators, integer division) will automatically be translated to valid Lua 5.1 syntax, using LuaJIT's ```bit``` library if necessary. Unless you require LuaJIT's library, you won't be able to use bitwise operators with simple Lua 5.1 ("PUC Lua").
 
 **Please note** that Candran only translates syntax, and will not try to do anything about changes in the Lua standard library (for example, the new utf8 module). If you need this, you should be able to use [lua-compat-5.3](https://github.com/keplerproject/lua-compat-5.3) along with Candran.
 
@@ -439,7 +439,7 @@ at the top of your main Lua file. If a Candran file is found when you call ```re
 You can give arbitrary options which will be gived to the preprocessor, but Candran already provide and uses these with their associated default values:
 
 ```lua
-target = "lua53" -- Compiler target. "lua53" or "luajit" (default is automatically selected based on the Lua version used).
+target = "lua53" -- Compiler target. "lua53", "luajit" or "lua51" (default is automatically selected based on the Lua version used).
 indentation = "" -- Character(s) used for indentation in the compiled file.
 newline = "\n" -- Character(s) used for newlines in the compiled file.
 variablePrefix = "__CAN_" -- Prefix used when Candran needs to set a local variable to provide some functionality (example: to load LuaJIT's bit lib when using bitwise operators).

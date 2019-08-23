@@ -384,7 +384,61 @@ return a.foo()
 ]], "table")
 
 -- continue keyword
-test("continue keyword", [[
+test("continue keyword in while", [[
+local a = ""
+local i = 0
+while i < 10 do
+	i = i + 1
+	if i % 2 == 0 then
+		continue
+	end
+	a = a .. i
+end
+return a
+]], "13579")
+test("continue keyword in while, used with break", [[
+local a = ""
+local i = 0
+while i < 10 do
+	i = i + 1
+	if i % 2 == 0 then
+		continue
+	end
+	a = a .. i
+	if i == 5 then
+		break
+	end
+end
+return a
+]], "135")
+test("continue keyword in repeat", [[
+local a = ""
+local i = 0
+repeat
+	i = i + 1
+	if i % 2 == 0 then
+		continue
+	end
+	a = a .. i
+until i == 10
+return a
+]], "13579")
+test("continue keyword in repeat, used with break", [[
+local a = ""
+local i = 0
+repeat
+	i = i + 1
+	if i % 2 == 0 then
+		continue
+	end
+	a = a .. i
+	if i == 5 then
+		break
+	end
+until i == 10
+return a
+]], "135")
+test("continue keyword in fornum", [[
 local a = ""
 for i=1, 10 do
 	if i % 2 == 0 then
@@ -394,6 +448,44 @@ for i=1, 10 do
 end
 return a
 ]], "13579")
+test("continue keyword in fornum, used with break", [[
+local a = ""
+for i=1, 10 do
+	if i % 2 == 0 then
+		continue
+	end
+	a = a .. i
+	if i == 5 then
+		break
+	end
+end
+return a
+]], "135")
+test("continue keyword in for", [[
+local t = {1,2,3,4,5,6,7,8,9,10}
+local a = ""
+for _, i in ipairs(t) do
+	if i % 2 == 0 then
+		continue
+	end
+	a = a .. i
+end
+return a
+]], "13579")
+test("continue keyword in for, used with break", [[
+local t = {1,2,3,4,5,6,7,8,9,10}
+local a = ""
+for _, i in ipairs(t) do
+	if i % 2 == 0 then
+		continue
+	end
+	a = a .. i
+	if i == 5 then
+		break
+	end
+end
+return a
+]], "135")
 
 -- push keyword
 test("push keyword", [[

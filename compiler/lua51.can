@@ -1,0 +1,26 @@
+states.continue = {} -- when in a loop that use continue
+
+CONTINUE_START = ()
+	return "local " .. var("break") .. newline() .. "repeat" .. indent() .. push("continue", var("break"))
+end
+CONTINUE_STOP = ()
+	return pop("continue") .. unindent() .. "until true" .. newline() .. "if " .. var("break") .. " then break end"
+end
+
+tags.Continue = ()
+	return "break"
+end
+tags.Break = ()
+	local inContinue = peek("continue")
+	if inContinue then
+		return inContinue .. " = true" .. newline() .. "break"
+	else
+		return "break"
+	end
+end
+
+#local patch = output
+#output = ""
+#import("compiler.luajit", { patch = patch, loadPackage = false })
+
+return luajit

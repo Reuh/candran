@@ -3,6 +3,7 @@
 
 #import("compiler.lua53")
 #import("compiler.luajit")
+#import("compiler.lua51")
 
 #import("lib.lua-parser.scope")
 #import("lib.lua-parser.validator")
@@ -10,12 +11,12 @@
 #import("lib.lua-parser.parser")
 
 local candran = {
-	VERSION = "0.8.0"
+	VERSION = "0.9.0"
 }
 
 --- Default options.
 candran.default = {
-	target = _VERSION == "Lua 5.1" and "luajit" or "lua53",
+	target = "lua53",
 	indentation = "",
 	newline = "\n",
 	variablePrefix = "__CAN_",
@@ -23,6 +24,15 @@ candran.default = {
 	chunkname = "nil",
 	rewriteErrors = true
 }
+
+-- Autodetect version
+if _VERSION == "Lua 5.1" then
+	if package.loaded.jit then
+		candran.default.target = "luajit"
+	else
+		candran.default.target = "lua51"
+	end
+end
 
 --- Run the preprocessor
 -- @tparam input string input code

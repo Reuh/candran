@@ -122,6 +122,12 @@ return function(code, ast, options)
 	local APPEND = (t, toAppend) -- append values "toAppend" (multiple values possible) to t
 		return "do" .. indent() .. "local a = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(a, 1, a.n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end"
 	end
+	local CONTINUE_START = () -- at the start of loops using continue
+		return ""
+	end
+	local CONTINUE_STOP = () -- at the start of loops using continue
+		return newline() .. "::" .. var("continue") .. "::"
+	end
 
 	--- Tag constructors
 	tags = setmetatable({
@@ -187,25 +193,25 @@ return function(code, ast, options)
 			local hasContinue = any(t[2], { "Continue" }, loop)
 			local r = "while " .. lua(t[1]) .. " do" .. indent()
 			if hasContinue then
-				r ..= "repeat" .. indent()
+				r ..= CONTINUE_START()
 			end
 			r .. = lua(t[2])
 			if hasContinue then
-				r ..= unindent() .. "until true"
+				r ..= CONTINUE_STOP()
 			end
 			r ..= unindent() .. "end"
 			return r
 		end,
 		-- Repeat{ block expr }
 		Repeat = (t)
-			local hasContinue = any(t[2], { "Continue" }, loop)
+			local hasContinue = any(t[1], { "Continue" }, loop)
 			local r = "repeat" .. indent()
 			if hasContinue then
-				r ..= "repeat" .. indent()
+				r ..= CONTINUE_START()
 			end
 			r .. = lua(t[1])
 			if hasContinue then
-				r ..= unindent() .. "until true"
+				r ..= CONTINUE_STOP()
 			end
 			r ..= unindent() .. "until " .. lua(t[2])
 			return r
@@ -228,22 +234,22 @@ return function(code, ast, options)
 				local hasContinue = any(t[5], { "Continue" }, loop)
 				r ..= ", " .. lua(t[4]) .. " do" .. indent()
 				if hasContinue then
-					r ..= "repeat" .. indent()
+					r ..= CONTINUE_START()
 				end
 				r ..= lua(t[5])
 				if hasContinue then
-					r ..= unindent() .. "until true"
+					r ..= CONTINUE_STOP()
 				end
 				return r .. unindent() .. "end"
 			else
 				local hasContinue = any(t[4], { "Continue" }, loop)
 				r ..= " do" .. indent()
 				if hasContinue then
-					r ..= "repeat" .. indent()
+					r ..= CONTINUE_START()
 				end
 				r ..= lua(t[4])
 				if hasContinue then
-					r ..= unindent() .. "until true"
+					r ..= CONTINUE_STOP()
 				end
 				return r .. unindent() .. "end"
 			end
@@ -253,11 +259,11 @@ return function(code, ast, options)
 			local hasContinue = any(t[3], { "Continue" }, loop)
 			local r = "for " .. lua(t[1], "_lhs") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent()
 			if hasContinue then
-				r ..= "repeat" .. indent()
+				r ..= CONTINUE_START()
 			end
 			r ..= lua(t[3])
 			if hasContinue then
-				r ..= unindent() .. "until true"
+				r ..= CONTINUE_STOP()
 			end
 			return r .. unindent() .. "end"
 		end,
@@ -329,7 +335,7 @@ return function(code, ast, options)
 		end,
 		-- Continue
 		Continue = ()
-			return "break"
+			return "goto " .. var("continue")
 		end,
 		-- apply (below)
 
