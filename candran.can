@@ -11,7 +11,7 @@
 #import("lib.lua-parser.parser")
 
 local candran = {
-	VERSION = "0.9.0"
+	VERSION = "0.9.1"
 }
 
 --- Default options.
@@ -248,7 +248,7 @@ function candran.messageHandler(message)
 
 		if originalFile then
 			local i = 0
-			for l in originalFile:gmatch("([^\n]*)") do
+			for l in originalFile:gmatch("([^\n]*)\n") do
 				i = i +1
 				if i == line then
 					local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$")
