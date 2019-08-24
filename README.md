@@ -1,8 +1,8 @@
 Candran
 =======
-Candran is a dialect of the [Lua 5.3](http://www.lua.org) programming language which compiles to Lua 5.3, LuaJIT and Lua 5.1. It adds several useful syntax additions which aims to make Lua faster and easier to write, and a simple preprocessor.
+Candran is a dialect of the [Lua 5.3](http://www.lua.org) programming language which compiles to Lua 5.3, LuaJIT and Lua 5.1 compatible code. It adds several useful syntax additions which aims to make Lua faster and easier to write, and a simple preprocessor.
 
-Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing Lua code can run on Candran unmodified.
+Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing Lua code should be able to run on Candran unmodified.
 
 ````lua
 #import("lib.thing") -- static import
@@ -25,7 +25,7 @@ let a = {
 	end,
 
 	selfReference = () -- short function declaration, without self
-		return a -- no need for a prior local declaration using let
+		return a -- no need for a prior local declaration when using let
 	end
 }
 
@@ -33,7 +33,7 @@ a:method(42, (foo)
 	return "something " .. foo
 end)
 
-local odd = [ -- table comprehension (kind of)
+local odd = [ -- table comprehension
 	for i=1, 10 do
 		if i%2 == 0 then
 			continue -- continue keyword
@@ -46,9 +46,11 @@ local count = [for i=1,10 i] -- single line statements
 
 local a = if condition then "one" else "two" end -- statement as expressions
 
-print("Hello %s":format("world")) -- methods calls on strings (and tables) litterals without enclosing parantheses
+print("Hello %s":format("world")) -- methods calls on strings (and tables) litterals without enclosing parentheses
 
 ````
+
+**Current status**: Candran in heavily used in several of my personal projects and works as expected.
 
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
@@ -91,9 +93,9 @@ For example, a ````var += nb```` assignment will be compiled into ````var = var 
 
 All theses operators can also be put right of the assigment operator, in which case ```var =+ nb``` will be compiled into ```var = nb + var```.
 
-If you feel like writing hard to understand code, right and left operator can be used at the same time.
+Right and left operator can be used at the same time.
 
-**Please note** that the Lua code `a=-1` will be compiled into `a = 1 - a` and not `a = -1`! Write good code, write spaced code: `a = -1` works as expected.
+**Please note** that the Lua code `a=-1` will be compiled into `a = 1 - a` and not `a = -1`! Write spaced code: `a = -1` works as expected.
 
 ##### Default function parameters
 ```lua
@@ -101,11 +103,11 @@ function foo(bar = "default", other = thing.do())
     -- stuff
 end
 ```
-If an argument isn't provided or ```nil``` when the function is called, it will be automatically set to a default value.
+If an argument isn't provided or set to ```nil``` when the function is called, it will automatically be set to its default value.
 
 It is equivalent to doing ```if arg == nil then arg = default end``` for each argument at the start of the function.
 
-The default values can be complete Lua expressions, and will be evaluated each time the function is run.
+The default values can be any Lua expression, which will be evaluated in the function's scope each time the default value end up being used.
 
 ##### Short anonymous function declaration
 ```lua
@@ -119,7 +121,7 @@ end
 ```
 Anonymous function (functions values) can be created in a more concise way by omitting the ```function``` keyword.
 
-A ```:``` can prefix the parameters paranthesis to automatically add a ```self``` parameter.
+A ```:``` can prefix the parameters parenthesis to automatically add a ```self``` parameter.
 
 ##### `@` self aliases
 ```lua
@@ -177,9 +179,9 @@ push "hey" -- Does *not* work, because it is a valid Lua syntax for push("hey")
 
 Add one or more value to the returned value list. If you use a `return` afterwards, the pushed values will be placed *before* the `return` values, otherwise the function will only return what was pushed.
 
-This keyword is mainly useful when used through implicit `push` with table comprehension and statement expressions.
+In particular, this keyword is useful when used through implicit `push` with table comprehension and statement expressions.
 
-**Please note** that, in order to stay compatible with vanilla Lua syntax, any `push` immediatly followed by a `"string expression"`, `{table expression}` or `(paranthesis)` will be interpreted as a function call. It's recommended to use the implicit `push` instead (when possible).
+**Please note** that, in order to stay compatible with vanilla Lua syntax, any `push` immediatly followed by a `"string expression"`, `{table expression}` or `(parenthesis)` will be interpreted as a function call. It's recommended to use the implicit `push` when possible.
 
 ##### Implicit `push`
 ```lua
@@ -197,7 +199,7 @@ local square = (x) x*x end -- function(x) return x*x end
 
 Any list of expressions placed *at the end of a block* will be converted into a `push` automatically.
 
-**Please note** that this doesn't work with `v()` function calls, because these are already valid statements. Use `push v()` instead.
+**Please note** that this doesn't work with `v()` function calls, because these are already valid statements. Use `push v()` in this case.
 
 ##### Table comprehension
 ```lua
@@ -224,12 +226,12 @@ You can write *any* code you want between `[` and `]`, this code will be run as 
 
 Values returned by the function will be inserted in the generated table in the order they were returned. This way, each time you `push` value(s), they will be added to the table.
 
-The table generation function also have access to the `self` (or its alias `@`) variable, which is the table which is being created, so you can set arbitrary fields of the table.
+The table generation function also have access to the `self` variable (and its alias `@`), which is the table which is being created, so you can set any of the table's field.
 
 ##### Suffixable string and table litterals
 ```lua
-"some text":upper() -- same as ("some text"):upper() in Lua
-"string".upper -- the actual string.upper function. "string"["upper"] also works.
+"some text":upper() -- "SOME TEXT". Same as ("some text"):upper() in Lua.
+"string".upper -- the string.upper function. "string"["upper"] also works.
 
 {thing = 3}.thing -- 3. Also works with tables!
 [for i=0,5 do i*i end][3] -- 9. And table comprehensions!
@@ -238,7 +240,7 @@ The table generation function also have access to the `self` (or its alias `@`) 
 someFunction"thing":upper() -- same as (someFunction("thing")):upper() (i.e., the way it would be parsed by Lua)
 ```
 
-String litterals, table litterals, and comprehensions can be suffixed with `:` method calls, `.` indexing, or `[` indexing, without needing to be enclosed in parantheses.
+String litterals, table litterals, and comprehensions can be suffixed with `:` method calls, `.` indexing, or `[` indexing, without needing to be enclosed in parentheses.
 
 **Please note**, that "normal" functions calls have priority over this syntax, in order to maintain Lua compatibility.
 
@@ -255,7 +257,7 @@ a, b, c = for i=1,2 do i end
 print(a, b, c) -- 1, 2, nil
 ```
 
-Candran allows to use `if`, `do`, `while`, `repeat` and `for` statements as expressions. Their content will be run as if they were run in a separate function which is immediatly run.
+`if`, `do`, `while`, `repeat` and `for` statements can be used as expressions. Their content will be run as if they were run in a separate function which is immediatly run.
 
 ##### One line statements
 ```lua
@@ -271,7 +273,9 @@ else -- "end" is always needed for else!
 end
 ```
 
-`if`, `elseif`, `for`, and `while` statements can be writtent without `do`, `then` or `end`, in which case they contain a single statement.
+`if`, `elseif`, `for`, and `while` statements can be written without `do`, `then` or `end`, in which case they contain a single statement.
+
+**Please note** that an `end` is always required for `else` blocks.
 
 ### Preprocessor
 Before compiling, Candran's preprocessor is run. It execute every line starting with a _#_ (ignoring prefixing whitespace, long strings and comments) as Candran code.
@@ -287,23 +291,25 @@ For example,
 
 Will output ````print("Bonjour")```` or ````print("Hello")```` depending of the "lang" argument passed to the preprocessor.
 
-The preprocessor has access to the following variables :
-* ````candran```` : the Candran library table.
-* ````output```` : the current preprocessor output string.
-* ````import(module[, [options])```` : a function which import a module. This should be equivalent to using _require(module)_ in the Candran code, except the module will be embedded in the current file. _options_ is an optional preprocessor arguments table for the imported module (current preprocessor arguments will be inherited). Options specific to this function: ```loadLocal``` (default ```true```): ```true``` to automatically load the module into a local variable (i.e. ```local thing = require("module.thing")```); ```loadPackage``` (default ```true```): ```true``` to automatically load the module into the loaded packages table (so it will be available for following ```require("module")``` calls).
-* ````include(filename)```` : a function which copy the contents of the file _filename_ to the output.
-* ````write(...)```` : write to the preprocessor output. For example, ````#print("hello()")```` will output ````hello()```` in the final file.
-* ```placeholder(name)``` : if the variable _name_ is defined in the preprocessor environement, its content will be inserted here.
-* ````...```` : each arguments passed to the preprocessor is directly available.
+The preprocessor has access to the following variables:
+* ````candran````: the Candran library table.
+* ````output````: the current preprocessor output string. Can be redefined at any time.
+* ````import(module[, [options])````: a function which import a module. This should be equivalent to using _require(module)_ in the Candran code, except the module will be embedded in the current file. _options_ is an optional preprocessor arguments table for the imported module (current preprocessor arguments will be inherited). Options specific to this function: ```loadLocal``` (default ```true```): ```true``` to automatically load the module into a local variable (i.e. ```local thing = require("module.thing")```); ```loadPackage``` (default ```true```): ```true``` to automatically load the module into the loaded packages table (so it will be available for following ```require("module")``` calls).
+* ````include(filename)````: a function which copy the contents of the file _filename_ to the output.
+* ````write(...)````: write to the preprocessor output. For example, ````#write("hello()")```` will output ````hello()```` in the final file.
+* ```placeholder(name)```: if the variable _name_ is defined in the preprocessor environement, its content will be inserted here.
+* ````...````: each arguments passed to the preprocessor is directly available in the environment.
 * and every standard Lua library.
 
 Compile targets
 ---------------
-Candran is based on the Lua 5.3 syntax, but can be compiled to Lua 5.3, LuaJIT, and Lua 5.1.
+Candran is based on the Lua 5.3 syntax, but can be compiled to Lua 5.3, LuaJIT, and Lua 5.1 compatible code.
 
-To chose a compile target, set the ```target``` option to ```lua53```, ```luajit```, or ```lua51``` in the option table when using the library or the command line tools. Candran will try detect the currently used Lua version and use it as a target by default.
+To chose a compile target, set the ```target``` option to ```lua53```, ```luajit```, or ```lua51``` in the option table when using the library or the command line tools. Candran will try to detect the currently used Lua version and use it as the default target.
 
-For the ```luajit``` and ```lua51``` targets, Lua 5.3 specific syntax (bitwise operators, integer division) will automatically be translated to valid Lua 5.1 syntax, using LuaJIT's ```bit``` library if necessary. Unless you require LuaJIT's library, you won't be able to use bitwise operators with simple Lua 5.1 ("PUC Lua").
+For the ```luajit``` and ```lua51``` targets, Lua 5.3 specific syntax (bitwise operators, integer division) will automatically be translated to valid Lua 5.1 syntax, using LuaJIT's ```bit``` library if necessary. Unless LuaJIT's bit library is installed, you won't be able to use bitwise operators with vanilla Lua 5.1 ("PUC Lua").
+
+The ```lua51``` target does not support gotos and labels.
 
 **Please note** that Candran only translates syntax, and will not try to do anything about changes in the Lua standard library (for example, the new utf8 module). If you need this, you should be able to use [lua-compat-5.3](https://github.com/keplerproject/lua-compat-5.3) along with Candran.
 
@@ -320,7 +326,7 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
 	Preprocess and compile each  _filename_ Candran files, and creates the assiociated ```.lua``` files in the same directories.
 
-	_options_ is of type ````-somearg -anotherarg thing=somestring other=5 ...````, which will generate a Lua table ```{ somearg = true, anotherarg = true, thing = "somestring", other = 5 }```.
+	_options_ is of type ````-somearg -anotherarg thing=somestring other=5````, which will generate a Lua table ```{ somearg = true, anotherarg = true, thing = "somestring", other = 5 }```.
 
     You can choose to use another directory where files should be written using the ```dest=destinationDirectory``` argument.
 
@@ -336,7 +342,7 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
 	Instead of providing filenames, you can use ```-``` to read from standard input.
 
-	* example uses :
+	* example uses:
 
 		````canc foo.can````
 
@@ -362,24 +368,24 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
     Preprocess, compile and run _filename_ using the options provided.
 
-	This will automatically register the Candran package searcher so required file will be compiled as they are needed.
+	This will automatically register the Candran package searcher, so required Candran modules will be compiled as they are needed.
 
-	This command will use error rewriting if enabled.
+	This command will use error rewriting unless explicitely enabled (by setting the `rewriteErrors=false` option).
 
 	Instead of providing a filename, you can use ```-``` to read from standard input.
 
 ### Library usage
-Candran can also be used as a Lua library. For example,
+Candran can also be used as a Lua library:
 ````lua
-local candran = require("candran")
+local candran = require("candran") -- load Candran
 
-local f = io.open("foo.can")
+local f = io.open("foo.can") -- read the file foo.can
 local contents = f:read("*a")
 f:close()
 
-local compiled = candran.make(contents, { lang = "fr" })
+local compiled = candran.make(contents, { debug = true }) -- compile foo.can with debug set to true
 
-load(compiled)()
+load(compiled)() -- execute!
 
 -- or simpler...
 candran.dofile("foo.can")
@@ -388,20 +394,19 @@ candran.dofile("foo.can")
 candran.setup()
 local foo = require("foo")
 ````
-Will load Candran, read the file _foo.can_, compile its contents with the argument _lang_ set to _"fr"_, and then execute the result.
 
-The table returned by _require("candran")_ gives you access to :
+The table returned by _require("candran")_ gives you access to:
 
-##### Compiler & preprocessor API
-* ````candran.VERSION```` : Candran's version string.
-* ````candran.preprocess(code[, options])```` : return the Candran code _code_, preprocessed with _options_ as options table.
-* ````candran.compile(code[, options])```` : return the Candran code compiled to Lua with _options_ as the option table.
-* ````candran.make(code[, options])```` : return the Candran code, preprocessed and compiled with _options_ as options table.
+##### Compiler & preprocessor
+* ````candran.VERSION````: Candran's version string (e.g. `"0.9.0"`).
+* ````candran.preprocess(code[, options])````: return the Candran code _code_, preprocessed with the _options_ options table.
+* ````candran.compile(code[, options])````: return the Candran code compiled to Lua with the _options_ option table.
+* ````candran.make(code[, options])````: return the Candran code, preprocessed and compiled with the _options_ options table.
 
 ##### Code loading helpers
-* ```candran.loadfile(filepath, env, options)``` : Candran equivalent to the Lua 5.3's loadfile funtion. Will rewrite errors by default.
-* ```candran.load(chunk, chunkname, env, options)``` : Candran equivalent to the Lua 5.3's load funtion. Will rewrite errors by default.
-* ```candran.dofile(filepath, options)``` : Candran equivalent to the Lua 5.3's dofile funtion. Will rewrite errors by default.
+* ```candran.loadfile(filepath, env, options)```: Candran equivalent to the Lua 5.3's loadfile funtion. Will rewrite errors by default.
+* ```candran.load(chunk, chunkname, env, options)```: Candran equivalent to the Lua 5.3's load funtion. Will rewrite errors by default.
+* ```candran.dofile(filepath, options)```: Candran equivalent to the Lua 5.3's dofile funtion. Will rewrite errors by default.
 
 #### Error rewriting
 When using the command-line tools or the code loading helpers, Candran will automatically setup error rewriting: because the code is reformated when
@@ -420,11 +425,14 @@ If you are using the preprocessor ```import()``` function, the source Candran fi
 example.can:12(final.lua:5): attempt to call a nil value (global 'iWantAnError')
 ```
 
-* ```candran.messageHandler(message)``` : The error message handler used by Candran. Use it in xpcall to rewrite stacktraces to display Candran source file lines instead of compiled Lua lines.
+You can perform error rewriting manually using:
+
+* ```candran.messageHandler(message)```: the error message handler used by Candran. Given `message` the Lua error string, returns full Candran traceback where soure files and lines are rewritten to their Candran source. You can use it as is in xpcall as a message handler.
 
 ##### Package searching helpers
-Candran comes with a custom package searcher which will automatically find, preprocesses and compile ```.can``` files. If you want to use Candran in your project without worrying about
-compiling the files, you can simply call
+Candran comes with a custom package searcher which will automatically find, preprocesses and compile ```.can``` files.
+
+If you want to use Candran in your project without worrying about compiling the files, you can simply call
 
 ```lua
 require("candran").setup()
@@ -432,38 +440,38 @@ require("candran").setup()
 
 at the top of your main Lua file. If a Candran file is found when you call ```require()```, it will be automatically compiled and loaded. If both a Lua and Candran file match a module name, the Candran file will be loaded.
 
-* ```candran.searcher(modpath)``` : Candran package searcher function. Use the existing package.path.
-* ```candran.setup()``` : Register the Candran package searcher, and return the `candran` table.
+* ```candran.searcher(modpath)```: Candran package searcher function. Use the existing package.path.
+* ```candran.setup()```: register the Candran package searcher, and return the `candran` table.
 
 ##### Available compiler & preprocessor options
-You can give arbitrary options which will be gived to the preprocessor, but Candran already provide and uses these with their associated default values:
+You can give arbitrary options to the compiler and preprocessor, but Candran already provide and uses these with their associated default values:
 
 ```lua
-target = "lua53" -- Compiler target. "lua53", "luajit" or "lua51" (default is automatically selected based on the Lua version used).
-indentation = "" -- Character(s) used for indentation in the compiled file.
-newline = "\n" -- Character(s) used for newlines in the compiled file.
+target = "lua53" -- compiler target. "lua53", "luajit" or "lua51" (default is automatically selected based on the Lua version used).
+indentation = "" -- character(s) used for indentation in the compiled file.
+newline = "\n" -- character(s) used for newlines in the compiled file.
 variablePrefix = "__CAN_" -- Prefix used when Candran needs to set a local variable to provide some functionality (example: to load LuaJIT's bit lib when using bitwise operators).
-mapLines = true -- If true, compiled files will contain comments at the end of each line indicating the associated line and source file. Needed for error rewriting.
-chunkname = "nil" -- The chunkname used when running code using the helper functions and writing the line origin comments. Candran will try to set it to the original filename if it knows it.
-rewriteErrors = true -- True to enable error rewriting when loading code using the helper functions. Will wrap the whole code in a xpcall().
+mapLines = true -- if true, compiled files will contain comments at the end of each line indicating the associated line and source file. Needed for error rewriting.
+chunkname = "nil" -- the chunkname used when running code using the helper functions and writing the line origin comments. Candran will try to set it to the original filename if it knows it.
+rewriteErrors = true -- true to enable error rewriting when loading code using the helper functions. Will wrap the whole code in a xpcall().
 ```
 
-You can change these values in the table `candran.default`.
+You can change the defaults used for these variables in the table `candran.default`.
 
-There are also a few function-specific options available, see the associated functions documentation for more information.
+There are also a few function-specific options available, see the preprocessor functions documentation for more information.
 
 ### Compiling the library
 The Candran library itself is written is Candran, so you have to compile it with an already compiled Candran library.
 
 The compiled _candran.lua_ should include every Lua library needed to run it. You will still need to install LPegLabel.
 
-This command will use the precompilled version of this repository (candran.lua) to compile _candran.can_ and write the result in _candran.lua_ :
+This command will use the precompilled version of this repository (_candran.lua_) to compile _candran.can_ and write the result in _candran.lua_:
 
 ````
 canc candran.can
 ````
 
-You can then run the tests on your build :
+You can then run the tests on your build:
 
 ````
 cd test

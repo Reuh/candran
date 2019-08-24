@@ -7,7 +7,10 @@ local args = cmdline(arg)
 if args.help or args.h then
 	print("Candran "..candran.VERSION.." interpreter by Reuh")
 	print("Usage: "..arg[0].." [options] filename")
+	print("Specify no options to start the REPL.")
 	print("Use - instead of a filename to read from the standard input.")
+	print("Interpreter options:")
+	print("  -help or -h       print this text")
 	print("Default options:")
 	for opt, val in pairs(candran.default) do
 		if type(val) == "string" then val = val:gsub("\n", "\\n") end

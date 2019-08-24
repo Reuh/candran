@@ -4,7 +4,9 @@ local cmdline = require("lib.cmdline")
 local parse = require("lib.lua-parser.parser").parse
 local pp = require("lib.lua-parser.pp")
 
-if #arg < 1 then
+local args = cmdline(arg)
+
+if #arg < 1 or args.help or args.h then
 	print("Candran "..candran.VERSION.." compiler by Reuh")
 	print("Usage: "..arg[0].." [options] filenames...")
 	print("Use - instead of filenames to read from the standard input. The output file will be named stdin.lua by default.")
@@ -16,6 +18,7 @@ if #arg < 1 then
 	print("  -compile          only run the compiler")
 	print("  -parse            only parse the file and prints errors to stdout")
 	print("  -ast              (for debugging purposes) only parse the files and dump the AST to stdout")
+	print("  -help or -h       print this text")
 	print("Default options:")
 	for opt, val in pairs(candran.default) do
 		if type(val) == "string" then val = val:gsub("\n", "\\n") end
@@ -23,8 +26,6 @@ if #arg < 1 then
 	end
 	return
 end
-
-local args = cmdline(arg)
 
 if arg[#arg] == "-" then
 	table.insert(args, io.stdin)
