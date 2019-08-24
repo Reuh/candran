@@ -11,9 +11,9 @@ Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing L
 local function calculate(toadd=25) -- default parameters
 	local result = thing.do()
 	result += toadd
-    #if debug then -- preprocessor conditionals
-        print("Did something")
-    #end
+	#if debug then -- preprocessor conditionals
+		print("Did something")
+	#end
 	return result
 end
 
@@ -50,14 +50,16 @@ print("Hello %s":format("world")) -- methods calls on strings (and tables) litte
 
 ````
 
-**Current status**: Candran in heavily used in several of my personal projects and works as expected.
+**Current status**: Candran is heavily used in several of my personal projects and works as expected.
 
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
 #### Quick setup
-Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.8.0-1.rockspec```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.10.0-1.rockspec```.
 
-Or manually install LPegLabel (```luarocks install LPegLabel```, version 1.5 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
+Or manually install LPegLabel (```luarocks install lpeglabel```, version 1.5 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
+
+You can optionally install lua-linenoise (```luarocks install linenoise```) for an improved REPL. The rockspec does not install linenoise by default.
 
 You can register the Candran package searcher in your main Lua file (`require("candran").setup()`) and any subsequent `require` call in your project will automatically search for Candran modules.
 
@@ -100,7 +102,7 @@ Right and left operator can be used at the same time.
 ##### Default function parameters
 ```lua
 function foo(bar = "default", other = thing.do())
-    -- stuff
+	-- stuff
 end
 ```
 If an argument isn't provided or set to ```nil``` when the function is called, it will automatically be set to its default value.
@@ -328,11 +330,11 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
 	_options_ is of type ````-somearg -anotherarg thing=somestring other=5````, which will generate a Lua table ```{ somearg = true, anotherarg = true, thing = "somestring", other = 5 }```.
 
-    You can choose to use another directory where files should be written using the ```dest=destinationDirectory``` argument.
+	You can choose to use another directory where files should be written using the ```dest=destinationDirectory``` argument.
 
-    You can choose the output filename using ```out=filename```. By default, compiled files have the same name as their input file, but with a ```.lua``` extension.
+	You can choose the output filename using ```out=filename```. By default, compiled files have the same name as their input file, but with a ```.lua``` extension.
 
-    ```canc``` can write to the standard output instead of creating files using the ```-print``` argument.
+	```canc``` can write to the standard output instead of creating files using the ```-print``` argument.
 
 	You can choose to run only the preprocessor or compile using the ```-preprocess``` and ```-compile``` flags.
 
@@ -342,37 +344,43 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
 	Instead of providing filenames, you can use ```-``` to read from standard input.
 
-	* example uses:
+	Use the ```-h``` or ```-help``` option to display a short help text.
 
-		````canc foo.can````
+	Example uses:
+
+	* ````canc foo.can````
 
 		preprocess and compile _foo.can_ and write the result in _foo.lua_.
 
-		````canc indentation="  " foo.can````
+	* ````canc indentation="  " foo.can````
 
 		preprocess and compile _foo.can_ with 2-space indentation (readable code!) and write the result in _foo.lua_.
 
-		````canc foo.can -verbose -print | lua````
+	* ````canc foo.can -verbose -print | lua````
 
 		preprocess _foo.can_ with _verbose_ set to _true_, compile it and execute it.
 
-		````canc -parse foo.can````
+	* ````canc -parse foo.can````
 
 		checks foo.can for syntaxic errors.
 
 *   ```can```
 
-    Start a simplisitic Candran REPL.
+	Start a simplisitic Candran REPL.
+
+	If you want a better REPL (autocompletion, history, ability to move the cursor), install lua-linenoise: ```luarocks install linenoise```.
 
 *	````can [options] filename````
 
-    Preprocess, compile and run _filename_ using the options provided.
+	Preprocess, compile and run _filename_ using the options provided.
 
 	This will automatically register the Candran package searcher, so required Candran modules will be compiled as they are needed.
 
 	This command will use error rewriting unless explicitely enabled (by setting the `rewriteErrors=false` option).
 
 	Instead of providing a filename, you can use ```-``` to read from standard input.
+
+	Use the ```-h``` or ```-help``` option to display a short help text.
 
 ### Library usage
 Candran can also be used as a Lua library:
@@ -398,7 +406,7 @@ local foo = require("foo")
 The table returned by _require("candran")_ gives you access to:
 
 ##### Compiler & preprocessor
-* ````candran.VERSION````: Candran's version string (e.g. `"0.9.0"`).
+* ````candran.VERSION````: Candran's version string (e.g. `"0.10.0"`).
 * ````candran.preprocess(code[, options])````: return the Candran code _code_, preprocessed with the _options_ options table.
 * ````candran.compile(code[, options])````: return the Candran code compiled to Lua with the _options_ option table.
 * ````candran.make(code[, options])````: return the Candran code, preprocessed and compiled with the _options_ options table.

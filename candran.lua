@@ -3584,7 +3584,7 @@ return parser -- ./lib/lua-parser/parser.lua:685
 end -- ./lib/lua-parser/parser.lua:685
 local parser = _() or parser -- ./lib/lua-parser/parser.lua:689
 package["loaded"]["lib.lua-parser.parser"] = parser or true -- ./lib/lua-parser/parser.lua:690
-local candran = { ["VERSION"] = "0.9.1" } -- candran.can:14
+local candran = { ["VERSION"] = "0.10.0" } -- candran.can:14
 candran["default"] = { -- candran.can:18
 ["target"] = "lua53", -- candran.can:19
 ["indentation"] = "", -- candran.can:20

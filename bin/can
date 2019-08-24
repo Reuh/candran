@@ -19,6 +19,7 @@ if args.help or args.h then
 	return
 end
 
+-- stdin
 if arg[#arg] == "-" then
 	local f, err = candran.load(io.read("*a"), "stdin", nil, args)
 	if not f then
@@ -26,21 +27,123 @@ if arg[#arg] == "-" then
 		os.exit(1)
 	end
 	f()
+-- file
 elseif #args >= 1 then
 	candran.dofile(args[1], args)
-else -- REPL
-	print("Candran " .. candran.VERSION)
+-- REPL
+else
+	-- Setup linenoise
+	local s, l = pcall(require, "linenoise")
+	if not s then -- pure Lua compatibility thingy
+		l = {
+			linenoise = function(prompt)
+				io.write(prompt)
+				local s, line = pcall(io.read)
+				if not s then
+					if line == "interrupted!" then
+						return nil
+					else
+						return nil, err
+					end
+				end
+				return line
+			end,
+			historyadd = function() end,
+			setcompletion = function() end,
+			sethints = function() end,
+			enableutf8 = function() end
+		}
+	end
+	local keywords = {
+		-- Lua
+		"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto",
+		"if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true",
+		"until", "while",
+		-- Candran
+		"continue", "let", "push"
+	}
+	l.enableutf8()
+	l.setcompletion(function(comp, line)
+		local var = line:match("[a-zA-Z_][a-zA-Z_0-9]*$")
+		if var then
+			for _, k in ipairs(keywords) do
+				if k:match("^"..var) then
+					comp:add(line .. k:sub(#var+1))
+				end
+			end
+			for k in pairs(_ENV) do
+				if k:match("^"..var) then
+					comp:add(line .. k:sub(#var+1))
+				end
+			end
+		end
+	end)
+	l.sethints(function(line)
+		local var = line:match("[a-zA-Z_][a-zA-Z_0-9]*$")
+		if var then
+			for _, k in ipairs(keywords) do
+				if k:match("^"..var) then
+					return k:sub(#var+1), { color = 2, bold = true }
+				end
+			end
+			for k in pairs(_ENV) do
+				if k:match("^"..var) then
+					return k:sub(#var+1), { color = 2 }
+				end
+			end
+		end
+	end)
+
+	-- Introduction
+	print("Candran " .. candran.VERSION .. ", targeting " .. candran.default.target)
 	candran.setup()
+
+	-- REPL loop
+	local multiline = false -- true if wait for another line
+	local buffer
 	while true do
-		io.write("> ")
-		local line = io.read()
-		if line:match("^=") then
-			line = line:gsub("^=", "return tostring(") .. ")"
+		local line, err = l.linenoise(multiline and ">> " or "> ")
+
+		-- exit
+		if not line then
+			if not err then
+				if multiline then
+					multiline = false
+					line = ""
+				else
+					return
+				end
+			else
+				error(err)
+			end
 		end
 
-		local t = { pcall(candran.load, line, "stdin") }
+		-- history
+		if line:match("[^%s]") then
+			l.historyadd(line)
+		end
+
+		-- multiline
+		if multiline then
+			buffer = buffer .. "\n" .. line
+			multiline = false
+		else
+			buffer = line
+		end
+
+		-- print shortcut 
+		if buffer:match("^=") then
+			buffer = buffer:gsub("^=", "return tostring(") .. ")"
+		end
+
+		-- exec
+		local t = { pcall(candran.load, buffer, "stdin") }
 		if t[1] == false then
-			print(t[2])
+			if t[2]:match("expected '[end})]+' to close") then
+				multiline = true
+			else
+				print(t[2])
+			end
 		else
 			t = { pcall(t[2]) }
 			if t[1] == false then

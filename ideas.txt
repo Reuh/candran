@@ -24,7 +24,7 @@ Please note that the following ideas are just random though and won't be necessa
 
 Feel free to open issues about ideas you find useful or want to improve. Otherwise, I will only implements them when I really need them or am bored.
 
-Actually, open issues for everything. I know of a couple persons using Candran but have no idea what they like and want with it.
+Actually, open issues for everything. I've heard that a couple of people use Candran, but have no idea what they like and want with it.
 
 * class keyword
 class Thing(parents...)
@@ -37,6 +37,7 @@ end
 local a = new Thing()
 ->
 (TODO: define how classes work. May even use ClassCommons)
+Not very Lua-ey to impose how to make your classes?
 
 * try / except|catch / finally / else / other keywords
 try
@@ -51,6 +52,8 @@ end
 local name = articles?[0].author?.name (?[] and ?. index opeators)
 or
 local zip = lottery.drawWinner?().address?.zipcode (expr? existence test suffix)
+
+if one is nil, returns nil
 
 See http://coffeescript.org/#existential-operator
 
@@ -69,8 +72,12 @@ Will need to define stuff for a lot of Lua libraries (see the work already done 
 
 While we're talking about static analysis, what about forking luacheck into candrancheck? Or at least make the line mapping work.
 
+Will require work.
+
 * array slicing
 local b = a[3:5:1]
+
+is it actually useful? even in python I rarely use it, apart from extracting a row or column for a matrix (and we don't have >1D arrays in Lua so...)
 
 * Destructuring assignment
 local pos = { x = 5, y = 12 }
@@ -85,12 +92,24 @@ local x, y $= pos
 And in implicit assignments:
 for i, {x, y} in ipairs(positions) do
 
+Sounds useful, at least the key-value part.
+
 * String interpolation
 Delimited by ``:
 `Hi, my name is ${@name}` -- -> "blaba" .. tostring(@name)
 Also allows multi-line with this maybe?
 
+meh
+
 * Other potential inspiration
 https://www.ruby-lang.org/fr/
 
-Well done, you're at the end of the file!
+* If with assignement
+if f = io.open("file") then
+    f:close()
+end
+
+f is in the if scope
+
+* Method self bundler
+obj:method -- returns (...) return method(obj, ...) end
