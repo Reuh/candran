@@ -1,6 +1,6 @@
 local util = {}
 
-function util.search(modpath, exts={"can", "lua"})
+function util.search(modpath, exts={})
 	for _, ext in ipairs(exts) do
 		for path in package.path:gmatch("[^;]+") do
 			local fpath = path:gsub("%.lua", "."..ext):gsub("%?", (modpath:gsub("%.", "/")))

@@ -1,3 +1,5 @@
+targetName = "luajit"
+
 UNPACK = (list, i, j)
 	return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
 end

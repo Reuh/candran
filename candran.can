@@ -86,7 +86,7 @@ function candran.preprocess(input, options={})
 	-- @tparam modpath string module path
 	-- @tparam margs table preprocessor options to use when preprocessessing the module
 	env.import = function(modpath, margs={})
-		local filepath = assert(util.search(modpath), "No module named \""..modpath.."\"")
+		local filepath = assert(util.search(modpath, {"can", "lua"}), "No module named \""..modpath.."\"")
 
 		-- open module file
 		local f = io.open(filepath)

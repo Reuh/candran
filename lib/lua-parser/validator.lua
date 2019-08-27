@@ -158,16 +158,6 @@ local function traverse_call (env, call)
   return true
 end
 
-local function traverse_invoke (env, invoke)
-  local status, msg = traverse_exp(env, invoke[1])
-  if not status then return status, msg end
-  for i=3, #invoke do
-    status, msg = traverse_exp(env, invoke[i])
-    if not status then return status, msg end
-  end
-  return true
-end
-
 local function traverse_assignment (env, stm)
   local status, msg = traverse_varlist(env, stm[1])
   if not status then return status, msg end
@@ -238,6 +228,18 @@ local function traverse_goto (env, stm)
   return true
 end
 
+local function traverse_let (env, stm)
+  local status, msg = traverse_explist(env, stm[2])
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_letrec (env, stm)
+  local status, msg = traverse_exp(env, stm[2][1])
+  if not status then return status, msg end
+  return true
+end
+
 local function traverse_if (env, stm)
   local len = #stm
   if len % 2 == 0 then
@@ -262,18 +264,6 @@ end
 
 local function traverse_label (env, stm)
   local status, msg = set_label(env, stm[1], stm.pos)
-  if not status then return status, msg end
-  return true
-end
-
-local function traverse_let (env, stm)
-  local status, msg = traverse_explist(env, stm[2])
-  if not status then return status, msg end
-  return true
-end
-
-local function traverse_letrec (env, stm)
-  local status, msg = traverse_exp(env, stm[2][1])
   if not status then return status, msg end
   return true
 end
@@ -327,6 +317,22 @@ function traverse_varlist (env, varlist)
   return true
 end
 
+local function traverse_methodstub (env, var)
+  local status, msg = traverse_exp(env, var[1])
+  if not status then return status, msg end
+  status, msg = traverse_exp(env, var[2])
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_safeindex (env, var)
+  local status, msg = traverse_exp(env, var[1])
+  if not status then return status, msg end
+  status, msg = traverse_exp(env, var[2])
+  if not status then return status, msg end
+  return true
+end
+
 function traverse_exp (env, exp)
   local tag = exp.tag
   if tag == "Nil" or
@@ -344,15 +350,17 @@ function traverse_exp (env, exp)
     return traverse_op(env, exp)
   elseif tag == "Paren" then -- `Paren{ expr }
     return traverse_paren(env, exp)
-  elseif tag == "Call" then -- `Call{ expr expr* }
+  elseif tag == "Call" or tag == "SafeCall" then -- `(Safe)Call{ expr expr* }
     return traverse_call(env, exp)
-  elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
-    return traverse_invoke(env, exp)
   elseif tag == "Id" or -- `Id{ <string> }
          tag == "Index" then -- `Index{ expr expr }
     return traverse_var(env, exp)
+  elseif tag == "SafeIndex" then -- `SafeIndex{ expr expr }
+    return traverse_safeindex(env, exp)
   elseif tag == "TableCompr" then -- `TableCompr{ block }
     return traverse_tablecompr(env, exp)
+  elseif tag == "MethodStub" or tag == "SafeMethodStub" then -- `(Safe)MethodStub{ expr expr }
+    return traverse_methodstub(env, exp)
   elseif tag:match("Expr$") then -- `StatExpr{ ... }
     return traverse_statexpr(env, exp)
   else
@@ -399,8 +407,6 @@ function traverse_stm (env, stm)
     return traverse_break(env, stm)
   elseif tag == "Call" then -- `Call{ expr expr* }
     return traverse_call(env, stm)
-  elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
-    return traverse_invoke(env, stm)
   elseif tag == "Continue" then
     return traverse_continue(env, stm)
   elseif tag == "Push" then -- `Push{ <expr>* }

@@ -11,7 +11,7 @@ stat:
   | `Set{ {lhs+} (opid? = opid?)? {expr+} }   -- lhs1, lhs2... op=op e1, e2...
   | `While{ expr block }                      -- while e do b end
   | `Repeat{ block expr }                     -- repeat b until e
-  | `If{ (expr block)+ block? }               -- if e1 then b1 [elseif e2 then b2] ... [else bn] end
+  | `If{ (lexpr block)+ block? }              -- if e1 then b1 [elseif e2 then b2] ... [else bn] end
   | `Fornum{ ident expr expr expr? block }    -- for ident = e, e[, e] do b end
   | `Forin{ {ident+} {expr+} block }          -- for i1, i2... in e1, e2... do b end
   | `Local{ {ident+} {expr+}? }               -- local i1, i2... = e1, e2...
@@ -36,9 +36,16 @@ expr:
   | `Op{ opid expr expr? }
   | `Paren{ expr }       -- significant to cut multiple values returns
   | `TableCompr{ block }
+  | `MethodStub{ expr expr }
+  | `SafeMethodStub{ expr expr }
+  | `SafeIndex{ expr expr }
   | statexpr
   | apply
   | lhs
+
+lexpr:
+    `LetExpr{ {ident+} {expr+}? }
+  | every node from expr
 
 statexpr:
     `DoExpr{ stat* }
@@ -50,7 +57,7 @@ statexpr:
 
 apply:
     `Call{ expr expr* }
-  | `Invoke{ expr `String{ <string> } expr* }
+  | `SafeCall{ expr expr* }
 
 lhs: `Id{ <string> } | `Index{ expr expr }
 
@@ -255,25 +262,32 @@ local function insertIndex (t, index)
   return { tag = "Index", pos = t.pos, [1] = t, [2] = index }
 end
 
-local function markMethod(t, method)
+local function markMethod (t, method)
   if method then
     return { tag = "Index", pos = t.pos, is_method = true, [1] = t, [2] = method }
   end
   return t
 end
 
-local function makeIndexOrCall (t1, t2)
-  if t2.tag == "Call" or t2.tag == "Invoke" then
+local function makeSuffixedExpr (t1, t2)
+  if t2.tag == "Call" or t2.tag == "SafeCall" then
     local t = { tag = t2.tag, pos = t1.pos, [1] = t1 }
     for k, v in ipairs(t2) do
       table.insert(t, v)
     end
     return t
+  elseif t2.tag == "MethodStub" or t2.tag == "SafeMethodStub" then
+    return { tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1] }
+  elseif t2.tag == "SafeDotIndex" or t2.tag == "SafeArrayIndex" then
+    return { tag = "SafeIndex", pos = t1.pos, [1] = t1, [2] = t2[1] }
+  elseif t2.tag == "DotIndex" or t2.tag == "ArrayIndex" then
+    return { tag = "Index", pos = t1.pos, [1] = t1, [2] = t2[1] }
+  else
+    error("unexpected tag in suffixed expression")
   end
-  return { tag = "Index", pos = t1.pos, [1] = t1, [2] = t2[1] }
 end
 
-local function fixShortFunc(t)
+local function fixShortFunc (t)
     if t[1] == ":" then -- self method
         table.insert(t[2], 1, { tag = "Id", "self" })
         table.remove(t, 1)
@@ -283,12 +297,12 @@ local function fixShortFunc(t)
     return t
 end
 
-local function statToExpr(t) -- tag a StatExpr
+local function statToExpr (t) -- tag a StatExpr
     t.tag = t.tag .. "Expr"
     return t
 end
 
-local function fixStructure(t) -- fix the AST structure if needed
+local function fixStructure (t) -- fix the AST structure if needed
     local i = 1
     while i <= #t do
         if type(t[i]) == "table" then
@@ -309,7 +323,7 @@ local function fixStructure(t) -- fix the AST structure if needed
     return t
 end
 
-local function searchEndRec(block, isRecCall) -- recursively search potential "end" keyword wrongly consumed by a short anonymous function on stat end (yeah, too late to change the syntax to something easier to parse)
+local function searchEndRec (block, isRecCall) -- recursively search potential "end" keyword wrongly consumed by a short anonymous function on stat end (yeah, too late to change the syntax to something easier to parse)
     for i, stat in ipairs(block) do
         -- Non recursive statements
         if stat.tag == "Set" or stat.tag == "Push" or stat.tag == "Return" or stat.tag == "Local" or stat.tag == "Let" or stat.tag == "Localrec" then
@@ -404,7 +418,7 @@ local function searchEndRec(block, isRecCall) -- recursively search potential "e
     return nil
 end
 
-local function searchEnd(s, p, t) -- match time capture which try to restructure the AST to free an "end" for us
+local function searchEnd (s, p, t) -- match time capture which try to restructure the AST to free an "end" for us
     local r = searchEndRec(fixStructure(t))
     if not r then
         return false
@@ -412,7 +426,7 @@ local function searchEnd(s, p, t) -- match time capture which try to restructure
     return true, r
 end
 
-local function expectBlockOrSingleStatWithStartEnd(start, startLabel, stopLabel, canFollow) -- will try a SingleStat if start doesn't match
+local function expectBlockOrSingleStatWithStartEnd (start, startLabel, stopLabel, canFollow) -- will try a SingleStat if start doesn't match
     if canFollow then
         return (-start * V"SingleStatBlock" * canFollow^-1)
              + (expect(start, startLabel) * ((V"Block" * (canFollow + kw("end")))
@@ -424,14 +438,38 @@ local function expectBlockOrSingleStatWithStartEnd(start, startLabel, stopLabel,
     end
 end
 
-local function expectBlockWithEnd(label) -- can't work *optionnaly* with SingleStat unfortunatly
+local function expectBlockWithEnd (label) -- can't work *optionnaly* with SingleStat unfortunatly
     return (V"Block" * kw("end"))
          + (Cmt(V"Block", searchEnd) + throw(label))
 end
 
-local function maybeBlockWithEnd() -- same as above but don't error if it doesn't match
+local function maybeBlockWithEnd () -- same as above but don't error if it doesn't match
     return (V"BlockNoErr" * kw("end"))
          + Cmt(V"BlockNoErr", searchEnd)
+end
+
+local stacks = {
+  lexpr = {}
+}
+local function push (f)
+  return Cmt(P"", function()
+    table.insert(stacks[f], true)
+    return true
+  end)
+end
+local function pop (f)
+  return Cmt(P"", function()
+    table.remove(stacks[f])
+    return true
+  end)
+end
+local function when (f)
+  return Cmt(P"", function()
+    return #stacks[f] > 0
+  end)
+end
+local function set (f, patt) -- patt *must* succeed (or throw an error) to preserve stack integrity
+  return push(f) * patt * pop(f)
 end
 
 -- grammar
@@ -451,12 +489,12 @@ local G = { V"Lua",
   BlockNoErr      = tagC("Block", V"Stat"^0 * ((V"RetStat" + V"ImplicitPushStat") * sym(";")^-1)^-1); -- used to check if something a valid block without throwing an error
 
   IfStat      = tagC("If", V"IfPart");
-  IfPart      = kw("if") * expect(V"Expr", "ExprIf") * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenIf", "EndIf", V"ElseIfPart" + V"ElsePart");
-  ElseIfPart  = kw("elseif") * expect(V"Expr", "ExprEIf") * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenEIf", "EndIf", V"ElseIfPart" + V"ElsePart");
+  IfPart      = kw("if") * set("lexpr", expect(V"Expr", "ExprIf")) * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenIf", "EndIf", V"ElseIfPart" + V"ElsePart");
+  ElseIfPart  = kw("elseif") * set("lexpr", expect(V"Expr", "ExprEIf")) * expectBlockOrSingleStatWithStartEnd(kw("then"), "ThenEIf", "EndIf", V"ElseIfPart" + V"ElsePart");
   ElsePart    = kw("else") * expectBlockWithEnd("EndIf");
 
   DoStat      = kw("do") * expectBlockWithEnd("EndDo") / tagDo;
-  WhileStat   = tagC("While", kw("while") * expect(V"Expr", "ExprWhile") * V"WhileBody");
+  WhileStat   = tagC("While", kw("while") * set("lexpr", expect(V"Expr", "ExprWhile")) * V"WhileBody");
   WhileBody   = expectBlockOrSingleStatWithStartEnd(kw("do"), "DoWhile", "EndWhile");
   RepeatStat  = tagC("Repeat", kw("repeat") * V"Block" * expect(kw("until"), "UntilRep") * expect(V"Expr", "ExprRep"));
 
@@ -474,7 +512,7 @@ local G = { V"Lua",
   LetStat      = kw("let") * expect(V"LetAssign", "DefLet");
   LetAssign    = tagC("Let", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())));
 
-  Assignment   = tagC("Set", V"VarList" * V"BinOp"^-1 * (P"=" / "=") * V"BinOp"^-1 * V"Skip" * expect(V"ExprList", "EListAssign"));
+  Assignment   = tagC("Set", V"VarList" * V"BinOp"^-1 * (P"=" / "=") * ((V"BinOp" - P"-") + #(P"-" * V"Space") * V"BinOp")^-1 * V"Skip" * expect(V"ExprList", "EListAssign"));
 
   FuncStat    = tagC("Set", kw("function") * expect(V"FuncName", "FuncName") * V"FuncBody") / fixFuncStat;
   FuncName    = Cf(V"Id" * (sym(".") * expect(V"StrId", "NameFunc1"))^0, insertIndex)
@@ -520,35 +558,39 @@ local G = { V"Lua",
   UnaryExpr   = V"UnaryOp" * expect(V"UnaryExpr", "UnaryExpr") / unaryOp
               + V"PowExpr";
   PowExpr     = V"SimpleExpr" * (V"PowOp" * expect(V"UnaryExpr", "PowExpr"))^-1 / binaryOp;
-
-  SimpleExpr = tagC("Number", V"Number")
-             + tagC("Nil", kw("nil"))
-             + tagC("Boolean", kw("false") * Cc(false))
-             + tagC("Boolean", kw("true") * Cc(true))
-             + tagC("Dots", sym("..."))
-             + V"FuncDef"
-             + V"ShortFuncDef"
-             + V"SuffixedExpr"
-             + V"StatExpr";
+  SimpleExpr  = tagC("Number", V"Number")
+              + tagC("Nil", kw("nil"))
+              + tagC("Boolean", kw("false") * Cc(false))
+              + tagC("Boolean", kw("true") * Cc(true))
+              + tagC("Dots", sym("..."))
+              + V"FuncDef"
+              + (when("lexpr") * tagC("LetExpr", V"NameList" * sym("=") * -sym("=") * expect(V"ExprList", "EListLAssign")))
+              + V"ShortFuncDef"
+              + V"SuffixedExpr"
+              + V"StatExpr";
 
   StatExpr = (V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat") / statToExpr;
 
-  FuncCall  = Cmt(V"SuffixedExpr", function(s, i, exp) return exp.tag == "Call" or exp.tag == "Invoke", exp end);
+  FuncCall  = Cmt(V"SuffixedExpr", function(s, i, exp) return exp.tag == "Call" or exp.tag == "SafeCall", exp end);
   VarExpr   = Cmt(V"SuffixedExpr", function(s, i, exp) return exp.tag == "Id" or exp.tag == "Index", exp end);
 
-  SuffixedExpr      = Cf(V"PrimaryExpr" * (V"Index" + V"Invoke" + V"Call")^0
-                       + V"NoCallPrimaryExpr" * -V"Call" * (V"Index" + V"Invoke" + V"Call")^0
-                       + V"NoCallPrimaryExpr", makeIndexOrCall);
+  SuffixedExpr      = Cf(V"PrimaryExpr" * (V"Index" + V"MethodStub" + V"Call")^0
+                    + V"NoCallPrimaryExpr" * -V"Call" * (V"Index" + V"MethodStub" + V"Call")^0
+                    + V"NoCallPrimaryExpr", makeSuffixedExpr);
   PrimaryExpr       = V"SelfId" * (V"SelfCall" + V"SelfIndex")
                     + V"Id"
                     + tagC("Paren", sym("(") * expect(V"Expr", "ExprParen") * expect(sym(")"), "CParenExpr"));
   NoCallPrimaryExpr = tagC("String", V"String") + V"Table" + V"TableCompr";
   Index             = tagC("DotIndex", sym("." * -P".") * expect(V"StrId", "NameIndex"))
-                    + tagC("ArrayIndex", sym("[" * -P(S"=[")) * expect(V"Expr", "ExprIndex") * expect(sym("]"), "CBracketIndex"));
-  Call              = tagC("Call", V"FuncArgs");
-  Invoke            = tagC("Invoke", Cg(sym(":" * -P":") * expect(V"StrId", "NameMeth") * expect(V"FuncArgs", "MethArgs")));
+                    + tagC("ArrayIndex", sym("[" * -P(S"=[")) * expect(V"Expr", "ExprIndex") * expect(sym("]"), "CBracketIndex"))
+                    + tagC("SafeDotIndex", sym("?." * -P".") * expect(V"StrId", "NameIndex"))
+                    + tagC("SafeArrayIndex", sym("?[" * -P(S"=[")) * expect(V"Expr", "ExprIndex") * expect(sym("]"), "CBracketIndex"));
+  MethodStub        = tagC("MethodStub", sym(":" * -P":") * expect(V"StrId", "NameMeth"))
+                    + tagC("SafeMethodStub", sym("?:" * -P":") * expect(V"StrId", "NameMeth"));
+  Call              = tagC("Call", V"FuncArgs")
+                    + tagC("SafeCall", P"?" * V"FuncArgs");
+  SelfCall          = tagC("MethodStub", V"StrId") * V"Call";
   SelfIndex         = tagC("DotIndex", V"StrId");
-  SelfCall          = tagC("Invoke", Cg(V"StrId" * V"FuncArgs"));
 
   FuncDef   = (kw("function") * V"FuncBody");
   FuncArgs  = sym("(") * commaSep(V"Expr", "ArgList")^-1 * expect(sym(")"), "CParenArgs")

@@ -20,6 +20,8 @@ end
 let a = {
 	hey = true,
 
+	child = nil,
+
 	method = :(foo, thing) -- short function declaration, with self
 		@hey = thing(foo) -- @ as an alias for self
 	end,
@@ -32,6 +34,13 @@ let a = {
 a:method(42, (foo)
 	return "something " .. foo
 end)
+
+local fn = a:method -- bundles an object and method in a function
+fn(42, (foo)
+	return "something" .. foo
+end)
+
+a.child?:method?() -- safe navigation operator
 
 local odd = [ -- table comprehension
 	for i=1, 10 do
@@ -47,6 +56,12 @@ local count = [for i=1,10 i] -- single line statements
 local a = if condition then "one" else "two" end -- statement as expressions
 
 print("Hello %s":format("world")) -- methods calls on strings (and tables) litterals without enclosing parentheses
+
+if f, err = io.open("data") then -- if condition with assignements
+	thing.process(f)
+else
+	error("can't open data: "..err)
+end
 
 ````
 
@@ -97,7 +112,7 @@ All theses operators can also be put right of the assigment operator, in which c
 
 Right and left operator can be used at the same time.
 
-**Please note** that the Lua code `a=-1` will be compiled into `a = 1 - a` and not `a = -1`! Write spaced code: `a = -1` works as expected.
+**Please note** that the code `a=-1` will be compiled into `a = -1` and not `a = a - 1`, like in pure Lua. If you want the latter, spacing is required between the `=-` and the expression: `a=- 1`. Yes, this is also valid Lua code, but as far as I'm aware, nobody write code like this; people who really like spacing would write `a= - 1` or `a = - 1`, and Candran will read both of those as it is expected in pure Lua. This is the only incompatibility between Candran and pure Lua.
 
 ##### Default function parameters
 ```lua
@@ -230,6 +245,68 @@ Values returned by the function will be inserted in the generated table in the o
 
 The table generation function also have access to the `self` variable (and its alias `@`), which is the table which is being created, so you can set any of the table's field.
 
+##### Safe navigation operators
+```lua
+a = nil
+print(a?.b) -- nil
+
+a = {b=true}
+print(a?.b) -- true
+
+-- So instead of typing
+if object and object.child and object.child.isGreen then
+	-- stuff
+end
+-- you can type
+if object?.child?.isGreen then
+	-- stuff
+end
+
+-- The ?. operator does not break the whole chain; make sure to use the operator on each index.
+print(a?.undefined.field) -- a?.undefined returns nil, so this throws a "attempt to index a nil value"
+
+-- Other safe navigator operators behave similarly:
+print(a:method) -- nil if a is nil, other normal behaviour
+print(a["key"]) -- nil if a is nil, other normal behaviour
+print(a?()) -- nil if a is nil, other normal behaviour
+```
+
+Some operators can be prefixed by a `?` to turn into a safe version of the operator: if the base value if `nil`, the normal behaviour of the operator will be skipped and nil will be returned; otherwise, the operator run as usual. Is available safe dot index `?.`, safe array index `?[...]`, safe method stub `?:` and safe function call `?(...)`.
+
+##### If and while with assignement in the condition
+```lua
+if f, err = io.open("somefile") then -- condition if verified if f is a truthy value (not nil or false)
+	-- do something with f
+	f:close()
+elseif f2, err2 = io.open("anotherfile") then -- same behaviour on elseif
+	print("could not open somefile:", err) -- f and err stay in scope for the rest of the if-elseif-else block
+	-- do something with f2
+	f2:close()
+else
+	print("could not open somefile:", err)
+	print("could not open anotherfile:", err2)
+end
+-- f, err, f2 and err2 are now out of scope
+
+if (value = list[index = 2]) and yes = true then -- several assignements can be performed, anywhere in the expression; index is defined before value, yes is defined after these two. The condition is verified if both value and yes are thruthy.
+	print(index, value)
+end
+
+-- When used in a while, the expression is evaluated at each iteration.
+while line = io.read() do
+	print(line)
+end
+
+-- The assignement have the same priority as regular assignements, i.e., the lowest.
+if a = 1 and 2 then -- will be read as a = (1 and 2)
+elseif (a = 1) and 2 then -- will be read as (a = 1) and 2
+end
+```
+
+Assignements can be used in the condition of if, elseif and while statements. Several variables can be assigned; only the first will be tested in the condition, for each assignement. The assigned variables will be in scope the duration of the block; for if statements, they will also be in scope for the following elseif(s) and else.
+
+For while statements, the assigned expression will be reevaluated at each iteration.
+
 ##### Suffixable string and table litterals
 ```lua
 "some text":upper() -- "SOME TEXT". Same as ("some text"):upper() in Lua.
@@ -245,6 +322,27 @@ someFunction"thing":upper() -- same as (someFunction("thing")):upper() (i.e., th
 String litterals, table litterals, and comprehensions can be suffixed with `:` method calls, `.` indexing, or `[` indexing, without needing to be enclosed in parentheses.
 
 **Please note**, that "normal" functions calls have priority over this syntax, in order to maintain Lua compatibility.
+
+##### Method stubs
+```lua
+object = {
+	value = 25,
+	method = function(self, str)
+		print(str, self.value)
+	end
+}
+
+stub = object:method
+
+object.method = error -- stub stores the method as it was when stub was defined
+object = nil -- also stores the object
+
+print(stub("hello")) -- hello	25
+```
+
+Create a closure function which bundles the variable and its method; when called it will call the method on the variable, without requiring to pass the variable as a first argument.
+
+The closure stores the value of the variable and method when created.
 
 ##### Statement expressions
 ```lua

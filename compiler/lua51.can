@@ -1,3 +1,5 @@
+targetName = "Lua 5.1"
+
 states.continue = {} -- when in a loop that use continue
 
 CONTINUE_START = ()
@@ -19,12 +21,9 @@ tags.Break = ()
 	end
 end
 
-tags.Goto = ()
-	error("Lua 5.1 does not support the goto keyword")
-end
-tags.Label = ()
-	error("Lua 5.1 does not support labels")
-end
+-- Unsuported features
+tags.Goto = nil
+tags.Label = nil
 
 #local patch = output
 #output = ""

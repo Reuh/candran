@@ -8,7 +8,7 @@ To be implemented, theese need to:
 * be significantly useful compared to existing Candran/Lua code.
 * be useful without having to rewrite APIs specifically for Candran. Candran intends to make Lua easier, not supersede it.
 
-Example currently rejected ideas:
+Example rejected ideas:
 * Python-style function decorators (implemented in Candran 0.1.0):
     Useless 95% of the time because most Lua APIs applying something to a function are used like applySomething(someArg,func) instead of func=applySomething(someArg)(func).
     This could be adapted, but this will mean unecessary named functions in the environment and it will only works when the decorator returns the functions.
@@ -47,15 +47,6 @@ catch err
 finally
     clean()
 end
-
-* Safe navigation operator
-local name = articles?[0].author?.name (?[] and ?. index opeators)
-or
-local zip = lottery.drawWinner?().address?.zipcode (expr? existence test suffix)
-
-if one is nil, returns nil
-
-See http://coffeescript.org/#existential-operator
 
 * static type checking
 local a = externalFunc() -- unknown
@@ -103,13 +94,3 @@ meh
 
 * Other potential inspiration
 https://www.ruby-lang.org/fr/
-
-* If with assignement
-if f = io.open("file") then
-    f:close()
-end
-
-f is in the if scope
-
-* Method self bundler
-obj:method -- returns (...) return method(obj, ...) end

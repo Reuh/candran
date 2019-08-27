@@ -1,4 +1,8 @@
 local candran = dofile(arg[1] or "../candran.lua")
+candran.default.indentation = "\t"
+candran.default.mapLines = false
+
+local load = require("lib.util").load
 
 -- test helper
 local results = {} -- tests result
@@ -10,15 +14,17 @@ local function test(name, candranCode, expectedResult, options)
 	local success, code = pcall(candran.make, candranCode, options)
 	if not success then
 		self.result = "error"
-		self.message = "error while making code:\n"..code
+		self.message = "/!\\ error while making code:\n"..code
 		return
 	end
 
 	-- load code
-	local success, func = pcall(loadstring or load, code)
+	local env = {}
+	for k, v in pairs(_G) do env[k] = v end
+	local success, func = pcall(load, code, nil, env)
 	if not success then
 		self.result = "error"
-		self.message = "error while loading code:\n"..func
+		self.message = "/!\\ error while loading code:\n"..func.."\ngenerated code:\n"..code
 		return
 	end
 
@@ -26,14 +32,14 @@ local function test(name, candranCode, expectedResult, options)
 	local success, output = pcall(func)
 	if not success then
 		self.result = "error"
-		self.message = "error while running code:\n"..output
+		self.message = "/!\\ error while running code:\n"..output.."\ngenerated code:\n"..code
 		return
 	end
 
 	-- check result
 	if output ~= expectedResult then
 		self.result = "fail"
-		self.message = "invalid result from the code; it returned "..tostring(output).." instead of "..tostring(expectedResult)
+		self.message = "/!\\ invalid result from the code; it returned "..tostring(output).." instead of "..tostring(expectedResult).."; generated code:\n"..code
 		return
 	else
 		self.result = "success"
@@ -668,6 +674,154 @@ return [@len = 3].len
 test("suffixable table comprehension array index", [[
 return [@len=3]["len"]
 ]], 3)
+
+-- let in condition expression
+test("let in while condition, evaluation each iteration", [[
+	local s = ""
+	local i = 0
+	while (a = i+2) and i < 3 do
+		s = s .. tostring(a)
+		i = i + 1
+		a = 0
+	end
+	return s
+]], "234")
+test("let in while condition, scope", [[
+	local s = ""
+	local i = 0
+	while (a = i+2) and i < 3 do
+		s = s .. tostring(a)
+		i = i + 1
+		a = 0
+	end
+	return a
+]], nil)
+test("several let in while condition, evaluation order", [[
+	local s = ""
+	local i = 0
+	while (a = (b=i+1)+1) and i < 3 do
+		assert(b==i+1)
+		s = s .. tostring(a)
+		i = i + 1
+		a = 0
+	end
+	return s
+]], "234")
+test("several let in while condition, only test the first", [[
+	local s = ""
+	local i = 0
+	while (a,b = false,i) and i < 3 do
+		s = s .. tostring(a)
+		i = i + 1
+	end
+	return s
+]], "")
+
+test("let in if condition", [[
+	if a = false then
+		error("condition was false")
+	elseif b = nil then
+		error("condition was nil")
+	elseif c = true then
+		return "ok"
+	elseif d = true then
+		error("should not be reachable")
+	end
+]], "ok")
+test("let in if condition, scope", [[
+	local r
+	if a = false then
+		error("condition was false")
+	elseif b = nil then
+		error("condition was nil")
+	elseif c = true then
+		assert(a == false)
+		assert(d == nil)
+		r = "ok"
+	elseif d = true then
+		error("should not be reachable")
+	end
+	assert(c == nil)
+	return r
+]], "ok")
+test("several let in if condition, only test the first", [[
+	if a = false then
+		error("condition was false")
+	elseif b = nil then
+		error("condition was nil")
+	elseif c, d = false, "ok" then
+		error("should have tested against c")
+	else
+		return d
+	end
+]], "ok")
+test("several let in if condition, evaluation order", [[
+	local t = { k = "ok" }
+	if a = t[b,c = "k", "l"] then
+		assert(c == "l")
+		assert(b == "k")
+		return a
+	end
+]], "ok")
+
+-- Method stub
+test("method stub, basic", [[
+	local t = { s = "ok", m = function(self) return self.s end }
+	local f = t:m
+	return f()
+]], "ok")
+test("method stub, store method", [[
+	local t = { s = "ok", m = function(self) return self.s end }
+	local f = t:m
+	t.m = function() return "not ok" end
+	return f()
+]], "ok")
+test("method stub, store object", [[
+	local t = { s = "ok", m = function(self) return self.s end }
+	local f = t:m
+	t = {}
+	return f()
+]], "ok")
+test("method stub, returns nil if method nil", [[
+	local t = { m = nil }
+	return t:m
+]], nil)
+
+-- Safe prefixes
+test("safe method stub, when nil", [[
+	return t?:m
+]], nil)
+test("safe method stub, when non-nil", [[
+	local t = { s = "ok", m = function(self) return self.s end }
+	return t?:m()
+]], "ok")
+
+test("safe call, when nil", [[
+	return f?()
+]], nil)
+test("safe call, when non nil", [[
+	f = function() return "ok" end
+	return f?()
+]], "ok")
+
+test("safe index, when nil", [[
+	return f?.l
+]], nil)
+test("safe index, when non nil", [[
+	f = { l = "ok" }
+	return f?.l
+]], "ok")
+
+test("safe prefixes, random chaining", [[
+	f = { l = { m = function(s) return s or "ok" end } }
+	assert(f?.l?.m() == "ok")
+	assert(f?.l?.o == nil)
+	assert(f?.l?.o?() == nil)
+	assert(f?.lo?.o?() == nil)
+	assert(f?.l?:m?() == f.l)
+	assert(f?.l:mo == nil)
+	assert(f.l?:o?() == nil)
+]])
 
 -- results
 local resultCounter = {}
