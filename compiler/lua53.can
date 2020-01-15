@@ -14,7 +14,7 @@ return function(code, ast, options)
 		local r = options.newline..string.rep(options.indentation, indentLevel)
 		if options.mapLines then
 			local sub = code:sub(lastInputPos)
-			local source, line = sub:sub(1, sub:find("\n")):match("%-%- (.-)%:(%d+)\n")
+			local source, line = sub:sub(1, sub:find("\n")):match(".*%-%- (.-)%:(%d+)\n")
 
 			if source and line then
 				lastSource = source
@@ -42,21 +42,57 @@ return function(code, ast, options)
 		return newline()
 	end
 
-	--- Module management
-	local required = {} -- { ["module"] = true, ... }
-	local requireStr = ""
-	-- Add the module "mod" to the list of modules to require, and load its field "field" (or the whole module if nil) into the variable "name".
-	local function addRequire(mod, name, field)
-		if not required[mod] then
-			requireStr ..= "local "..options.variablePrefix..name..(" = require(%q)"):format(mod)..(field and "."..field or "")..options.newline
-			required[mod] = true
-		end
+	--- State stacks
+	-- Used for context-sensitive syntax.
+	local states = {
+		push = {}, -- push stack variable names
+		destructuring = {}, -- list of variable that need to be assigned from a destructure {id = "parent variable", "field1", "field2"...}
+		scope = {} -- list of variables defined in the current scope
+	}
+	-- Push a new value on top of the stack "name". Returns an empty string for chaining.
+	local function push(name, state)
+		table.insert(states[name], state)
+		return ""
+	end
+	-- Remove the value on top of the stack "name". Returns an empty string for chaining.
+	local function pop(name)
+		table.remove(states[name])
+		return ""
+	end
+	-- Set the value on top of the stack "name". Returns an empty string for chaining.
+	local function set(name, state)
+		states[name][#states[name]] = state
+		return ""
+	end
+	-- Returns the value on top of the stack "name".
+	local function peek(name)
+		return states[name][#states[name]]
 	end
 
 	--- Variable management
 	-- Returns the prefixed variable name.
 	local function var(name)
 		return options.variablePrefix..name
+	end
+
+	-- Returns the prefixed temporary variable name.
+	local function tmp()
+		local scope = peek("scope")
+		local var = "%s_%s":format(options.variablePrefix, #scope)
+		table.insert(scope, var)
+		return var
+	end
+
+	--- Module management
+	local required = {} -- { ["full require expression"] = true, ... }
+	local requireStr = ""
+	-- Add the module "mod" to the list of modules to require, and load its field "field" (or the whole module if nil) into the variable "name".
+	local function addRequire(mod, name, field)
+		local req = "require(%q)%s":format(mod, field and "."..field or "")
+		if not required[req] then
+			requireStr ..= "local %s = %s%s":format(var(name), req, options.newline)
+			required[req] = true
+		end
 	end
 
 	--- AST traversal helpers
@@ -132,26 +168,6 @@ return function(code, ast, options)
 		return true
 	end
 
-	--- State stacks
-	-- Used for context-sensitive syntax.
-	local states = {
-		push = {} -- push stack variable names
-	}
-	-- Push a new value on top of the stack "name". Returns an empty string for chaining.
-	local function push(name, state)
-		table.insert(states[name], state)
-		return ""
-	end
-	-- Remove the value on top of the stack "name". Returns an empty string for chaining.
-	local function pop(name)
-		table.remove(states[name])
-		return ""
-	end
-	-- Returns the value on top of the stack "name".
-	local function peek(name)
-		return states[name][#states[name]]
-	end
-
 	--- Lua compiler
 	local tags
 	-- Recursively returns the compiled AST Lua code, set "forceTag" to override the tag type and pass additional arguments to the tag constructor if needed.
@@ -175,6 +191,43 @@ return function(code, ast, options)
 	local CONTINUE_STOP = () -- at the start of loops using continue
 		return unindent().."end"..newline().."::"..var"continue".."::"
 	end
+	local DESTRUCTURING_ASSIGN = (destructured, newlineAfter=false, noLocal=false) -- to define values from a destructuring assignement
+		local vars = {}
+		local values = {}
+		for _, list in ipairs(destructured) do
+			for _, v in ipairs(list) do
+				local var, val
+				if v.tag == "Id" then
+					var = v
+					val = { tag = "Index", { tag = "Id", list.id }, { tag = "String", v[1] } }
+				elseif v.tag == "Pair" then
+					var = v[2]
+					val = { tag = "Index", { tag = "Id", list.id }, v[1] }
+				else
+					error("unknown destructuring element type: "..tostring(v.tag))
+				end
+				if destructured.rightOp and destructured.leftOp then
+					val = { tag = "Op", destructured.rightOp, var, { tag = "Op", destructured.leftOp, val, var } }
+				elseif destructured.rightOp then
+					val = { tag = "Op", destructured.rightOp, var, val }
+				elseif destructured.leftOp then
+					val = { tag = "Op", destructured.leftOp, val, var }
+				end
+				table.insert(vars, lua(var))
+				table.insert(values, lua(val))
+			end
+		end
+		if #vars > 0 then
+			local decl = noLocal and "" or "local "
+			if newlineAfter then
+				return decl..table.concat(vars, ", ").." = "..table.concat(values, ", ")..newline()
+			else
+				return newline()..decl..table.concat(vars, ", ").." = "..table.concat(values, ", ")
+			end
+		else
+			return ""
+		end
+	end
 
 	--- Tag constructors
 	tags = setmetatable({
@@ -185,7 +238,7 @@ return function(code, ast, options)
 				hasPush.tag = "Return"
 				hasPush = false
 			end
-			local r = ""
+			local r = push("scope", {})
 			if hasPush then
 				r ..= push("push", var"push").."local "..var"push".." = {}"..newline()
 			end
@@ -198,7 +251,7 @@ return function(code, ast, options)
 			if hasPush and (t[#t] and t[#t].tag ~= "Return") then -- add return only if needed
 				r ..= newline().."return "..UNPACK(var"push")..pop("push")
 			end
-			return r
+			return r..pop("scope")
 		end,
 
 		-- stat --
@@ -209,28 +262,73 @@ return function(code, ast, options)
 		end,
 		-- Set{ {lhs+} (opid? = opid?)? {expr+} }
 		Set = (t)
-			if #t == 2 then
-				return lua(t[1], "_lhs").." = "..lua(t[2], "_lhs")
-			elseif #t == 3 then
-				return lua(t[1], "_lhs").." = "..lua(t[3], "_lhs")
+			-- extract vars and values
+			local expr = t[#t]
+			local vars, values = {}, {}
+			local destructuringVars, destructuringValues = {}, {}
+			for i, n in ipairs(t[1]) do
+				if n.tag == "DestructuringId" then
+					table.insert(destructuringVars, n)
+					table.insert(destructuringValues, expr[i])
+				else
+					table.insert(vars, n)
+					table.insert(values, expr[i])
+				end
+			end
+			--
+			if #t == 2 or #t == 3 then
+				local r = ""
+				if #vars > 0 then
+					r = lua(vars, "_lhs").." = "..lua(values, "_lhs")
+				end
+				if #destructuringVars > 0 then
+					local destructured = {}
+					r ..= "local "..push("destructuring", destructured)..lua(destructuringVars, "_lhs")..pop("destructuring").." = "..lua(destructuringValues, "_lhs")
+					return r..DESTRUCTURING_ASSIGN(destructured, nil, true)
+				end
+				return r
 			elseif #t == 4 then
 				if t[3] == "=" then
-					local r = lua(t[1], "_lhs").." = "..lua({ t[2], t[1][1], { tag = "Paren", t[4][1] } }, "Op")
-					for i=2, math.min(#t[4], #t[1]), 1 do
-						r ..= ", "..lua({ t[2], t[1][i], { tag = "Paren", t[4][i] } }, "Op")
+					local r = ""
+					if #vars > 0 then
+						r ..= lua(vars, "_lhs").." = "..lua({ t[2], vars[1], { tag = "Paren", values[1] } }, "Op")
+						for i=2, math.min(#t[4], #vars), 1 do
+							r ..= ", "..lua({ t[2], vars[i], { tag = "Paren", values[i] } }, "Op")
+						end
+					end
+					if #destructuringVars > 0 then
+						local destructured = { rightOp = t[2] }
+						r ..= "local "..push("destructuring", destructured)..lua(destructuringVars, "_lhs")..pop("destructuring").." = "..lua(destructuringValues, "_lhs")
+						return r..DESTRUCTURING_ASSIGN(destructured, nil, true)
 					end
 					return r
 				else
-					local r = lua(t[1], "_lhs").." = "..lua({ t[3], { tag = "Paren", t[4][1] }, t[1][1] }, "Op")
-					for i=2, math.min(#t[4], #t[1]), 1 do
-						r ..= ", "..lua({ t[3], { tag = "Paren", t[4][i] }, t[1][i] }, "Op")
+					local r  = ""
+					if #vars > 0 then
+						r ..= lua(vars, "_lhs").." = "..lua({ t[3], { tag = "Paren", values[1] }, vars[1] }, "Op")
+						for i=2, math.min(#t[4], #t[1]), 1 do
+							r ..= ", "..lua({ t[3], { tag = "Paren", values[i] }, vars[i] }, "Op")
+						end
+					end
+					if #destructuringVars > 0 then
+						local destructured = { leftOp = t[3] }
+						r ..= "local "..push("destructuring", destructured)..lua(destructuringVars, "_lhs")..pop("destructuring").." = "..lua(destructuringValues, "_lhs")
+						return r..DESTRUCTURING_ASSIGN(destructured, nil, true)
 					end
 					return r
 				end
 			else -- You are mad.
-				local r = lua(t[1], "_lhs").." = "..lua({ t[2], t[1][1], { tag = "Op", t[4], { tag = "Paren", t[5][1] }, t[1][1] } }, "Op")
-				for i=2, math.min(#t[5], #t[1]), 1 do
-					r ..= ", "..lua({ t[2], t[1][i], { tag = "Op", t[4], { tag = "Paren", t[5][i] }, t[1][i] } }, "Op")
+				local r = ""
+				if #vars > 0 then
+					r ..= lua(vars, "_lhs").." = "..lua({ t[2], vars[1], { tag = "Op", t[4], { tag = "Paren", values[1] }, vars[1] } }, "Op")
+					for i=2, math.min(#t[5], #t[1]), 1 do
+						r ..= ", "..lua({ t[2], vars[i], { tag = "Op", t[4], { tag = "Paren", values[i] }, vars[i] } }, "Op")
+					end
+				end
+				if #destructuringVars > 0 then
+					local destructured = { rightOp = t[2], leftOp = t[4] }
+					r ..= "local "..push("destructuring", destructured)..lua(destructuringVars, "_lhs")..pop("destructuring").." = "..lua(destructuringValues, "_lhs")
+					return r..DESTRUCTURING_ASSIGN(destructured, nil, true)
 				end
 				return r
 			end
@@ -344,12 +442,13 @@ return function(code, ast, options)
 		end,
 		-- Forin{ {ident+} {expr+} block }
 		Forin = (t)
+			local destructured = {}
 			local hasContinue = any(t[3], { "Continue" }, loop)
-			local r = "for "..lua(t[1], "_lhs").." in "..lua(t[2], "_lhs").." do"..indent()
+			local r = "for "..push("destructuring", destructured)..lua(t[1], "_lhs")..pop("destructuring").." in "..lua(t[2], "_lhs").." do"..indent()
 			if hasContinue then
 				r ..= CONTINUE_START()
 			end
-			r ..= lua(t[3])
+			r ..= DESTRUCTURING_ASSIGN(destructured, true)..lua(t[3])
 			if hasContinue then
 				r ..= CONTINUE_STOP()
 			end
@@ -357,15 +456,17 @@ return function(code, ast, options)
 		end,
 		-- Local{ {ident+} {expr+}? }
 		Local = (t)
-			local r = "local "..lua(t[1], "_lhs")
+			local destructured = {}
+			local r = "local "..push("destructuring", destructured)..lua(t[1], "_lhs")..pop("destructuring")
 			if t[2][1] then
 				r ..= " = "..lua(t[2], "_lhs")
 			end
-			return r
+			return r..DESTRUCTURING_ASSIGN(destructured)
 		end,
 		-- Let{ {ident+} {expr+}? }
 		Let = (t)
-			local nameList = lua(t[1], "_lhs")
+			local destructured = {}
+			local nameList = push("destructuring", destructured)..lua(t[1], "_lhs")..pop("destructuring")
 			local r = "local "..nameList
 			if t[2][1] then
 				if all(t[2], { "Nil", "Dots", "Boolean", "Number", "String" }) then -- predeclaration doesn't matter here
@@ -374,7 +475,7 @@ return function(code, ast, options)
 					r ..= newline()..nameList.." = "..lua(t[2], "_lhs")
 				end
 			end
-			return r
+			return r..DESTRUCTURING_ASSIGN(destructured)
 		end,
 		-- Localrec{ {ident} {expr} }
 		Localrec = (t)
@@ -657,6 +758,21 @@ return function(code, ast, options)
 		-- Id{ <string> }
 		Id = (t)
 			return t[1]
+		end,
+		-- DestructuringId{ Id | Pair+ }
+		DestructuringId = (t)
+			if t.id then -- destructing already done before, use parent variable as id
+				return t.id
+			else
+				local d = assert(peek("destructuring"), "DestructuringId not in a destructurable assignement")
+				local vars = { id = tmp() }
+				for j=1, #t, 1 do
+					table.insert(vars, t[j])
+				end
+				table.insert(d, vars)
+				t.id = vars.id
+				return vars.id
+			end
 		end,
 		-- Index{ expr expr }
 		Index = (t)

@@ -1,4 +1,4 @@
-targetName = "luajit"
+targetName = "LuaJIT"
 
 UNPACK = (list, i, j)
 	return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"

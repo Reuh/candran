@@ -59,7 +59,7 @@ apply:
     `Call{ expr expr* }
   | `SafeCall{ expr expr* }
 
-lhs: `Id{ <string> } | `Index{ expr expr }
+lhs: `Id{ <string> } | `Index{ expr expr } | ˇDestructuringId{ Id | Pair+ }
 
 opid:  -- includes additional operators from Lua 5.3 and all relational operators
     'add'  | 'sub' | 'mul'  | 'div'
@@ -163,6 +163,10 @@ local labels = {
   { "ErrExprField", "expected an expression after '='" },
   { "ErrExprFKey", "expected an expression after '[' for the table key" },
   { "ErrCBracketFKey", "expected ']' to close the table key" },
+
+  { "ErrCBraceDestructuring", "expected '}' to close the destructuring variable list" },
+  { "ErrDestructuringEqField", "expected '=' after the table key in destructuring variable list" },
+  { "ErrDestructuringExprField", "expected an identifier after '=' in destructuring variable list" },
 
   { "ErrCBracketTableCompr", "expected ']' to close the table comprehension" },
 
@@ -480,8 +484,9 @@ local G = { V"Lua",
   Block       = tagC("Block", (V"Stat" + -V"BlockEnd" * throw("InvalidStat"))^0 * ((V"RetStat" + V"ImplicitPushStat") * sym(";")^-1)^-1);
   Stat        = V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat"
               + V"LocalStat" + V"FuncStat" + V"BreakStat" + V"LabelStat" + V"GoToStat"
+              + V"LetStat"
               + V"FuncCall" + V"Assignment"
-              + V"LetStat" + V"ContinueStat" + V"PushStat"
+              + V"ContinueStat" + V"PushStat"
               + sym(";");
   BlockEnd    = P"return" + "end" + "elseif" + "else" + "until" + "]" + -1 + V"ImplicitPushStat" + V"Assignment";
 
@@ -502,17 +507,19 @@ local G = { V"Lua",
   ForNum    = tagC("Fornum", V"Id" * sym("=") * V"NumRange" * V"ForBody");
   NumRange  = expect(V"Expr", "ExprFor1") * expect(sym(","), "CommaFor") *expect(V"Expr", "ExprFor2")
             * (sym(",") * expect(V"Expr", "ExprFor3"))^-1;
-  ForIn     = tagC("Forin", V"NameList" * expect(kw("in"), "InFor") * expect(V"ExprList", "EListFor") * V"ForBody");
+  ForIn     = tagC("Forin", V"DestructuringNameList" * expect(kw("in"), "InFor") * expect(V"ExprList", "EListFor") * V"ForBody");
   ForBody   = expectBlockOrSingleStatWithStartEnd(kw("do"), "DoFor", "EndFor");
 
   LocalStat    = kw("local") * expect(V"LocalFunc" + V"LocalAssign", "DefLocal");
   LocalFunc    = tagC("Localrec", kw("function") * expect(V"Id", "NameLFunc") * V"FuncBody") / fixFuncStat;
-  LocalAssign  = tagC("Local", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())));
+  LocalAssign  = tagC("Local", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())))
+               + tagC("Local", V"DestructuringNameList" * sym("=") * expect(V"ExprList", "EListLAssign"));
 
   LetStat      = kw("let") * expect(V"LetAssign", "DefLet");
-  LetAssign    = tagC("Let", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())));
+  LetAssign    = tagC("Let", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())))
+               + tagC("Let", V"DestructuringNameList" * sym("=") * expect(V"ExprList", "EListLAssign"));
 
-  Assignment   = tagC("Set", V"VarList" * V"BinOp"^-1 * (P"=" / "=") * ((V"BinOp" - P"-") + #(P"-" * V"Space") * V"BinOp")^-1 * V"Skip" * expect(V"ExprList", "EListAssign"));
+  Assignment   = tagC("Set", (V"VarList" + V"DestructuringNameList") * V"BinOp"^-1 * (P"=" / "=") * ((V"BinOp" - P"-") + #(P"-" * V"Space") * V"BinOp")^-1 * V"Skip" * expect(V"ExprList", "EListAssign"));
 
   FuncStat    = tagC("Set", kw("function") * expect(V"FuncName", "FuncName") * V"FuncBody") / fixFuncStat;
   FuncName    = Cf(V"Id" * (sym(".") * expect(V"StrId", "NameFunc1"))^0, insertIndex)
@@ -541,8 +548,14 @@ local G = { V"Lua",
   ImplicitPushStat = tagC("Push", commaSep(V"Expr", "RetList"));
 
   NameList  = tagC("NameList", commaSep(V"Id"));
+  DestructuringNameList = tagC("NameList", commaSep(V"DestructuringId")),
   VarList   = tagC("VarList", commaSep(V"VarExpr"));
   ExprList  = tagC("ExpList", commaSep(V"Expr", "ExprList"));
+
+  DestructuringId          = tagC("DestructuringId", sym("{") * V"DestructuringIdFieldList" * expect(sym("}"), "CBraceDestructuring")) + V"Id",
+  DestructuringIdFieldList = sepBy(V"DestructuringIdField", V"FieldSep") * V"FieldSep"^-1;
+  DestructuringIdField     = tagC("Pair", V"FieldKey" * expect(sym("="), "DestructuringEqField") * expect(V"Id", "DestructuringExprField"))
+                           + V"Id";
 
   Expr        = V"OrExpr";
   OrExpr      = chainOp(V"AndExpr", V"OrOp", "OrExpr");
@@ -564,7 +577,7 @@ local G = { V"Lua",
               + tagC("Boolean", kw("true") * Cc(true))
               + tagC("Dots", sym("..."))
               + V"FuncDef"
-              + (when("lexpr") * tagC("LetExpr", V"NameList" * sym("=") * -sym("=") * expect(V"ExprList", "EListLAssign")))
+              + (when("lexpr") * tagC("LetExpr", V"DestructuringNameList" * sym("=") * -sym("=") * expect(V"ExprList", "EListLAssign")))
               + V"ShortFuncDef"
               + V"SuffixedExpr"
               + V"StatExpr";

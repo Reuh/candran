@@ -304,6 +304,8 @@ function traverse_var (env, var)
     status, msg = traverse_exp(env, var[2])
     if not status then return status, msg end
     return true
+  elseif tag == "DestructuringId" then
+    return traverse_table(env, var)
   else
     error("expecting a variable, but got a " .. tag)
   end

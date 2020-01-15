@@ -42,6 +42,8 @@ end)
 
 a.child?:method?() -- safe navigation operator
 
+local {hey, method} = a -- destructuring assignement
+
 local odd = [ -- table comprehension
 	for i=1, 10 do
 		if i%2 == 0 then
@@ -70,11 +72,11 @@ end
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
 #### Quick setup
-Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.10.0-1.rockspec```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.11.0-1.rockspec```.
 
 Or manually install LPegLabel (```luarocks install lpeglabel```, version 1.5 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
-You can optionally install lua-linenoise (```luarocks install linenoise```) for an improved REPL. The rockspec does not install linenoise by default.
+You can optionally install lua-linenoise (```luarocks install linenoise```, version 0.9 or above) for an improved REPL. The rockspec will install linenoise by default.
 
 You can register the Candran package searcher in your main Lua file (`require("candran").setup()`) and any subsequent `require` call in your project will automatically search for Candran modules.
 
@@ -244,6 +246,33 @@ You can write *any* code you want between `[` and `]`, this code will be run as 
 Values returned by the function will be inserted in the generated table in the order they were returned. This way, each time you `push` value(s), they will be added to the table.
 
 The table generation function also have access to the `self` variable (and its alias `@`), which is the table which is being created, so you can set any of the table's field.
+
+##### Destructuring assignement
+```lua
+t = { x = 1, y = 2, z = 3 }
+
+{x, y, z} = t -- x, y, z = t.x, t.y, t.z
+
+{x = o} = t -- o = t.x
+
+{["x"] = o} = t -- o = t["x"]
+
+-- Also works with local, let, for ... in, if with assignement, +=, etc.
+local {x, y} = t
+let {x, y} = t
+for i, {x, y} in ipairs{t} do end
+if {x, y} = t then end
+{x} += t -- x = x + t.x
+
+-- Works as expected with multiple assignement.
+a, {x, y, z}, b = 1, t, 2
+
+```
+
+Destruturing assignement allows to quickly extract fields from a table into a variable.
+
+This is done by replacing the variable name in any assignement with a table literal, where every item is the name of the field and assigned variable. It is possible to use a different field name than the variable name by naming the table item (`fieldName = var` or `[fieldExpression] = var`).
+
 
 ##### Safe navigation operators
 ```lua

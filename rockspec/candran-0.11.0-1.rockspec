@@ -19,12 +19,13 @@ description = {
 
 source = {
 	url = "git://github.com/Reuh/candran",
-	tag = "v0.10.0"
+	tag = "v0.11.0"
 }
 
 dependencies = {
 	"lua >= 5.1",
-	"lpeglabel >= 1.5.0"
+	"lpeglabel >= 1.5.0",
+	"linenoise >= 0.9"
 }
 
 build = {
