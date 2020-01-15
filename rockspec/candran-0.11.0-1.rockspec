@@ -2,7 +2,7 @@ rockspec_format = "3.0"
 
 package = "candran"
 
-version = "0.10.0-1"
+version = "0.11.0-1"
 
 description = {
 	summary = "A simple Lua dialect and preprocessor.",
