@@ -1,8 +1,8 @@
 #!/bin/lua
 local candran = require("candran")
-local cmdline = require("lib.cmdline")
-local parse = require("lib.lua-parser.parser").parse
-local pp = require("lib.lua-parser.pp")
+local cmdline = require("candran.cmdline")
+local parse = require("candran.can-parser.parser").parse
+local pp = require("candran.can-parser.pp")
 
 local args = cmdline(arg)
 

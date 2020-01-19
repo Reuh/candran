@@ -9,7 +9,7 @@ block: { stat* }
 stat:
     `Do{ stat* }
   | `Set{ {lhs+} (opid? = opid?)? {expr+} }   -- lhs1, lhs2... op=op e1, e2...
-  | `While{ expr block }                      -- while e do b end
+  | `While{ lexpr block }                      -- while e do b end
   | `Repeat{ block expr }                     -- repeat b until e
   | `If{ (lexpr block)+ block? }              -- if e1 then b1 [elseif e2 then b2] ... [else bn] end
   | `Fornum{ ident expr expr expr? block }    -- for ident = e, e[, e] do b end
@@ -452,6 +452,10 @@ local function maybeBlockWithEnd () -- same as above but don't error if it doesn
          + Cmt(V"BlockNoErr", searchEnd)
 end
 
+local function maybe (patt) -- fail pattern instead of propagating errors
+  return #patt/0 * patt
+end
+
 local stacks = {
   lexpr = {}
 }
@@ -577,7 +581,7 @@ local G = { V"Lua",
               + tagC("Boolean", kw("true") * Cc(true))
               + tagC("Dots", sym("..."))
               + V"FuncDef"
-              + (when("lexpr") * tagC("LetExpr", V"DestructuringNameList" * sym("=") * -sym("=") * expect(V"ExprList", "EListLAssign")))
+              + (when("lexpr") * tagC("LetExpr", maybe(V"DestructuringNameList") * sym("=") * -sym("=") * expect(V"ExprList", "EListLAssign")))
               + V"ShortFuncDef"
               + V"SuffixedExpr"
               + V"StatExpr";
@@ -722,7 +726,7 @@ local G = { V"Lua",
 
 local parser = {}
 
-local validator = require("lib.lua-parser.validator")
+local validator = require("candran.can-parser.validator")
 local validate = validator.validate
 local syntaxerror = validator.syntaxerror
 

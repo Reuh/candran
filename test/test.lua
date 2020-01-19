@@ -2,7 +2,7 @@ local candran = dofile(arg[1] or "../candran.lua")
 candran.default.indentation = "\t"
 candran.default.mapLines = false
 
-local load = require("lib.util").load
+local load = require("candran.util").load
 
 -- test helper
 local results = {} -- tests result

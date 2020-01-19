@@ -1,14 +1,14 @@
-#import("lib.util")
-#import("lib.cmdline")
+#import("candran.util")
+#import("candran.cmdline")
 
 #import("compiler.lua53")
 #import("compiler.luajit")
 #import("compiler.lua51")
 
-#import("lib.lua-parser.scope")
-#import("lib.lua-parser.validator")
-#import("lib.lua-parser.pp")
-#import("lib.lua-parser.parser")
+#import("candran.can-parser.scope")
+#import("candran.can-parser.validator")
+#import("candran.can-parser.pp")
+#import("candran.can-parser.parser")
 
 local candran = {
 	VERSION = "0.11.0"

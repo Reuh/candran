@@ -1,7 +1,7 @@
 --[[
 This module impements a validator for the AST
 ]]
-local scope = require "lib.lua-parser.scope"
+local scope = require "candran.can-parser.scope"
 
 local lineno = scope.lineno
 local new_scope, end_scope = scope.new_scope, scope.end_scope

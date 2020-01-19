@@ -1,6 +1,6 @@
 #!/bin/lua
 local candran = require("candran")
-local cmdline = require("lib.cmdline")
+local cmdline = require("candran.cmdline")
 
 local args = cmdline(arg)
 
