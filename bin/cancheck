@@ -129,14 +129,14 @@ local function check(can)
 						-- found
 						if start then
 							pos = stop
-							warning.can_column, warning.can_end_column = start, stop
+							warning.can_column, warning.can_end_column = start, stop-1
 							can_n = can_n + 1
 						else
 							break
 						end
 					end
 
-					-- AFAIK, prev_column and prev_column_end are not displayed in any warning so we don't need to recalculate them for Candran.
+					-- AFAIK, prev_column and prev_end_column are not displayed in any warning so we don't need to recalculate them for Candran.
 				end
 			end
 		end
