@@ -32,7 +32,7 @@ if arg[#arg] == "-" then
 elseif #args >= 1 then
 	local f, err = candran.loadfile(args[1], nil, args)
 	if not f then
-		print("can: "..err)
+		io.stderr:write("can: "..err.."\n")
 		os.exit(1)
 	else
 		f()

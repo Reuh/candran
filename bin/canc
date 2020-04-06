@@ -46,7 +46,7 @@ for _, file in ipairs(args) do
 
 		local inputFile, err = io.open(file, "r")
 		if not inputFile then
-			io.stderr:write("canc: cannot open "..file..": "..err)
+			io.stderr:write("canc: cannot open "..file..": "..err.."\n")
 			os.exit(1)
 		end
 		input = inputFile:read("*a")
@@ -81,7 +81,7 @@ for _, file in ipairs(args) do
 	if args.preprocess then
 		local r, err = candran.preprocess(out, args)
 		if not r then
-			print("canc: "..err)
+			io.stderr:write("canc: "..err.."\n")
 			os.exit(1)
 		end
 		out = r
@@ -89,7 +89,7 @@ for _, file in ipairs(args) do
 	if args.compile then
 		local r, err = candran.compile(out, args)
 		if not r then
-			print("canc: "..err)
+			io.stderr:write("canc: "..err.."\n")
 			os.exit(1)
 		end
 		out = r
@@ -97,7 +97,7 @@ for _, file in ipairs(args) do
 	if args.compile == nil and args.preprocess == nil then
 		local r, err = candran.make(input, args)
 		if not r then
-			print("canc: "..err)
+			io.stderr:write("canc: "..err.."\n")
 			os.exit(1)
 		end
 		out = r

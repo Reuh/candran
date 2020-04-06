@@ -2,9 +2,14 @@
 
 -- Monkey patch Luacheck (tested against version 0.23.0) to support Candran files
 local candran = require("candran")
+local util = require("candran.util")
+
+local function escape(str)
+	return str:gsub("[^%w]", "%%%0")
+end
 
 local function pattern(token)
-	return "()"..token:gsub("[^%w]", "%%%0").."()"
+	return "()"..escape(token).."()"
 end
 
 local tokenAlias = {
@@ -14,7 +19,8 @@ local tokenAlias = {
 -- Patch checker
 local oldCheck = require("luacheck.check")
 local function check(can)
-	local lua, err = candran.make(can)
+	local lua, err = candran.make(can, {chunkname="_luacheck_source"})
+	-- Warnings
 	if lua then
 		local r = oldCheck(lua)
 		-- Calculate Candran file position.
@@ -27,50 +33,72 @@ local function check(can)
 			for l in (can.."\n"):gmatch("([^\n]*)\n") do
 				table.insert(can_lines, l)
 			end
-			for _, warning in ipairs(r.warnings) do
-				-- candran line
-				local lua_line = lua_lines[warning.line]
-				warning.can_line = tonumber(lua_line:match(".*%-%- .-%:(%d+)$"))
+			for i=#r.warnings, 1, -1 do
+				local warning  = r.warnings[i]
 
-				-- candran column
-				local can_line = can_lines[warning.can_line]
-				local lua_token = lua_line:sub(warning.column, warning.end_column)
-				local token_pattern = pattern(lua_token) -- token finding pattern
-				-- the warning happens on the n-th instance of lua_token on this line
-				local lua_n = 1
-				for start in lua_line:gmatch(token_pattern) do
-					if start >= warning.column then
-						break
-					end
-					lua_n = lua_n + 1
-				end
-				-- Find associated candran token. If lua_n > can_nmax, the last found lua_token is used.
-				-- This approximation should work in like, 90% of cases.
-				local can_n = 1
-				local pos = 1
-				while can_n <= lua_n do
-					-- find first token or alias of this token
-					local start, stop = can_line:match(token_pattern, pos)
-					if tokenAlias[lua_token] then
-						for _, token in ipairs(tokenAlias[lua_token]) do
-							local nstart, nstop = can_line:match(pattern(token), pos)
-							if nstart and (not start or nstart < start) then
-								start, stop = nstart, nstop
-							end
+				-- calculating candran line
+				local lua_line = lua_lines[warning.line]
+
+				local source, line = lua_line:match(".*%-%- (.-)%:(%d+)$")
+				if source ~= "_luacheck_source" then -- line is from another file, discard
+					table.remove(r.warnings, i)
+
+				elseif source then
+					warning.can_line = tonumber(line)
+
+					-- do the same for prev_line
+					if warning.prev_line then
+						local s, l = lua_lines[warning.prev_line]:match(".*%-%- (.-)%:(%d+)$")
+						if s ~= "_luacheck_source" then
+							warning.prev_line = s..":"..l -- luacheck seems to do no validation on this, so we can redefine it to anything
+						elseif l then
+							warning.prev_line = l
 						end
 					end
-					-- found
-					if start then
-						pos = stop
-						warning.can_column, warning.can_end_column = start, stop
-						can_n = can_n + 1
-					else
-						break
+
+					-- calculating candran column
+					local can_line = can_lines[warning.can_line]
+					local lua_token = lua_line:sub(warning.column, warning.end_column)
+					local token_pattern = pattern(lua_token) -- token finding pattern
+					-- the warning happens on the n-th instance of lua_token on this line
+					local lua_n = 1
+					for start in lua_line:gmatch(token_pattern) do
+						if start >= warning.column then
+							break
+						end
+						lua_n = lua_n + 1
 					end
+					-- Find associated candran token. If lua_n > can_nmax, the last found lua_token is used.
+					-- This approximation should work in like, 90% of cases.
+					local can_n = 1
+					local pos = 1
+					while can_n <= lua_n do
+						-- find first token or alias of this token
+						local start, stop = can_line:match(token_pattern, pos)
+						if tokenAlias[lua_token] then
+							for _, token in ipairs(tokenAlias[lua_token]) do
+								local nstart, nstop = can_line:match(pattern(token), pos)
+								if nstart and (not start or nstart < start) then
+									start, stop = nstart, nstop
+								end
+							end
+						end
+						-- found
+						if start then
+							pos = stop
+							warning.can_column, warning.can_end_column = start, stop
+							can_n = can_n + 1
+						else
+							break
+						end
+					end
+
+					-- AFAIK, prev_column and prev_column_end are not displayed in any warning so we don't need to recalculate them for Candran.
 				end
 			end
 		end
 		return r
+	-- Syntax error
 	else
 		local line, column, msg = err:match(":(%d+):(%d+):%s*(.*)$")
 		local syntax_error = {
@@ -89,6 +117,14 @@ local function check(can)
 	end
 end
 package.loaded["luacheck.check"] = check
+
+local runner = require("luacheck.runner")
+local oldRunner = runner.new
+function runner.new(opts)
+	-- Disable max line length checking (it is compiled code...)
+	opts.max_line_length = false
+	return oldRunner(opts)
+end
 
 -- Patch formatter
 local format = require("luacheck.format")
@@ -113,4 +149,20 @@ local function setupvalue(fn, val, name, ...)
 end
 setupvalue(format.builtin_formatters.plain, format_location, "format_event", "format_location")
 
-require("luacheck.main")
+-- Fix some Luacheck messages and run
+local path = util.search("luacheck.main", {"lua"})
+if path then
+	local f = io.open(path, "r")
+	local code = f:read("*a")
+	f:close()
+
+	code = code:gsub(escape(" bug (please report at https://github.com/mpeterv/luacheck/issues)"), ", patched for Candran "..candran.VERSION.." bug. Please DO NOT report this bug to Luacheck") -- error text
+	           :gsub(escape("\"luacheck\","), "\"cancheck\",") -- command name
+	           :gsub("a linter and a static analyzer for Lua%.", "a linter and a static analyzer for Lua, patched for Candran "..candran.VERSION..".") -- help text
+
+	-- run
+	return load(code)()
+else
+	io.stderr:write("can't find luacheck.main\n")
+	os.exit(1)
+end
