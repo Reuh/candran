@@ -15,7 +15,7 @@ local function test(name, candranCode, expectedResult, options)
 	options.chunkname = name
 
 	-- make code
-	local success, code = pcall(candran.make, candranCode, options)
+	local success, code = pcall(function() return assert(candran.make(candranCode, options)) end)
 	if not success then
 		self.result = "error"
 		self.message = "/!\\ error while making code:\n"..code

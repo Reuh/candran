@@ -23,7 +23,9 @@ source = {
 
 dependencies = {
 	"lua >= 5.1",
-	"lpeglabel >= 1.5.0"
+	"lpeglabel >= 1.5.0",
+	"linenoise >= 0.9",
+	"luacheck >= 0.23.0"
 }
 
 build = {
@@ -32,6 +34,6 @@ build = {
 		candran = "candran.lua"
 	},
 	install = {
-		bin = { "bin/can", "bin/canc" }
+		bin = { "bin/can", "bin/canc", "bin/cancheck" }
 	}
 }

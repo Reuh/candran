@@ -183,7 +183,7 @@ return function(code, ast, options)
 		return "table.unpack("..list..(i and (", "..i..(j and (", "..j) or "")) or "")..")"
 	end
 	local APPEND = (t, toAppend) -- append values "toAppend" (multiple values possible) to t
-		return "do"..indent().."local a = table.pack("..toAppend..")"..newline().."table.move(a, 1, a.n, #"..t.."+1, "..t..")"..unindent().."end"
+		return "do"..indent().."local "..var("a").." = table.pack("..toAppend..")"..newline().."table.move("..var("a")..", 1, "..var("a")..".n, #"..t.."+1, "..t..")"..unindent().."end"
 	end
 	local CONTINUE_START = () -- at the start of loops using continue
 		return "do"..indent()

@@ -1,0 +1,116 @@
+#!/usr/bin/env lua
+
+-- Monkey patch Luacheck (tested against version 0.23.0) to support Candran files
+local candran = require("candran")
+
+local function pattern(token)
+	return "()"..token:gsub("[^%w]", "%%%0").."()"
+end
+
+local tokenAlias = {
+	["self"] = { "@", ":" }
+}
+
+-- Patch checker
+local oldCheck = require("luacheck.check")
+local function check(can)
+	local lua, err = candran.make(can)
+	if lua then
+		local r = oldCheck(lua)
+		-- Calculate Candran file position.
+		if #r.warnings > 0 then
+			local lua_lines = {}
+			for l in (lua.."\n"):gmatch("([^\n]*)\n") do
+				table.insert(lua_lines, l)
+			end
+			local can_lines = {}
+			for l in (can.."\n"):gmatch("([^\n]*)\n") do
+				table.insert(can_lines, l)
+			end
+			for _, warning in ipairs(r.warnings) do
+				-- candran line
+				local lua_line = lua_lines[warning.line]
+				warning.can_line = tonumber(lua_line:match(".*%-%- .-%:(%d+)$"))
+
+				-- candran column
+				local can_line = can_lines[warning.can_line]
+				local lua_token = lua_line:sub(warning.column, warning.end_column)
+				local token_pattern = pattern(lua_token) -- token finding pattern
+				-- the warning happens on the n-th instance of lua_token on this line
+				local lua_n = 1
+				for start in lua_line:gmatch(token_pattern) do
+					if start >= warning.column then
+						break
+					end
+					lua_n = lua_n + 1
+				end
+				-- Find associated candran token. If lua_n > can_nmax, the last found lua_token is used.
+				-- This approximation should work in like, 90% of cases.
+				local can_n = 1
+				local pos = 1
+				while can_n <= lua_n do
+					-- find first token or alias of this token
+					local start, stop = can_line:match(token_pattern, pos)
+					if tokenAlias[lua_token] then
+						for _, token in ipairs(tokenAlias[lua_token]) do
+							local nstart, nstop = can_line:match(pattern(token), pos)
+							if nstart and (not start or nstart < start) then
+								start, stop = nstart, nstop
+							end
+						end
+					end
+					-- found
+					if start then
+						pos = stop
+						warning.can_column, warning.can_end_column = start, stop
+						can_n = can_n + 1
+					else
+						break
+					end
+				end
+			end
+		end
+		return r
+	else
+		local line, column, msg = err:match(":(%d+):(%d+):%s*(.*)$")
+		local syntax_error = {
+			code = "011",
+			line = line,
+			column = column,
+			end_column = column,
+			msg = msg
+		}
+		return {
+			warnings = {syntax_error},
+			inline_options = {},
+			line_lengths = {},
+			line_endings = {}
+		}
+	end
+end
+package.loaded["luacheck.check"] = check
+
+-- Patch formatter
+local format = require("luacheck.format")
+local function format_location(file, location, opts)
+   local res = ("%s:%d:%d"):format(file, location.can_line or location.line, location.can_column or location.column)
+   if opts.ranges then
+      res = ("%s-%d"):format(res, location.can_end_column or location.end_column)
+   end
+   return res
+end
+local function setupvalue(fn, val, name, ...)
+	for i=1, debug.getinfo(fn, "u").nups do
+		local n, v = debug.getupvalue(fn, i)
+		if n == name then
+			if not ... then
+				debug.setupvalue(fn, i, val)
+			else
+				setupvalue(v, val, ...)
+			end
+		end
+	end
+end
+setupvalue(format.builtin_formatters.plain, format_location, "format_event", "format_location")
+
+require("luacheck.main")

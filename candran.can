@@ -11,7 +11,7 @@
 #import("candran.can-parser.parser")
 
 local candran = {
-	VERSION = "0.11.0"
+	VERSION = "0.12.0"
 }
 
 --- Default options.
@@ -37,7 +37,9 @@ end
 --- Run the preprocessor
 -- @tparam input string input code
 -- @tparam options table arguments for the preprocessor. They will be inserted into the preprocessor environement.
--- @treturn output string output code
+-- @treturn[1] output string output code
+-- @treturn[2] nil nil if error
+-- @treturn[2] error string error message
 function candran.preprocess(input, options={})
 	options = util.merge(candran.default, options)
 
@@ -90,10 +92,10 @@ function candran.preprocess(input, options={})
 
 		-- open module file
 		local f = io.open(filepath)
-		if not f then error("Can't open the module file to import") end
+		if not f then error("can't open the module file to import") end
 
 		margs = util.merge(options, { chunkname = filepath, loadLocal = true, loadPackage = true }, margs)
-		local modcontent = candran.preprocess(f:read("*a"), margs)
+		local modcontent = assert(candran.preprocess(f:read("*a"), margs))
 		f:close()
 
 		-- get module name (ex: module name of path.to.module is module)
@@ -113,7 +115,7 @@ function candran.preprocess(input, options={})
 	-- @tparam file string filepath
 	env.include = function(file)
 		local f = io.open(file)
-		if not f then error("Can't open the file "..file.." to include") end
+		if not f then error("can't open the file "..file.." to include") end
 		env.write(f:read("*a"))
 		f:close()
 	end
@@ -131,12 +133,21 @@ function candran.preprocess(input, options={})
 	end
 
 	-- compile & load preprocessor
-	local preprocess, err = util.load(candran.compile(preprocessor, args), "candran preprocessor", env)
-	if not preprocess then error("Error while creating Candran preprocessor: " .. err) end
+	local preprocess, err = candran.compile(preprocessor, options)
+	if not preprocess then
+		return nil, "in preprocessor: "..err
+	end
+
+	preprocess, err = util.load(preprocessor, "candran preprocessor", env)
+	if not preprocess then
+		return nil, "in preprocessor: "..err
+	end
 
 	-- execute preprocessor
 	local success, output = pcall(preprocess)
-	if not success then error("Error while preprocessing file: " .. output) end
+	if not success then
+		return nil, "in preprocessor: "..output
+	end
 
 	return output
 end
@@ -144,14 +155,16 @@ end
 --- Run the compiler
 -- @tparam input string input code
 -- @tparam options table options for the compiler
--- @treturn output string output code
+-- @treturn[1] output string output code
+-- @treturn[2] nil nil if error
+-- @treturn[2] error string error message
 function candran.compile(input, options={})
 	options = util.merge(candran.default, options)
 
 	local ast, errmsg = parser.parse(input, options.chunkname)
 
 	if not ast then
-		error("Compiler: error while parsing file: "..errmsg)
+		return nil, errmsg
 	end
 
 	return require("compiler."..options.target)(input, ast, options)
@@ -160,9 +173,18 @@ end
 --- Preprocess & compile code
 -- @tparam code string input code
 -- @tparam options table arguments for the preprocessor and compiler
--- @treturn output string output code
+-- @treturn[1] output string output code
+-- @treturn[2] nil nil if error
+-- @treturn[2] error string error message
 function candran.make(code, options)
-	return candran.compile(candran.preprocess(code, options), options)
+	local r, err = candran.preprocess(code, options)
+	if r then
+		r, err = candran.compile(r, options)
+		if r then
+			return r
+		end
+	end
+	return r, err
 end
 
 local errorRewritingActive = false
@@ -171,7 +193,9 @@ local codeCache = {}
 -- Will rewrite errors by default.
 function candran.loadfile(filepath, env, options)
 	local f, err = io.open(filepath)
-	if not f then error("can't open the file: "..err) end
+	if not f then
+		return nil, "cannot open %s":format(err)
+	end
 	local content = f:read("*a")
 	f:close()
 
@@ -183,14 +207,19 @@ end
 function candran.load(chunk, chunkname, env, options={})
 	options = util.merge({ chunkname = tostring(chunkname or chunk) }, options)
 
-	codeCache[options.chunkname] = candran.make(chunk, options)
-	local f, err = util.load(codeCache[options.chunkname], options.chunkname, env)
+	local code, err = candran.make(chunk, options)
+	if not code then
+		return code, err
+	end
+
+	codeCache[options.chunkname] = code
+	local f, err = util.load(code, options.chunkname, env)
 
 	-- Um. Candran isn't supposed to generate invalid Lua code, so this is a major issue.
 	-- This is not going to raise an error because this is supposed to behave similarly to Lua's load function.
 	-- But the error message will likely be useless unless you know how Candran works.
 	if f == nil then
-		return f, "Candran unexpectedly generated invalid code: "..err
+		return f, "candran unexpectedly generated invalid code: "..err
 	end
 
 	if options.rewriteErrors == false then
@@ -248,7 +277,7 @@ function candran.messageHandler(message)
 
 		if originalFile then
 			local i = 0
-			for l in originalFile:gmatch("([^\n]*)\n") do
+			for l in (originalFile.."\n"):gmatch("([^\n]*)\n") do
 				i = i +1
 				if i == line then
 					local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$")

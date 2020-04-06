@@ -1,4 +1,5 @@
-#!/bin/lua
+#!/usr/bin/env lua
+
 local candran = require("candran")
 local cmdline = require("candran.cmdline")
 
@@ -29,7 +30,13 @@ if arg[#arg] == "-" then
 	f()
 -- file
 elseif #args >= 1 then
-	candran.dofile(args[1], args)
+	local f, err = candran.loadfile(args[1], nil, args)
+	if not f then
+		print("can: "..err)
+		os.exit(1)
+	else
+		f()
+	end
 -- REPL
 else
 	-- Setup linenoise

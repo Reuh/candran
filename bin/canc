@@ -1,4 +1,5 @@
-#!/bin/lua
+#!/usr/bin/env lua
+
 local candran = require("candran")
 local cmdline = require("candran.cmdline")
 local parse = require("candran.can-parser.parser").parse
@@ -78,13 +79,28 @@ for _, file in ipairs(args) do
 
 	local out = input
 	if args.preprocess then
-		out = candran.preprocess(out, args)
+		local r, err = candran.preprocess(out, args)
+		if not r then
+			print("canc: "..err)
+			os.exit(1)
+		end
+		out = r
 	end
 	if args.compile then
-		out = candran.compile(out, args)
+		local r, err = candran.compile(out, args)
+		if not r then
+			print("canc: "..err)
+			os.exit(1)
+		end
+		out = r
 	end
 	if args.compile == nil and args.preprocess == nil then
-		out = candran.make(input, args)
+		local r, err = candran.make(input, args)
+		if not r then
+			print("canc: "..err)
+			os.exit(1)
+		end
+		out = r
 	end
 
 	if args.print then

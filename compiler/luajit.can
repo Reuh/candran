@@ -4,7 +4,7 @@ UNPACK = (list, i, j)
 	return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")"
 end
 APPEND = (t, toAppend)
-	return "do" .. indent() .. "local a, p = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #a do" .. indent() .. t .. "[p] = a[i]" .. newline() .. "p = p + 1" .. unindent() .. "end" .. unindent() .. "end"
+	return "do" .. indent() .. "local "..var("a")..", "..var("p").." = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #"..var("a").." do" .. indent() .. t .. "["..var("p").."] = "..var("a").."[i]" .. newline() .. ""..var("p").." = "..var("p").." + 1" .. unindent() .. "end" .. unindent() .. "end"
 end
 
 tags._opid.idiv = (left, right)
