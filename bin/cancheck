@@ -1,17 +1,60 @@
 #!/usr/bin/env lua
 
+--[[
+Based on luacheck: https://github.com/luarocks/luacheck
+
+The MIT License (MIT)
+
+Copyright (c) 2014 - 2018 Peter Melnichenko
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+]]
+
 -- Monkey patch Luacheck (tested against version 0.23.0) to support Candran files
 local candran = require("candran")
 local util = require("candran.util")
 
+-- set a function upvalues (if several names are given, will go up the upvalue chain)
+local function setupvalue(fn, val, name, ...)
+	for i=1, debug.getinfo(fn, "u").nups do
+		local n, v = debug.getupvalue(fn, i)
+		if n == name then
+			if not ... then
+				debug.setupvalue(fn, i, val)
+			else
+				setupvalue(v, val, ...)
+			end
+		end
+	end
+end
+
+-- escape a string to be used as a pattern
 local function escape(str)
 	return str:gsub("[^%w]", "%%%0")
 end
 
+-- returns a pattern that find start and stop position of a token
 local function pattern(token)
 	return "()"..escape(token).."()"
 end
 
+-- token aliases
 local tokenAlias = {
 	["self"] = { "@", ":" }
 }
@@ -134,18 +177,6 @@ local function format_location(file, location, opts)
       res = ("%s-%d"):format(res, location.can_end_column or location.end_column)
    end
    return res
-end
-local function setupvalue(fn, val, name, ...)
-	for i=1, debug.getinfo(fn, "u").nups do
-		local n, v = debug.getupvalue(fn, i)
-		if n == name then
-			if not ... then
-				debug.setupvalue(fn, i, val)
-			else
-				setupvalue(v, val, ...)
-			end
-		end
-	end
 end
 setupvalue(format.builtin_formatters.plain, format_location, "format_event", "format_location")
 

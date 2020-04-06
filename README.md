@@ -72,11 +72,11 @@ end
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
 #### Quick setup
-Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.11.0-1.rockspec```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.12.0-1.rockspec```.
 
 Or manually install LPegLabel (```luarocks install lpeglabel```, version 1.5 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
-You can optionally install lua-linenoise (```luarocks install linenoise```, version 0.9 or above) for an improved REPL. The rockspec will install linenoise by default.
+You can optionally install lua-linenoise (```luarocks install linenoise```, version 0.9 or above) for an improved REPL, and luacheck (```luarocks install luacheck```, version 0.23.0 or above) to be able to use ```cancheck```. Installing Candran using LuaRocks will install linenoise and luacheck by default.
 
 You can register the Candran package searcher in your main Lua file (`require("candran").setup()`) and any subsequent `require` call in your project will automatically search for Candran modules.
 
@@ -86,6 +86,8 @@ Most editors should be able to use their existing Lua support for Candran code. 
 	* [sublime-candran](https://github.com/Reuh/sublime-candran) support the full Candran syntax
 	* [SublimeLinter-candran-contrib](https://github.com/Reuh/SublimeLinter-contrib-candran) SublimeLinter plugin for Candran
 * **Atom**: [language-candran](https://atom.io/packages/language-candran) support the full Candran syntax
+
+For linting, if your editor support [luacheck](https://github.com/luarocks/luacheck), you should be able to replace it with ```cancheck``` (in this repository ```bin/cancheck```, or installed automatically if Candran was installed using LuaRocks), which is a wrapper around luacheck that monkey-patch it to support Candran.
 
 The language
 ------------
@@ -495,7 +497,7 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
 	Start a simplisitic Candran REPL.
 
-	If you want a better REPL (autocompletion, history, ability to move the cursor), install lua-linenoise: ```luarocks install linenoise```.
+	If you want a better REPL (autocompletion, history, ability to move the cursor), install lua-linenoise: ```luarocks install linenoise``` (automatically installed if Candran was installed using LuaRocks).
 
 *	````can [options] filename````
 
@@ -508,6 +510,12 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 	Instead of providing a filename, you can use ```-``` to read from standard input.
 
 	Use the ```-h``` or ```-help``` option to display a short help text.
+
+*   ```cancheck```
+
+	Provides a linter and static analyzer with the exact same interface as [luacheck](https://github.com/luarocks/luacheck).
+
+	This requires luacheck: ```luarocks install luacheck``` (automatically installed if Candran was installed through LuaRocks).
 
 ### Library usage
 Candran can also be used as a Lua library:
@@ -534,9 +542,9 @@ The table returned by _require("candran")_ gives you access to:
 
 ##### Compiler & preprocessor
 * ````candran.VERSION````: Candran's version string (e.g. `"0.10.0"`).
-* ````candran.preprocess(code[, options])````: return the Candran code _code_, preprocessed with the _options_ options table.
-* ````candran.compile(code[, options])````: return the Candran code compiled to Lua with the _options_ option table.
-* ````candran.make(code[, options])````: return the Candran code, preprocessed and compiled with the _options_ options table.
+* ````candran.preprocess(code[, options])````: return the Candran code _code_, preprocessed with the _options_ options table; or nil, err in case of error.
+* ````candran.compile(code[, options])````: return the Candran code compiled to Lua with the _options_ option table; or nil, err in case of error.
+* ````candran.make(code[, options])````: return the Candran code, preprocessed and compiled with the _options_ options table; or nil, err in case of error.
 
 ##### Code loading helpers
 * ```candran.loadfile(filepath, env, options)```: Candran equivalent to the Lua 5.3's loadfile funtion. Will rewrite errors by default.
