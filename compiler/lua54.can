@@ -1,0 +1,835 @@
+local targetName = "Lua 5.4"
+
+return function(code, ast, options)
+	--- Line mapping
+	local lastInputPos = 1 -- last token position in the input code
+	local prevLinePos = 1 -- last token position in the previous line of code in the input code
+	local lastSource = options.chunkname or "nil" -- last found code source name (from the original file)
+	local lastLine = 1 -- last found line number (from the original file)
+
+	--- Newline management
+	local indentLevel = 0
+	-- Returns a newline.
+	local function newline()
+		local r = options.newline..string.rep(options.indentation, indentLevel)
+		if options.mapLines then
+			local sub = code:sub(lastInputPos)
+			local source, line = sub:sub(1, sub:find("\n")):match(".*%-%- (.-)%:(%d+)\n")
+
+			if source and line then
+				lastSource = source
+				lastLine = tonumber(line)
+			else
+				for _ in code:sub(prevLinePos, lastInputPos):gmatch("\n") do
+					lastLine += 1
+				end
+			end
+
+			prevLinePos = lastInputPos
+
+			r = " -- "..lastSource..":"..lastLine..r
+		end
+		return r
+	end
+	-- Returns a newline and add one level of indentation.
+	local function indent()
+		indentLevel += 1
+		return newline()
+	end
+	-- Returns a newline and remove one level of indentation.
+	local function unindent()
+		indentLevel -= 1
+		return newline()
+	end
+
+	--- State stacks
+	-- Used for context-sensitive syntax.
+	local states = {
+		push = {}, -- push stack variable names
+		destructuring = {}, -- list of variable that need to be assigned from a destructure {id = "parent variable", "field1", "field2"...}
+		scope = {} -- list of variables defined in the current scope
+	}
+	-- Push a new value on top of the stack "name". Returns an empty string for chaining.
+	local function push(name, state)
+		table.insert(states[name], state)
+		return ""
+	end
+	-- Remove the value on top of the stack "name". Returns an empty string for chaining.
+	local function pop(name)
+		table.remove(states[name])
+		return ""
+	end
+	-- Set the value on top of the stack "name". Returns an empty string for chaining.
+	local function set(name, state)
+		states[name][#states[name]] = state
+		return ""
+	end
+	-- Returns the value on top of the stack "name".
+	local function peek(name)
+		return states[name][#states[name]]
+	end
+
+	--- Variable management
+	-- Returns the prefixed variable name.
+	local function var(name)
+		return options.variablePrefix..name
+	end
+
+	-- Returns the prefixed temporary variable name.
+	local function tmp()
+		local scope = peek("scope")
+		local var = "%s_%s":format(options.variablePrefix, #scope)
+		table.insert(scope, var)
+		return var
+	end
+
+	--- Module management
+	local required = {} -- { ["full require expression"] = true, ... }
+	local requireStr = ""
+	-- Add the module "mod" to the list of modules to require, and load its field "field" (or the whole module if nil) into the variable "name".
+	local function addRequire(mod, name, field)
+		local req = "require(%q)%s":format(mod, field and "."..field or "")
+		if not required[req] then
+			requireStr ..= "local %s = %s%s":format(var(name), req, options.newline)
+			required[req] = true
+		end
+	end
+
+	--- AST traversal helpers
+	local loop = { "While", "Repeat", "Fornum", "Forin", "WhileExpr", "RepeatExpr", "FornumExpr", "ForinExpr" } -- loops tags (can contain continue)
+	local func = { "Function", "TableCompr", "DoExpr", "WhileExpr", "RepeatExpr", "IfExpr", "FornumExpr", "ForinExpr" } -- function scope tags (can contain push)
+
+	-- Returns the first node or subnode from the list "list" which tag is in the list "tags", or nil if there were none.
+	-- Won't recursively follow nodes which have a tag in "nofollow".
+	local function any(list, tags, nofollow={})
+		local tagsCheck = {}
+		for _, tag in ipairs(tags) do
+			tagsCheck[tag] = true
+		end
+		local nofollowCheck = {}
+		for _, tag in ipairs(nofollow) do
+			nofollowCheck[tag] = true
+		end
+		for _, node in ipairs(list) do
+			if type(node) == "table" then
+				if tagsCheck[node.tag] then
+					return node
+				end
+				if not nofollowCheck[node.tag] then
+					local r = any(node, tags, nofollow)
+					if r then return r end
+				end
+			end
+		end
+		return nil
+	end
+
+	-- Like any, but returns a list of every node found.
+	-- Order: in the order of the list, from the deepest to the nearest
+	local function search(list, tags, nofollow={})
+		local tagsCheck = {}
+		for _, tag in ipairs(tags) do
+			tagsCheck[tag] = true
+		end
+		local nofollowCheck = {}
+		for _, tag in ipairs(nofollow) do
+			nofollowCheck[tag] = true
+		end
+		local found = {}
+		for _, node in ipairs(list) do
+			if type(node) == "table" then
+				if not nofollowCheck[node.tag] then
+					for _, n in ipairs(search(node, tags, nofollow)) do
+						table.insert(found, n)
+					end
+				end
+				if tagsCheck[node.tag] then
+					table.insert(found, node)
+				end
+			end
+		end
+		return found
+	end
+
+	-- Returns true if the all the nodes in list have their type in tags.
+	local function all(list, tags)
+		for _, node in ipairs(list) do
+			local ok = false
+			for _, tag in ipairs(tags) do
+				if node.tag == tag then
+					ok = true
+					break
+				end
+			end
+			if not ok then
+				return false
+			end
+		end
+		return true
+	end
+
+	--- Lua compiler
+	local tags
+	-- Recursively returns the compiled AST Lua code, set "forceTag" to override the tag type and pass additional arguments to the tag constructor if needed.
+	local function lua(ast, forceTag, ...)
+		if options.mapLines and ast.pos then
+			lastInputPos = ast.pos
+		end
+		return tags[forceTag or ast.tag](ast, ...)
+	end
+
+	--- Lua function calls writer
+	local UNPACK = (list, i, j) -- table.unpack
+		return "table.unpack("..list..(i and (", "..i..(j and (", "..j) or "")) or "")..")"
+	end
+	local APPEND = (t, toAppend) -- append values "toAppend" (multiple values possible) to t
+		return "do"..indent().."local "..var("a").." = table.pack("..toAppend..")"..newline().."table.move("..var("a")..", 1, "..var("a")..".n, #"..t.."+1, "..t..")"..unindent().."end"
+	end
+	local CONTINUE_START = () -- at the start of loops using continue
+		return "do"..indent()
+	end
+	local CONTINUE_STOP = () -- at the start of loops using continue
+		return unindent().."end"..newline().."::"..var"continue".."::"
+	end
+	local DESTRUCTURING_ASSIGN = (destructured, newlineAfter=false, noLocal=false) -- to define values from a destructuring assignement
+		local vars = {}
+		local values = {}
+		for _, list in ipairs(destructured) do
+			for _, v in ipairs(list) do
+				local var, val
+				if v.tag == "Id" or v.tag == "AttributeId" then
+					var = v
+					val = { tag = "Index", { tag = "Id", list.id }, { tag = "String", v[1] } }
+				elseif v.tag == "Pair" then
+					var = v[2]
+					val = { tag = "Index", { tag = "Id", list.id }, v[1] }
+				else
+					error("unknown destructuring element type: "..tostring(v.tag))
+				end
+				if destructured.rightOp and destructured.leftOp then
+					val = { tag = "Op", destructured.rightOp, var, { tag = "Op", destructured.leftOp, val, var } }
+				elseif destructured.rightOp then
+					val = { tag = "Op", destructured.rightOp, var, val }
+				elseif destructured.leftOp then
+					val = { tag = "Op", destructured.leftOp, val, var }
+				end
+				table.insert(vars, lua(var))
+				table.insert(values, lua(val))
+			end
+		end
+		if #vars > 0 then
+			local decl = noLocal and "" or "local "
+			if newlineAfter then
+				return decl..table.concat(vars, ", ").." = "..table.concat(values, ", ")..newline()
+			else
+				return newline()..decl..table.concat(vars, ", ").." = "..table.concat(values, ", ")
+			end
+		else
+			return ""
+		end
+	end
+
+	--- Tag constructors
+	tags = setmetatable({
+		-- block: { stat* } --
+		Block = (t)
+			local hasPush = peek("push") == nil and any(t, { "Push" }, func) -- push in block and push context not yet defined
+			if hasPush and hasPush == t[#t] then -- if the first push is the last statement, it's just a return
+				hasPush.tag = "Return"
+				hasPush = false
+			end
+			local r = push("scope", {})
+			if hasPush then
+				r ..= push("push", var"push").."local "..var"push".." = {}"..newline()
+			end
+			for i=1, #t-1, 1 do
+				r ..= lua(t[i])..newline()
+			end
+			if t[#t] then
+				r ..= lua(t[#t])
+			end
+			if hasPush and (t[#t] and t[#t].tag ~= "Return") then -- add return only if needed
+				r ..= newline().."return "..UNPACK(var"push")..pop("push")
+			end
+			return r..pop("scope")
+		end,
+
+		-- stat --
+
+		-- Do{ stat* }
+		Do = (t)
+			return "do"..indent()..lua(t, "Block")..unindent().."end"
+		end,
+		-- Set{ {lhs+} (opid? = opid?)? {expr+} }
+		Set = (t)
+			-- extract vars and values
+			local expr = t[#t]
+			local vars, values = {}, {}
+			local destructuringVars, destructuringValues = {}, {}
+			for i, n in ipairs(t[1]) do
+				if n.tag == "DestructuringId" then
+					table.insert(destructuringVars, n)
+					table.insert(destructuringValues, expr[i])
+				else
+					table.insert(vars, n)
+					table.insert(values, expr[i])
+				end
+			end
+			--
+			if #t == 2 or #t == 3 then
+				local r = ""
+				if #vars > 0 then
+					r = lua(vars, "_lhs").." = "..lua(values, "_lhs")
+				end
+				if #destructuringVars > 0 then
+					local destructured = {}
+					r ..= "local "..push("destructuring", destructured)..lua(destructuringVars, "_lhs")..pop("destructuring").." = "..lua(destructuringValues, "_lhs")
+					return r..DESTRUCTURING_ASSIGN(destructured, nil, true)
+				end
+				return r
+			elseif #t == 4 then
+				if t[3] == "=" then
+					local r = ""
+					if #vars > 0 then
+						r ..= lua(vars, "_lhs").." = "..lua({ t[2], vars[1], { tag = "Paren", values[1] } }, "Op")
+						for i=2, math.min(#t[4], #vars), 1 do
+							r ..= ", "..lua({ t[2], vars[i], { tag = "Paren", values[i] } }, "Op")
+						end
+					end
+					if #destructuringVars > 0 then
+						local destructured = { rightOp = t[2] }
+						r ..= "local "..push("destructuring", destructured)..lua(destructuringVars, "_lhs")..pop("destructuring").." = "..lua(destructuringValues, "_lhs")
+						return r..DESTRUCTURING_ASSIGN(destructured, nil, true)
+					end
+					return r
+				else
+					local r  = ""
+					if #vars > 0 then
+						r ..= lua(vars, "_lhs").." = "..lua({ t[3], { tag = "Paren", values[1] }, vars[1] }, "Op")
+						for i=2, math.min(#t[4], #t[1]), 1 do
+							r ..= ", "..lua({ t[3], { tag = "Paren", values[i] }, vars[i] }, "Op")
+						end
+					end
+					if #destructuringVars > 0 then
+						local destructured = { leftOp = t[3] }
+						r ..= "local "..push("destructuring", destructured)..lua(destructuringVars, "_lhs")..pop("destructuring").." = "..lua(destructuringValues, "_lhs")
+						return r..DESTRUCTURING_ASSIGN(destructured, nil, true)
+					end
+					return r
+				end
+			else -- You are mad.
+				local r = ""
+				if #vars > 0 then
+					r ..= lua(vars, "_lhs").." = "..lua({ t[2], vars[1], { tag = "Op", t[4], { tag = "Paren", values[1] }, vars[1] } }, "Op")
+					for i=2, math.min(#t[5], #t[1]), 1 do
+						r ..= ", "..lua({ t[2], vars[i], { tag = "Op", t[4], { tag = "Paren", values[i] }, vars[i] } }, "Op")
+					end
+				end
+				if #destructuringVars > 0 then
+					local destructured = { rightOp = t[2], leftOp = t[4] }
+					r ..= "local "..push("destructuring", destructured)..lua(destructuringVars, "_lhs")..pop("destructuring").." = "..lua(destructuringValues, "_lhs")
+					return r..DESTRUCTURING_ASSIGN(destructured, nil, true)
+				end
+				return r
+			end
+		end,
+		-- While{ expr block }
+		While = (t)
+			local r = ""
+			local hasContinue = any(t[2], { "Continue" }, loop)
+			local lets = search({ t[1] }, { "LetExpr" })
+			if #lets > 0 then
+				r ..= "do"..indent()
+				for _, l in ipairs(lets) do
+					r ..= lua(l, "Let")..newline()
+				end
+			end
+			r ..= "while "..lua(t[1]).." do"..indent()
+			if #lets > 0 then
+				r ..= "do"..indent()
+			end
+			if hasContinue then
+				r ..= CONTINUE_START()
+			end
+			r ..= lua(t[2])
+			if hasContinue then
+				r ..= CONTINUE_STOP()
+			end
+			r ..= unindent().."end"
+			if #lets > 0 then
+				for _, l in ipairs(lets) do
+					r ..= newline()..lua(l, "Set")
+				end
+				r ..= unindent().."end"..unindent().."end"
+			end
+			return r
+		end,
+		-- Repeat{ block expr }
+		Repeat = (t)
+			local hasContinue = any(t[1], { "Continue" }, loop)
+			local r = "repeat"..indent()
+			if hasContinue then
+				r ..= CONTINUE_START()
+			end
+			r ..= lua(t[1])
+			if hasContinue then
+				r ..= CONTINUE_STOP()
+			end
+			r ..= unindent().."until "..lua(t[2])
+			return r
+		end,
+		-- If{ (lexpr block)+ block? }
+		If = (t)
+			local r = ""
+			local toClose = 0 -- blocks that need to be closed at the end of the if
+			local lets = search({ t[1] }, { "LetExpr" })
+			if #lets > 0 then
+				r ..= "do"..indent()
+				toClose += 1
+				for _, l in ipairs(lets) do
+					r ..= lua(l, "Let")..newline()
+				end
+			end
+			r ..= "if "..lua(t[1]).." then"..indent()..lua(t[2])..unindent()
+			for i=3, #t-1, 2 do
+				lets = search({ t[i] }, { "LetExpr" })
+				if #lets > 0 then
+					r ..= "else"..indent()
+					toClose += 1
+					for _, l in ipairs(lets) do
+						r ..= lua(l, "Let")..newline()
+					end
+				else
+					r ..= "else"
+				end
+				r ..= "if "..lua(t[i]).." then"..indent()..lua(t[i+1])..unindent()
+			end
+			if #t % 2 == 1 then
+				r ..= "else"..indent()..lua(t[#t])..unindent()
+			end
+			r ..= "end"
+			for i=1, toClose do
+				r ..= unindent().."end"
+			end
+			return r
+		end,
+		-- Fornum{ ident expr expr expr? block }
+		Fornum = (t)
+			local r = "for "..lua(t[1]).." = "..lua(t[2])..", "..lua(t[3])
+			if #t == 5 then
+				local hasContinue = any(t[5], { "Continue" }, loop)
+				r ..= ", "..lua(t[4]).." do"..indent()
+				if hasContinue then
+					r ..= CONTINUE_START()
+				end
+				r ..= lua(t[5])
+				if hasContinue then
+					r ..= CONTINUE_STOP()
+				end
+				return r..unindent().."end"
+			else
+				local hasContinue = any(t[4], { "Continue" }, loop)
+				r ..= " do"..indent()
+				if hasContinue then
+					r ..= CONTINUE_START()
+				end
+				r ..= lua(t[4])
+				if hasContinue then
+					r ..= CONTINUE_STOP()
+				end
+				return r..unindent().."end"
+			end
+		end,
+		-- Forin{ {ident+} {expr+} block }
+		Forin = (t)
+			local destructured = {}
+			local hasContinue = any(t[3], { "Continue" }, loop)
+			local r = "for "..push("destructuring", destructured)..lua(t[1], "_lhs")..pop("destructuring").." in "..lua(t[2], "_lhs").." do"..indent()
+			if hasContinue then
+				r ..= CONTINUE_START()
+			end
+			r ..= DESTRUCTURING_ASSIGN(destructured, true)..lua(t[3])
+			if hasContinue then
+				r ..= CONTINUE_STOP()
+			end
+			return r..unindent().."end"
+		end,
+		-- Local{ {attributeident+} {expr+}? }
+		Local = (t)
+			local destructured = {}
+			local r = "local "..push("destructuring", destructured)..lua(t[1], "_lhs")..pop("destructuring")
+			if t[2][1] then
+				r ..= " = "..lua(t[2], "_lhs")
+			end
+			return r..DESTRUCTURING_ASSIGN(destructured)
+		end,
+		-- Let{ {ident+} {expr+}? }
+		Let = (t)
+			local destructured = {}
+			local nameList = push("destructuring", destructured)..lua(t[1], "_lhs")..pop("destructuring")
+			local r = "local "..nameList
+			if t[2][1] then
+				if all(t[2], { "Nil", "Dots", "Boolean", "Number", "String" }) then -- predeclaration doesn't matter here
+					r ..= " = "..lua(t[2], "_lhs")
+				else
+					r ..= newline()..nameList.." = "..lua(t[2], "_lhs")
+				end
+			end
+			return r..DESTRUCTURING_ASSIGN(destructured)
+		end,
+		-- Localrec{ {ident} {expr} }
+		Localrec = (t)
+			return "local function "..lua(t[1][1])..lua(t[2][1], "_functionWithoutKeyword")
+		end,
+		-- Goto{ <string> }
+		Goto = (t)
+			return "goto "..lua(t, "Id")
+		end,
+		-- Label{ <string> }
+		Label = (t)
+			return "::"..lua(t, "Id").."::"
+		end,
+		-- Return{ <expr*> }
+		Return = (t)
+			local push = peek("push")
+			if push then
+				local r = ""
+				for _, val in ipairs(t) do
+					r ..= push.."[#"..push.."+1] = "..lua(val)..newline()
+				end
+				return r.."return "..UNPACK(push)
+			else
+				return "return "..lua(t, "_lhs")
+			end
+		end,
+		-- Push{ <expr*> }
+		Push = (t)
+			local var = assert(peek("push"), "no context given for push")
+			r = ""
+			for i=1, #t-1, 1 do
+				r ..= var.."[#"..var.."+1] = "..lua(t[i])..newline()
+			end
+			if t[#t] then
+				if t[#t].tag == "Call" then
+					r ..= APPEND(var, lua(t[#t]))
+				else
+					r ..= var.."[#"..var.."+1] = "..lua(t[#t])
+				end
+			end
+			return r
+		end,
+		-- Break
+		Break = ()
+			return "break"
+		end,
+		-- Continue
+		Continue = ()
+			return "goto "..var"continue"
+		end,
+		-- apply (below)
+
+		-- expr --
+
+		-- Nil
+		Nil = ()
+			return "nil"
+		end,
+		-- Dots
+		Dots = ()
+			return "..."
+		end,
+		-- Boolean{ <boolean> }
+		Boolean = (t)
+			return tostring(t[1])
+		end,
+		-- Number{ <string> }
+		Number = (t)
+			return tostring(t[1])
+		end,
+		-- String{ <string> }
+		String = (t)
+			return "%q":format(t[1])
+		end,
+		-- Function{ { ( `ParPair{ Id expr } | `Id{ <string> } )* `Dots? } block }
+		_functionWithoutKeyword = (t)
+			local r = "("
+			local decl = {}
+			if t[1][1] then
+				if t[1][1].tag == "ParPair" then
+					local id = lua(t[1][1][1])
+					indentLevel += 1
+					table.insert(decl, "if "..id.." == nil then "..id.." = "..lua(t[1][1][2]).." end")
+					indentLevel -= 1
+					r ..= id
+				else
+					r ..= lua(t[1][1])
+				end
+				for i=2, #t[1], 1 do
+					if t[1][i].tag == "ParPair" then
+						local id = lua(t[1][i][1])
+						indentLevel += 1
+						table.insert(decl, "if "..id.." == nil then "..id.." = "..lua(t[1][i][2]).." end")
+						indentLevel -= 1
+						r ..= ", " ..id
+					else
+						r ..= ", "..lua(t[1][i])
+					end
+				end
+			end
+			r ..= ")"..indent()
+			for _, d in ipairs(decl) do
+				r ..= d..newline()
+			end
+			if t[2][#t[2]] and t[2][#t[2]].tag == "Push" then -- convert final push to return
+				t[2][#t[2]].tag = "Return"
+			end
+			local hasPush = any(t[2], { "Push" }, func)
+			if hasPush then
+				r ..= push("push", var"push").."local "..var"push".." = {}"..newline()
+			else
+				push("push", false) -- no push here (make sure higher push doesn't affect us)
+			end
+			r ..= lua(t[2])
+			if hasPush and (t[2][#t[2]] and t[2][#t[2]].tag ~= "Return") then -- add return only if needed
+				r ..= newline().."return "..UNPACK(var"push")
+			end
+			pop("push")
+			return r..unindent().."end"
+		end,
+		Function = (t)
+			return "function"..lua(t, "_functionWithoutKeyword")
+		end,
+		-- Table{ ( `Pair{ expr expr } | expr )* }
+		Pair = (t)
+			return "["..lua(t[1]).."] = "..lua(t[2])
+		end,
+		Table = (t)
+			if #t == 0 then
+				return "{}"
+			elseif #t == 1 then
+				return "{ "..lua(t, "_lhs").." }"
+			else
+				return "{"..indent()..lua(t, "_lhs", nil, true)..unindent().."}"
+			end
+		end,
+		-- TableCompr{ block }
+		TableCompr = (t)
+			return push("push", "self").."(function()"..indent().."local self = {}"..newline()..lua(t[1])..newline().."return self"..unindent().."end)()"..pop("push")
+		end,
+		-- Op{ opid expr expr? }
+		Op = (t)
+			local r
+			if #t == 2 then
+				if type(tags._opid[t[1]]) == "string" then
+					r = tags._opid[t[1]].." "..lua(t[2])
+				else
+					r = tags._opid[t[1]](t[2])
+				end
+			else
+				if type(tags._opid[t[1]]) == "string" then
+					r = lua(t[2]).." "..tags._opid[t[1]].." "..lua(t[3])
+				else
+					r = tags._opid[t[1]](t[2], t[3])
+				end
+			end
+			return r
+		end,
+		-- Paren{ expr }
+		Paren = (t)
+			return "("..lua(t[1])..")"
+		end,
+		-- MethodStub{ expr expr }
+		MethodStub = (t)
+			return "(function()"..indent() ..
+					"local "..var"object".." = "..lua(t[1])..newline()..
+					"local "..var"method".." = "..var"object".."."..lua(t[2], "Id")..newline() ..
+					"if "..var"method".." == nil then return nil end"..newline()..
+					"return function(...) return "..var"method".."("..var"object"..", ...) end"..unindent()..
+				"end)()"
+		end,
+		-- SafeMethodStub{ expr expr }
+		SafeMethodStub = (t)
+			return "(function()"..indent() ..
+					"local "..var"object".." = "..lua(t[1])..newline()..
+					"if "..var"object".." == nil then return nil end"..newline()..
+					"local "..var"method".." = "..var"object".."."..lua(t[2], "Id")..newline() ..
+					"if "..var"method".." == nil then return nil end"..newline()..
+					"return function(...) return "..var"method".."("..var"object"..", ...) end"..unindent()..
+				"end)()"
+		end,
+		-- statexpr (below)
+		-- apply (below)
+		-- lhs (below)
+
+		-- lexpr --
+		LetExpr = (t)
+			return lua(t[1][1])
+		end,
+
+		-- statexpr --
+		_statexpr = (t, stat)
+			local hasPush = any(t, { "Push" }, func)
+			local r = "(function()"..indent()
+			if hasPush then
+				r ..= push("push", var"push").."local "..var"push".." = {}"..newline()
+			else
+				push("push", false) -- no push here (make sure higher push don't affect us)
+			end
+			r ..= lua(t, stat)
+			if hasPush then
+				r ..= newline().."return "..UNPACK(var"push")
+			end
+			pop("push")
+			r ..= unindent().."end)()"
+			return r
+		end,
+		-- DoExpr{ stat* }
+		DoExpr = (t)
+			if t[#t].tag == "Push" then -- convert final push to return
+				t[#t].tag = "Return"
+			end
+			return lua(t, "_statexpr", "Do")
+		end,
+		-- WhileExpr{ expr block }
+		WhileExpr = (t)
+			return lua(t, "_statexpr", "While")
+		end,
+		-- RepeatExpr{ block expr }
+		RepeatExpr = (t)
+			return lua(t, "_statexpr", "Repeat")
+		end,
+		-- IfExpr{ (expr block)+ block? }
+		IfExpr = (t)
+			for i=2, #t do -- convert final pushes to returns
+				local block = t[i]
+				if block[#block] and block[#block].tag == "Push" then
+					block[#block].tag = "Return"
+				end
+			end
+			return lua(t, "_statexpr", "If")
+		end,
+		-- FornumExpr{ ident expr expr expr? block }
+		FornumExpr = (t)
+			return lua(t, "_statexpr", "Fornum")
+		end,
+		-- ForinExpr{ {ident+} {expr+} block }
+		ForinExpr = (t)
+			return lua(t, "_statexpr", "Forin")
+		end,
+
+		-- apply --
+
+		-- Call{ expr expr* }
+		Call = (t)
+			if t[1].tag == "String" or t[1].tag == "Table" then
+				return "("..lua(t[1])..")("..lua(t, "_lhs", 2)..")"
+			elseif t[1].tag == "MethodStub" then -- method call
+				if t[1][1].tag == "String" or t[1][1].tag == "Table" then
+					return "("..lua(t[1][1]).."):"..lua(t[1][2], "Id").."("..lua(t, "_lhs", 2)..")"
+				else
+					return lua(t[1][1])..":"..lua(t[1][2], "Id").."("..lua(t, "_lhs", 2)..")"
+				end
+			else
+				return lua(t[1]).."("..lua(t, "_lhs", 2)..")"
+			end
+		end,
+		-- SafeCall{ expr expr* }
+		SafeCall = (t)
+			if t[1].tag ~= "Id" then -- side effect possible, only evaluate each expr once (or already in a safe context)
+				return lua(t, "SafeIndex")
+			else -- no side effects possible
+				return "("..lua(t[1]).." ~= nil and "..lua(t[1]).."("..lua(t, "_lhs", 2)..") or nil)"
+			end
+		end,
+
+		-- lhs --
+		_lhs = (t, start=1, newlines)
+			local r
+			if t[start] then
+				r = lua(t[start])
+				for i=start+1, #t, 1 do
+					r ..= ","..(newlines and newline() or " ")..lua(t[i])
+				end
+			else
+				r = ""
+			end
+			return r
+		end,
+		-- Id{ <string> }
+		Id = (t)
+			return t[1]
+		end,
+		-- AttributeId{ <string> <string>? }
+		AttributeId = (t)
+			if t[2] then
+				return t[1] .. " <" .. t[2] .. ">"
+			else
+				return t[1]
+			end
+		end,
+		-- DestructuringId{ Id | Pair+ }
+		DestructuringId = (t)
+			if t.id then -- destructing already done before, use parent variable as id
+				return t.id
+			else
+				local d = assert(peek("destructuring"), "DestructuringId not in a destructurable assignement")
+				local vars = { id = tmp() }
+				for j=1, #t, 1 do
+					table.insert(vars, t[j])
+				end
+				table.insert(d, vars)
+				t.id = vars.id
+				return vars.id
+			end
+		end,
+		-- Index{ expr expr }
+		Index = (t)
+			if t[1].tag == "String" or t[1].tag == "Table" then
+				return "("..lua(t[1])..")["..lua(t[2]).."]"
+			else
+				return lua(t[1]).."["..lua(t[2]).."]"
+			end
+		end,
+		-- SafeIndex{ expr expr }
+		SafeIndex = (t)
+			if t[1].tag ~= "Id" then -- side effect possible, only evaluate each expr once (or already in a safe context)
+				local l = {} -- list of immediately chained safeindex, from deepest to nearest (to simply generated code)
+				while t.tag == "SafeIndex" or t.tag == "SafeCall" do
+					table.insert(l, 1, t)
+					t = t[1]
+				end
+				local r = "(function()"..indent().."local "..var"safe".." = "..lua(l[1][1])..newline() -- base expr
+				for _, e in ipairs(l) do
+					r ..= "if "..var"safe".." == nil then return nil end"..newline()
+					if e.tag == "SafeIndex" then
+						r ..= var"safe".." = "..var"safe".."["..lua(e[2]).."]"..newline()
+					else
+						r ..= var"safe".." = "..var"safe".."("..lua(e, "_lhs", 2)..")"..newline()
+					end
+				end
+				r ..= "return "..var"safe"..unindent().."end)()"
+				return r
+			else -- no side effects possible
+				return "("..lua(t[1]).." ~= nil and "..lua(t[1]).."["..lua(t[2]).."] or nil)"
+			end
+		end,
+
+		-- opid --
+		_opid = {
+			add = "+", sub = "-", mul = "*", div = "/",
+			idiv = "//", mod = "%", pow = "^", concat = "..",
+			band = "&", bor = "|", bxor = "~", shl = "<<", shr = ">>",
+			eq = "==", ne = "~=", lt = "<", gt = ">", le = "<=", ge = ">=",
+			["and"] = "and", ["or"] = "or", unm = "-", len = "#", bnot = "~", ["not"] = "not"
+		}
+	}, {
+		__index = (self, key)
+			error("don't know how to compile a "..tostring(key).." to "..targetName)
+		end
+	})
+
+	#placeholder("patch")
+
+	local code = lua(ast)..newline()
+	return requireStr..code
+end

@@ -14,7 +14,7 @@ stat:
   | `If{ (lexpr block)+ block? }              -- if e1 then b1 [elseif e2 then b2] ... [else bn] end
   | `Fornum{ ident expr expr expr? block }    -- for ident = e, e[, e] do b end
   | `Forin{ {ident+} {expr+} block }          -- for i1, i2... in e1, e2... do b end
-  | `Local{ {ident+} {expr+}? }               -- local i1, i2... = e1, e2...
+  | `Local{ {attributeident+} {expr+}? }      -- local i1, i2... = e1, e2...
   | `Let{ {ident+} {expr+}? }                 -- let i1, i2... = e1, e2...
   | `Localrec{ {ident} {expr} }               -- only used for 'local function'
   | `Goto{ <string> }                         -- goto str
@@ -59,7 +59,7 @@ apply:
     `Call{ expr expr* }
   | `SafeCall{ expr expr* }
 
-lhs: `Id{ <string> } | `Index{ expr expr } | ˇDestructuringId{ Id | Pair+ }
+lhs: `Id{ <string> } | AttributeId{ <string> <string>? } | `Index{ expr expr } | ˇDestructuringId{ Id | Pair+ }
 
 opid:  -- includes additional operators from Lua 5.3 and all relational operators
     'add'  | 'sub' | 'mul'  | 'div'
@@ -113,7 +113,9 @@ local labels = {
   { "ErrDoFor", "expected 'do' after the range of the for loop" },
 
   { "ErrDefLocal", "expected a function definition or assignment after local" },
-  { "ErrDefLet", "expected a function definition or assignment after let" },
+  { "ErrDefLet", "expected an assignment after let" },
+  { "ErrDefClose", "expected an assignment after close" },
+  { "ErrDefConst", "expected an assignment after const" },
   { "ErrNameLFunc", "expected a function name after 'function'" },
   { "ErrEListLAssign", "expected one or more expressions after '='" },
   { "ErrEListAssign", "expected one or more expressions after '='" },
@@ -181,6 +183,9 @@ local labels = {
   { "ErrCBraceUEsc", "expected '}' after the code point" },
   { "ErrEscSeq", "invalid escape sequence" },
   { "ErrCloseLStr", "unclosed long string" },
+
+  { "ErrUnknownAttribute", "unknown variable attribute" },
+  { "ErrCBracketAttribute", "expected '>' to close the variable attribute" },
 }
 
 local function throw(label)
@@ -456,6 +461,24 @@ local function maybe (patt) -- fail pattern instead of propagating errors
   return #patt/0 * patt
 end
 
+local function setAttribute(attribute)
+  return function(assign)
+    assign[1].tag = "AttributeNameList"
+    for _, id in ipairs(assign[1]) do
+      if id.tag == "Id" then
+        id.tag = "AttributeId"
+        id[2] = attribute
+      elseif id.tag == "DestructuringId" then
+        for _, did in ipairs(id) do
+          did.tag = "AttributeId"
+          did[2] = attribute
+        end
+      end
+    end
+    return assign
+  end
+end
+
 local stacks = {
   lexpr = {}
 }
@@ -488,7 +511,7 @@ local G = { V"Lua",
   Block       = tagC("Block", (V"Stat" + -V"BlockEnd" * throw("InvalidStat"))^0 * ((V"RetStat" + V"ImplicitPushStat") * sym(";")^-1)^-1);
   Stat        = V"IfStat" + V"DoStat" + V"WhileStat" + V"RepeatStat" + V"ForStat"
               + V"LocalStat" + V"FuncStat" + V"BreakStat" + V"LabelStat" + V"GoToStat"
-              + V"LetStat"
+              + V"LetStat" + V"ConstStat" + V"CloseStat"
               + V"FuncCall" + V"Assignment"
               + V"ContinueStat" + V"PushStat"
               + sym(";");
@@ -516,12 +539,17 @@ local G = { V"Lua",
 
   LocalStat    = kw("local") * expect(V"LocalFunc" + V"LocalAssign", "DefLocal");
   LocalFunc    = tagC("Localrec", kw("function") * expect(V"Id", "NameLFunc") * V"FuncBody") / fixFuncStat;
-  LocalAssign  = tagC("Local", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())))
+  LocalAssign  = tagC("Local", V"AttributeNameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())))
                + tagC("Local", V"DestructuringNameList" * sym("=") * expect(V"ExprList", "EListLAssign"));
 
   LetStat      = kw("let") * expect(V"LetAssign", "DefLet");
   LetAssign    = tagC("Let", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())))
                + tagC("Let", V"DestructuringNameList" * sym("=") * expect(V"ExprList", "EListLAssign"));
+
+  ConstStat       = kw("const") * expect(V"AttributeAssign" / setAttribute("const"), "DefConst");
+  CloseStat       = kw("close") * expect(V"AttributeAssign" / setAttribute("close"), "DefClose");
+  AttributeAssign = tagC("Local", V"NameList" * (sym("=") * expect(V"ExprList", "EListLAssign") + Ct(Cc())))
+                  + tagC("Local", V"DestructuringNameList" * sym("=") * expect(V"ExprList", "EListLAssign"));
 
   Assignment   = tagC("Set", (V"VarList" + V"DestructuringNameList") * V"BinOp"^-1 * (P"=" / "=") * ((V"BinOp" - P"-") + #(P"-" * V"Space") * V"BinOp")^-1 * V"Skip" * expect(V"ExprList", "EListAssign"));
 
@@ -551,8 +579,9 @@ local G = { V"Lua",
   PushStat         = tagC("Push", kw("push") * commaSep(V"Expr", "RetList")^-1);
   ImplicitPushStat = tagC("Push", commaSep(V"Expr", "RetList"));
 
-  NameList  = tagC("NameList", commaSep(V"Id"));
+  NameList              = tagC("NameList", commaSep(V"Id"));
   DestructuringNameList = tagC("NameList", commaSep(V"DestructuringId")),
+  AttributeNameList     = tagC("AttributeNameList", commaSep(V"AttributeId"));
   VarList   = tagC("VarList", commaSep(V"VarExpr"));
   ExprList  = tagC("ExpList", commaSep(V"Expr", "ExprList"));
 
@@ -626,7 +655,11 @@ local G = { V"Lua",
 
   SelfId = tagC("Id", sym"@" / "self");
   Id     = tagC("Id", V"Name") + V"SelfId";
+  AttributeSelfId = tagC("AttributeId", sym"@" / "self" * V"Attribute"^-1);
+  AttributeId     = tagC("AttributeId", V"Name" * V"Attribute"^-1) + V"AttributeSelfId";
   StrId  = tagC("String", V"Name");
+
+  Attribute = sym("<") * expect(kw"const" / "const" + kw"close" / "close", "UnknownAttribute") * expect(sym(">"), "CBracketAttribute");
 
   -- lexer
   Skip     = (V"Space" + V"Comment")^0;

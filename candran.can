@@ -1,6 +1,7 @@
 #import("candran.util")
 #import("candran.cmdline")
 
+#import("compiler.lua54")
 #import("compiler.lua53")
 #import("compiler.luajit")
 #import("compiler.lua51")
@@ -11,12 +12,12 @@
 #import("candran.can-parser.parser")
 
 local candran = {
-	VERSION = "0.12.0"
+	VERSION = "0.13.0"
 }
 
 --- Default options.
 candran.default = {
-	target = "lua53",
+	target = "lua54",
 	indentation = "",
 	newline = "\n",
 	variablePrefix = "__CAN_",
@@ -32,6 +33,10 @@ if _VERSION == "Lua 5.1" then
 	else
 		candran.default.target = "lua51"
 	end
+elseif _VERSION == "Lua 5.2" then
+	candran.default.target = "lua51"
+elseif _VERSION == "Lua 5.3" then
+	--candran.default.target = "lua53"
 end
 
 --- Run the preprocessor

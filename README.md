@@ -1,6 +1,6 @@
 Candran
 =======
-Candran is a dialect of the [Lua 5.3](http://www.lua.org) programming language which compiles to Lua 5.3, LuaJIT and Lua 5.1 compatible code. It adds several useful syntax additions which aims to make Lua faster and easier to write, and a simple preprocessor.
+Candran is a dialect of the [Lua 5.4](http://www.lua.org) programming language which compiles to Lua 5.4, Lua 5.3, LuaJIT and Lua 5.1 compatible code. It adds several useful syntax additions which aims to make Lua faster and easier to write, and a simple preprocessor.
 
 Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing Lua code should be able to run on Candran unmodified.
 
@@ -30,6 +30,8 @@ let a = {
 		return a -- no need for a prior local declaration when using let
 	end
 }
+
+const five = 5 -- shortcut for Lua 5.4 attributes 
 
 a:method(42, (foo)
 	return "something " .. foo
@@ -172,7 +174,21 @@ let a = {
 
 Similar to ```local```, but the variable will be declared *before* the assignemnt (i.e. it will compile into ```local a; a = value```), so you can access it from functions defined in the value.
 
+This does not support Lua 5.4 attributes.
+
 Can also be used as a shorter name for ```local```.
+
+##### `const` and `close` variable declaration
+```lua
+const a = 5
+close b = {}
+
+const x, y, z = 1, 2, 3 -- every variable will be defined using <const>
+```
+
+Shortcut to Lua 5.4 variable attribute. Do not behave like `let`, as attributes require the variable to be constant and therefore can't be predeclared.
+
+_Not in the latest release._
 
 ##### `continue` keyword
 ```lua
@@ -435,13 +451,18 @@ The preprocessor has access to the following variables:
 
 Compile targets
 ---------------
-Candran is based on the Lua 5.3 syntax, but can be compiled to Lua 5.3, LuaJIT, and Lua 5.1 compatible code.
+Candran is based on the Lua 5.4 syntax, but can be compiled to Lua 5.4, Lua 5.3, LuaJIT, and Lua 5.1 compatible code.
 
-To chose a compile target, set the ```target``` option to ```lua53```, ```luajit```, or ```lua51``` in the option table when using the library or the command line tools. Candran will try to detect the currently used Lua version and use it as the default target.
+To chose a compile target, set the ```target``` option to  ```lua54```, ```lua53```, ```luajit```, or ```lua51``` in the option table when using the library or the command line tools. Candran will try to detect the currently used Lua version and use it as the default target.
 
-For the ```luajit``` and ```lua51``` targets, Lua 5.3 specific syntax (bitwise operators, integer division) will automatically be translated to valid Lua 5.1 syntax, using LuaJIT's ```bit``` library if necessary. Unless LuaJIT's bit library is installed, you won't be able to use bitwise operators with vanilla Lua 5.1 ("PUC Lua").
+Candran will try to translate Lua 5.4 syntax into something usable with the current target if possible. Here is what is currently supported:
 
-The ```lua51``` target does not support gotos and labels.
+| Lua version     | Candran target | Integer division operator // | Bitwise operators                                     | Goto/Labels        | Variable attributes |
+| ---             | ---            | ---                          | ---                                                   | ---                | ---                 |
+| Lua 5.4         | lua54          | :white_check_mark:           | :white_check_mark:                                    | :white_check_mark: | :white_check_mark:  |
+| Lua 5.3         | lua53          | :white_check_mark:           | :white_check_mark:                                    | :white_check_mark: | X                   |
+| LuaJIT          | luajit         | :white_check_mark:           | :white_check_mark:                                    | :white_check_mark: | X                   |
+| Lua 5.2/5.1     | lua51          | :white_check_mark:           | :white_check_mark: if LuaJIT bit library is available | X                  | X                   |
 
 **Please note** that Candran only translates syntax, and will not try to do anything about changes in the Lua standard library (for example, the new utf8 module). If you need this, you should be able to use [lua-compat-5.3](https://github.com/keplerproject/lua-compat-5.3) along with Candran.
 
@@ -548,9 +569,9 @@ The table returned by _require("candran")_ gives you access to:
 * ````candran.make(code[, options])````: return the Candran code, preprocessed and compiled with the _options_ options table; or nil, err in case of error.
 
 ##### Code loading helpers
-* ```candran.loadfile(filepath, env, options)```: Candran equivalent to the Lua 5.3's loadfile funtion. Will rewrite errors by default.
-* ```candran.load(chunk, chunkname, env, options)```: Candran equivalent to the Lua 5.3's load funtion. Will rewrite errors by default.
-* ```candran.dofile(filepath, options)```: Candran equivalent to the Lua 5.3's dofile funtion. Will rewrite errors by default.
+* ```candran.loadfile(filepath, env, options)```: Candran equivalent to the Lua 5.4's loadfile funtion. Will rewrite errors by default.
+* ```candran.load(chunk, chunkname, env, options)```: Candran equivalent to the Lua 5.4's load funtion. Will rewrite errors by default.
+* ```candran.dofile(filepath, options)```: Candran equivalent to the Lua 5.4's dofile funtion. Will rewrite errors by default.
 
 #### Error rewriting
 When using the command-line tools or the code loading helpers, Candran will automatically setup error rewriting: because the code is reformated when
