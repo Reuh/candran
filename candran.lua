@@ -1848,19 +1848,25 @@ end, -- ./compiler/lua54.can:813
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:827
 end }) -- ./compiler/lua54.can:827
 targetName = "Lua 5.3" -- ./compiler/lua53.can:1
-tags["AttributeId"] = nil -- ./compiler/lua53.can:4
+tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
+if t[2] then -- ./compiler/lua53.can:5
+error("target does not support variable attributes") -- ./compiler/lua53.can:6
+else -- ./compiler/lua53.can:6
+return t[1] -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:833
 return requireStr .. code -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 local lua54 = _() or lua54 -- ./compiler/lua54.can:839
-return lua54 -- ./compiler/lua53.can:10
-end -- ./compiler/lua53.can:10
-local lua53 = _() or lua53 -- ./compiler/lua53.can:14
-package["loaded"]["compiler.lua53"] = lua53 or true -- ./compiler/lua53.can:15
-local function _() -- ./compiler/lua53.can:18
-local function _() -- ./compiler/lua53.can:20
-local function _() -- ./compiler/lua53.can:22
+return lua54 -- ./compiler/lua53.can:16
+end -- ./compiler/lua53.can:16
+local lua53 = _() or lua53 -- ./compiler/lua53.can:20
+package["loaded"]["compiler.lua53"] = lua53 or true -- ./compiler/lua53.can:21
+local function _() -- ./compiler/lua53.can:24
+local function _() -- ./compiler/lua53.can:26
+local function _() -- ./compiler/lua53.can:28
 local targetName = "Lua 5.4" -- ./compiler/lua54.can:1
 return function(code, ast, options) -- ./compiler/lua54.can:3
 local lastInputPos = 1 -- ./compiler/lua54.can:5
@@ -2717,15 +2723,21 @@ end, -- ./compiler/lua54.can:813
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:827
 end }) -- ./compiler/lua54.can:827
 targetName = "Lua 5.3" -- ./compiler/lua53.can:1
-tags["AttributeId"] = nil -- ./compiler/lua53.can:4
+tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
+if t[2] then -- ./compiler/lua53.can:5
+error("target does not support variable attributes") -- ./compiler/lua53.can:6
+else -- ./compiler/lua53.can:6
+return t[1] -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:833
 return requireStr .. code -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 local lua54 = _() or lua54 -- ./compiler/lua54.can:839
-return lua54 -- ./compiler/lua53.can:10
-end -- ./compiler/lua53.can:10
-local lua53 = _() or lua53 -- ./compiler/lua53.can:14
+return lua54 -- ./compiler/lua53.can:16
+end -- ./compiler/lua53.can:16
+local lua53 = _() or lua53 -- ./compiler/lua53.can:20
 return lua53 -- ./compiler/luajit.can:44
 end -- ./compiler/luajit.can:44
 local luajit = _() or luajit -- ./compiler/luajit.can:48
@@ -3590,15 +3602,21 @@ end, -- ./compiler/lua54.can:813
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:827
 end }) -- ./compiler/lua54.can:827
 targetName = "Lua 5.3" -- ./compiler/lua53.can:1
-tags["AttributeId"] = nil -- ./compiler/lua53.can:4
+tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
+if t[2] then -- ./compiler/lua53.can:5
+error("target does not support variable attributes") -- ./compiler/lua53.can:6
+else -- ./compiler/lua53.can:6
+return t[1] -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:833
 return requireStr .. code -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 local lua54 = _() or lua54 -- ./compiler/lua54.can:839
-return lua54 -- ./compiler/lua53.can:10
-end -- ./compiler/lua53.can:10
-local lua53 = _() or lua53 -- ./compiler/lua53.can:14
+return lua54 -- ./compiler/lua53.can:16
+end -- ./compiler/lua53.can:16
+local lua53 = _() or lua53 -- ./compiler/lua53.can:20
 return lua53 -- ./compiler/luajit.can:44
 end -- ./compiler/luajit.can:44
 local luajit = _() or luajit -- ./compiler/luajit.can:48
