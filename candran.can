@@ -11,6 +11,8 @@
 #import("candran.can-parser.pp")
 #import("candran.can-parser.parser")
 
+local unpack = unpack or table.unpack
+
 local candran = {
 	VERSION = "0.13.0"
 }
