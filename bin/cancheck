@@ -99,6 +99,13 @@ local function check(can)
 						end
 					end
 
+					-- Errors codes highlighting a identifier (alphanumeric+underscore not starting with a number):
+					-- 1xx: global variables
+					-- 2xx: unused variables
+					-- 3xx: unused values
+					-- 4xx: shadowing delarations
+					local isIdentifier = tonumber(warning.code) >= 100 and tonumber(warning.code) < 500
+
 					-- calculating candran column
 					local can_line = can_lines[warning.can_line]
 					local lua_token = lua_line:sub(warning.column, warning.end_column)
@@ -124,6 +131,14 @@ local function check(can)
 								if nstart and (not start or nstart < start) then
 									start, stop = nstart, nstop
 								end
+							end
+						-- for non aliases token that are identifier, check if match is a full identifier
+						-- (avoid things like `let e` matching the e in let)
+						elseif start and isIdentifier then
+							local prev = can_line:sub(start-1, start-1)
+							local next = can_line:sub(stop, stop)
+							if prev:match("[%w_]") or next:match("[%w_]") then
+								can_n = can_n - 1 -- skip this match
 							end
 						end
 						-- found
