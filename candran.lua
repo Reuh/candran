@@ -6398,7 +6398,7 @@ end -- ./candran/can-parser/parser.lua:777
 local parser = _() or parser -- ./candran/can-parser/parser.lua:781
 package["loaded"]["candran.can-parser.parser"] = parser or true -- ./candran/can-parser/parser.lua:782
 local unpack = unpack or table["unpack"] -- candran.can:15
-local candran = { ["VERSION"] = "0.13.1" } -- candran.can:18
+local candran = { ["VERSION"] = "0.13.0" } -- candran.can:18
 candran["default"] = { -- candran.can:22
 ["target"] = "lua54", -- candran.can:23
 ["indentation"] = "", -- candran.can:24
