@@ -4,6 +4,37 @@ candran.default.mapLines = false
 
 local load = require("candran.util").load
 
+-- Text formatting
+local colors = {
+	black  = 30,
+	red    = 31,
+	green  = 32,
+	yellow = 33,
+	blue   = 34,
+	purple = 35,
+	cyan   = 36,
+	white  = 37,
+
+	bgBlack  = 40,
+	bgRed    = 41,
+	bgGreen  = 42,
+	bgYellow = 43,
+	bgBlue   = 44,
+	bgPurple = 45,
+	bgCyan   = 46,
+	bgWhite  = 47,
+
+	bold      = 1,
+	underline = 4
+}
+local function c(text, ...)
+	local codes = {}
+	for _, color in ipairs{...} do
+		table.insert(codes, colors[color])
+	end
+	return ("\027[%sm%s\027[0m"):format(table.concat(codes, ";"), text)
+end
+
 -- test helper
 local results = {} -- tests result
 local function test(name, candranCode, expectedResult, options)
@@ -18,7 +49,7 @@ local function test(name, candranCode, expectedResult, options)
 	local success, code = pcall(function() return assert(candran.make(candranCode, options)) end)
 	if not success then
 		self.result = "error"
-		self.message = "/!\\ error while making code:\n"..code
+		self.message = c("/!\\ error while making code:\n", "bold", "red")..c(code, "red")
 		return
 	end
 
@@ -28,7 +59,7 @@ local function test(name, candranCode, expectedResult, options)
 	local success, func = pcall(load, code, nil, env)
 	if not success then
 		self.result = "error"
-		self.message = "/!\\ error while loading code:\n"..func.."\ngenerated code:\n"..code
+		self.message = c("/!\\ error while loading code:\n"..func.."\ngenerated code:\n", "bold", "red")..c(code, "red")
 		return
 	end
 
@@ -36,14 +67,14 @@ local function test(name, candranCode, expectedResult, options)
 	local success, output = pcall(func)
 	if not success then
 		self.result = "error"
-		self.message = "/!\\ error while running code:\n"..output.."\ngenerated code:\n"..code
+		self.message = c("/!\\ error while running code:\n"..output.."\ngenerated code:\n", "bold", "red")..c(code, "red")
 		return
 	end
 
 	-- check result
 	if output ~= expectedResult then
 		self.result = "fail"
-		self.message = "/!\\ invalid result from the code; it returned "..tostring(output).." instead of "..tostring(expectedResult).."; generated code:\n"..code
+		self.message = c("/!\\ invalid result from the code; it returned "..tostring(output).." instead of "..tostring(expectedResult).."; generated code:\n", "bold", "purple")..c(code, "purple")
 		return
 	else
 		self.result = "success"
@@ -105,21 +136,18 @@ test("preprocessor options", [[
 return true
 ]], true, { foo = "sky" })
 
-test("preprocessor long comment", [[
---[[
+test("preprocessor long comment", "--[[\n"..[[
 #error("preprocessor should ignore long comments")
 ]].."]]"..[[
 return true
 ]], true)
 
 test("preprocessor long comment in long string", [[
-a=]].."[["..[[
---[[
+a=]].."[[--[[\n"..[[
 #error("preprocessor should ignore long strings")
 ]].."]]"..[[
 return a
-]], [[
---[[
+]], "--[[\n"..[[
 #error("preprocessor should ignore long strings")
 ]])
 
@@ -375,9 +403,9 @@ test("short anonymous method parsing edge cases", [[
 	if a() then h() end
 	local function f (...)
 	  if select('#', ...) == 1 then
-	    return (...)
+		return (...)
 	  else
-	    return "***"
+		return "***"
 	  end
 	end
 	return f(x)
@@ -585,6 +613,7 @@ test("table comprehension associative/self", [[
 	return a[1] and a[10]
 ]], true)
 test("table comprehension variable length", [[
+	local unpack = table.unpack or unpack
 	t1 = {"hey", "hop"}
 	t2 = {"foo", "bar"}
 	return table.concat([push unpack(t1); push unpack(t2)])
@@ -1024,7 +1053,8 @@ for name, t in pairs(results) do
 end
 
 -- print final results
-for name, count in pairs(resultCounter) do
-	print(count.." "..name.." (" .. math.floor((count / testCounter * 100)*100)/100 .. "%)")
+for _, name in ipairs{{"error", "red"}, {"fail", "purple"}, {"success", "green"}} do
+	local count = resultCounter[name[1]] or 0
+	print(c(count, "bold", name[2])..c(" "..name[1].." (" .. math.floor((count / testCounter * 100)*100)/100 .. "%)", name[2]))
 end
-print(testCounter.." total")
+print(c(testCounter.." total", "bold"))
