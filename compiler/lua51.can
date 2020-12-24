@@ -22,8 +22,14 @@ tags.Break = ()
 end
 
 -- Unsuported features
-tags.Goto = nil
-tags.Label = nil
+tags.Goto = ()
+	error("target "..targetName.." does not support gotos")
+end
+tags.Label = ()
+	error("target "..targetName.." does not support goto labels")
+end
+
+#placeholder("patch")
 
 #local patch = output
 #output = ""

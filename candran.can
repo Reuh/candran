@@ -3,6 +3,7 @@
 
 #import("compiler.lua54")
 #import("compiler.lua53")
+#import("compiler.lua52")
 #import("compiler.luajit")
 #import("compiler.lua51")
 
@@ -36,7 +37,7 @@ if _VERSION == "Lua 5.1" then
 		candran.default.target = "lua51"
 	end
 elseif _VERSION == "Lua 5.2" then
-	candran.default.target = "lua51"
+	candran.default.target = "lua52"
 elseif _VERSION == "Lua 5.3" then
 	candran.default.target = "lua53"
 end

@@ -1,0 +1,35 @@
+targetName = "Lua 5.2"
+
+APPEND = (t, toAppend)
+	return "do" .. indent() .. "local "..var("a")..", "..var("p").." = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #"..var("a").." do" .. indent() .. t .. "["..var("p").."] = "..var("a").."[i]" .. newline() .. ""..var("p").." = "..var("p").." + 1" .. unindent() .. "end" .. unindent() .. "end"
+end
+
+tags._opid.idiv = (left, right)
+	return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")"
+end
+tags._opid.band = (left, right)
+	return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.bor = (left, right)
+	return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.bxor = (left, right)
+	return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.shl = (left, right)
+	return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.shr = (left, right)
+	return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")"
+end
+tags._opid.bnot = (right)
+	return "bit32.bnot(" .. lua(right) .. ")"
+end
+
+#placeholder("patch")
+
+#local patch = output
+#output = ""
+#import("compiler.lua53", { patch = patch, loadPackage = false })
+
+return lua53

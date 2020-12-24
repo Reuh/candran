@@ -1850,7 +1850,7 @@ end }) -- ./compiler/lua54.can:827
 targetName = "Lua 5.3" -- ./compiler/lua53.can:1
 tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
 if t[2] then -- ./compiler/lua53.can:5
-error("target does not support variable attributes") -- ./compiler/lua53.can:6
+error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
 else -- ./compiler/lua53.can:6
 return t[1] -- ./compiler/lua53.can:8
 end -- ./compiler/lua53.can:8
@@ -1860,13 +1860,13 @@ return requireStr .. code -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 local lua54 = _() or lua54 -- ./compiler/lua54.can:839
-return lua54 -- ./compiler/lua53.can:16
-end -- ./compiler/lua53.can:16
-local lua53 = _() or lua53 -- ./compiler/lua53.can:20
-package["loaded"]["compiler.lua53"] = lua53 or true -- ./compiler/lua53.can:21
-local function _() -- ./compiler/lua53.can:24
+return lua54 -- ./compiler/lua53.can:18
+end -- ./compiler/lua53.can:18
+local lua53 = _() or lua53 -- ./compiler/lua53.can:22
+package["loaded"]["compiler.lua53"] = lua53 or true -- ./compiler/lua53.can:23
 local function _() -- ./compiler/lua53.can:26
 local function _() -- ./compiler/lua53.can:28
+local function _() -- ./compiler/lua53.can:30
 local targetName = "Lua 5.4" -- ./compiler/lua54.can:1
 return function(code, ast, options) -- ./compiler/lua54.can:3
 local lastInputPos = 1 -- ./compiler/lua54.can:5
@@ -2725,27 +2725,988 @@ end }) -- ./compiler/lua54.can:827
 targetName = "Lua 5.3" -- ./compiler/lua53.can:1
 tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
 if t[2] then -- ./compiler/lua53.can:5
-error("target does not support variable attributes") -- ./compiler/lua53.can:6
+error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
 else -- ./compiler/lua53.can:6
 return t[1] -- ./compiler/lua53.can:8
 end -- ./compiler/lua53.can:8
 end -- ./compiler/lua53.can:8
+targetName = "Lua 5.2" -- ./compiler/lua52.can:1
+APPEND = function(t, toAppend) -- ./compiler/lua52.can:3
+return "do" .. indent() .. "local " .. var("a") .. ", " .. var("p") .. " = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #" .. var("a") .. " do" .. indent() .. t .. "[" .. var("p") .. "] = " .. var("a") .. "[i]" .. newline() .. "" .. var("p") .. " = " .. var("p") .. " + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/lua52.can:4
+end -- ./compiler/lua52.can:4
+tags["_opid"]["idiv"] = function(left, right) -- ./compiler/lua52.can:7
+return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/lua52.can:8
+end -- ./compiler/lua52.can:8
+tags["_opid"]["band"] = function(left, right) -- ./compiler/lua52.can:10
+return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:11
+end -- ./compiler/lua52.can:11
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/lua52.can:13
+return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:14
+end -- ./compiler/lua52.can:14
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/lua52.can:16
+return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:17
+end -- ./compiler/lua52.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/lua52.can:19
+return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:20
+end -- ./compiler/lua52.can:20
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/lua52.can:22
+return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:23
+end -- ./compiler/lua52.can:23
+tags["_opid"]["bnot"] = function(right) -- ./compiler/lua52.can:25
+return "bit32.bnot(" .. lua(right) .. ")" -- ./compiler/lua52.can:26
+end -- ./compiler/lua52.can:26
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:833
 return requireStr .. code -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 local lua54 = _() or lua54 -- ./compiler/lua54.can:839
-return lua54 -- ./compiler/lua53.can:16
-end -- ./compiler/lua53.can:16
-local lua53 = _() or lua53 -- ./compiler/lua53.can:20
-return lua53 -- ./compiler/luajit.can:44
-end -- ./compiler/luajit.can:44
-local luajit = _() or luajit -- ./compiler/luajit.can:48
-package["loaded"]["compiler.luajit"] = luajit or true -- ./compiler/luajit.can:49
+return lua54 -- ./compiler/lua53.can:18
+end -- ./compiler/lua53.can:18
+local lua53 = _() or lua53 -- ./compiler/lua53.can:22
+return lua53 -- ./compiler/lua52.can:35
+end -- ./compiler/lua52.can:35
+local lua52 = _() or lua52 -- ./compiler/lua52.can:39
+package["loaded"]["compiler.lua52"] = lua52 or true -- ./compiler/lua52.can:40
+local function _() -- ./compiler/lua52.can:43
+local function _() -- ./compiler/lua52.can:45
+local function _() -- ./compiler/lua52.can:47
+local function _() -- ./compiler/lua52.can:49
+local targetName = "Lua 5.4" -- ./compiler/lua54.can:1
+return function(code, ast, options) -- ./compiler/lua54.can:3
+local lastInputPos = 1 -- ./compiler/lua54.can:5
+local prevLinePos = 1 -- ./compiler/lua54.can:6
+local lastSource = options["chunkname"] or "nil" -- ./compiler/lua54.can:7
+local lastLine = 1 -- ./compiler/lua54.can:8
+local indentLevel = 0 -- ./compiler/lua54.can:11
+local function newline() -- ./compiler/lua54.can:13
+local r = options["newline"] .. string["rep"](options["indentation"], indentLevel) -- ./compiler/lua54.can:14
+if options["mapLines"] then -- ./compiler/lua54.can:15
+local sub = code:sub(lastInputPos) -- ./compiler/lua54.can:16
+local source, line = sub:sub(1, sub:find("\
+")):match(".*%-%- (.-)%:(%d+)\
+") -- ./compiler/lua54.can:17
+if source and line then -- ./compiler/lua54.can:19
+lastSource = source -- ./compiler/lua54.can:20
+lastLine = tonumber(line) -- ./compiler/lua54.can:21
+else -- ./compiler/lua54.can:21
+for _ in code:sub(prevLinePos, lastInputPos):gmatch("\
+") do -- ./compiler/lua54.can:23
+lastLine = lastLine + (1) -- ./compiler/lua54.can:24
+end -- ./compiler/lua54.can:24
+end -- ./compiler/lua54.can:24
+prevLinePos = lastInputPos -- ./compiler/lua54.can:28
+r = " -- " .. lastSource .. ":" .. lastLine .. r -- ./compiler/lua54.can:30
+end -- ./compiler/lua54.can:30
+return r -- ./compiler/lua54.can:32
+end -- ./compiler/lua54.can:32
+local function indent() -- ./compiler/lua54.can:35
+indentLevel = indentLevel + (1) -- ./compiler/lua54.can:36
+return newline() -- ./compiler/lua54.can:37
+end -- ./compiler/lua54.can:37
+local function unindent() -- ./compiler/lua54.can:40
+indentLevel = indentLevel - (1) -- ./compiler/lua54.can:41
+return newline() -- ./compiler/lua54.can:42
+end -- ./compiler/lua54.can:42
+local states = { -- ./compiler/lua54.can:47
+["push"] = {}, -- ./compiler/lua54.can:48
+["destructuring"] = {}, -- ./compiler/lua54.can:49
+["scope"] = {} -- ./compiler/lua54.can:50
+} -- ./compiler/lua54.can:50
+local function push(name, state) -- ./compiler/lua54.can:53
+table["insert"](states[name], state) -- ./compiler/lua54.can:54
+return "" -- ./compiler/lua54.can:55
+end -- ./compiler/lua54.can:55
+local function pop(name) -- ./compiler/lua54.can:58
+table["remove"](states[name]) -- ./compiler/lua54.can:59
+return "" -- ./compiler/lua54.can:60
+end -- ./compiler/lua54.can:60
+local function set(name, state) -- ./compiler/lua54.can:63
+states[name][# states[name]] = state -- ./compiler/lua54.can:64
+return "" -- ./compiler/lua54.can:65
+end -- ./compiler/lua54.can:65
+local function peek(name) -- ./compiler/lua54.can:68
+return states[name][# states[name]] -- ./compiler/lua54.can:69
+end -- ./compiler/lua54.can:69
+local function var(name) -- ./compiler/lua54.can:74
+return options["variablePrefix"] .. name -- ./compiler/lua54.can:75
+end -- ./compiler/lua54.can:75
+local function tmp() -- ./compiler/lua54.can:79
+local scope = peek("scope") -- ./compiler/lua54.can:80
+local var = ("%s_%s"):format(options["variablePrefix"], # scope) -- ./compiler/lua54.can:81
+table["insert"](scope, var) -- ./compiler/lua54.can:82
+return var -- ./compiler/lua54.can:83
+end -- ./compiler/lua54.can:83
+local required = {} -- ./compiler/lua54.can:87
+local requireStr = "" -- ./compiler/lua54.can:88
+local function addRequire(mod, name, field) -- ./compiler/lua54.can:90
+local req = ("require(%q)%s"):format(mod, field and "." .. field or "") -- ./compiler/lua54.can:91
+if not required[req] then -- ./compiler/lua54.can:92
+requireStr = requireStr .. (("local %s = %s%s"):format(var(name), req, options["newline"])) -- ./compiler/lua54.can:93
+required[req] = true -- ./compiler/lua54.can:94
+end -- ./compiler/lua54.can:94
+end -- ./compiler/lua54.can:94
+local loop = { -- ./compiler/lua54.can:99
+"While", -- ./compiler/lua54.can:99
+"Repeat", -- ./compiler/lua54.can:99
+"Fornum", -- ./compiler/lua54.can:99
+"Forin", -- ./compiler/lua54.can:99
+"WhileExpr", -- ./compiler/lua54.can:99
+"RepeatExpr", -- ./compiler/lua54.can:99
+"FornumExpr", -- ./compiler/lua54.can:99
+"ForinExpr" -- ./compiler/lua54.can:99
+} -- ./compiler/lua54.can:99
+local func = { -- ./compiler/lua54.can:100
+"Function", -- ./compiler/lua54.can:100
+"TableCompr", -- ./compiler/lua54.can:100
+"DoExpr", -- ./compiler/lua54.can:100
+"WhileExpr", -- ./compiler/lua54.can:100
+"RepeatExpr", -- ./compiler/lua54.can:100
+"IfExpr", -- ./compiler/lua54.can:100
+"FornumExpr", -- ./compiler/lua54.can:100
+"ForinExpr" -- ./compiler/lua54.can:100
+} -- ./compiler/lua54.can:100
+local function any(list, tags, nofollow) -- ./compiler/lua54.can:104
+if nofollow == nil then nofollow = {} end -- ./compiler/lua54.can:104
+local tagsCheck = {} -- ./compiler/lua54.can:105
+for _, tag in ipairs(tags) do -- ./compiler/lua54.can:106
+tagsCheck[tag] = true -- ./compiler/lua54.can:107
+end -- ./compiler/lua54.can:107
+local nofollowCheck = {} -- ./compiler/lua54.can:109
+for _, tag in ipairs(nofollow) do -- ./compiler/lua54.can:110
+nofollowCheck[tag] = true -- ./compiler/lua54.can:111
+end -- ./compiler/lua54.can:111
+for _, node in ipairs(list) do -- ./compiler/lua54.can:113
+if type(node) == "table" then -- ./compiler/lua54.can:114
+if tagsCheck[node["tag"]] then -- ./compiler/lua54.can:115
+return node -- ./compiler/lua54.can:116
+end -- ./compiler/lua54.can:116
+if not nofollowCheck[node["tag"]] then -- ./compiler/lua54.can:118
+local r = any(node, tags, nofollow) -- ./compiler/lua54.can:119
+if r then -- ./compiler/lua54.can:120
+return r -- ./compiler/lua54.can:120
+end -- ./compiler/lua54.can:120
+end -- ./compiler/lua54.can:120
+end -- ./compiler/lua54.can:120
+end -- ./compiler/lua54.can:120
+return nil -- ./compiler/lua54.can:124
+end -- ./compiler/lua54.can:124
+local function search(list, tags, nofollow) -- ./compiler/lua54.can:129
+if nofollow == nil then nofollow = {} end -- ./compiler/lua54.can:129
+local tagsCheck = {} -- ./compiler/lua54.can:130
+for _, tag in ipairs(tags) do -- ./compiler/lua54.can:131
+tagsCheck[tag] = true -- ./compiler/lua54.can:132
+end -- ./compiler/lua54.can:132
+local nofollowCheck = {} -- ./compiler/lua54.can:134
+for _, tag in ipairs(nofollow) do -- ./compiler/lua54.can:135
+nofollowCheck[tag] = true -- ./compiler/lua54.can:136
+end -- ./compiler/lua54.can:136
+local found = {} -- ./compiler/lua54.can:138
+for _, node in ipairs(list) do -- ./compiler/lua54.can:139
+if type(node) == "table" then -- ./compiler/lua54.can:140
+if not nofollowCheck[node["tag"]] then -- ./compiler/lua54.can:141
+for _, n in ipairs(search(node, tags, nofollow)) do -- ./compiler/lua54.can:142
+table["insert"](found, n) -- ./compiler/lua54.can:143
+end -- ./compiler/lua54.can:143
+end -- ./compiler/lua54.can:143
+if tagsCheck[node["tag"]] then -- ./compiler/lua54.can:146
+table["insert"](found, node) -- ./compiler/lua54.can:147
+end -- ./compiler/lua54.can:147
+end -- ./compiler/lua54.can:147
+end -- ./compiler/lua54.can:147
+return found -- ./compiler/lua54.can:151
+end -- ./compiler/lua54.can:151
+local function all(list, tags) -- ./compiler/lua54.can:155
+for _, node in ipairs(list) do -- ./compiler/lua54.can:156
+local ok = false -- ./compiler/lua54.can:157
+for _, tag in ipairs(tags) do -- ./compiler/lua54.can:158
+if node["tag"] == tag then -- ./compiler/lua54.can:159
+ok = true -- ./compiler/lua54.can:160
+break -- ./compiler/lua54.can:161
+end -- ./compiler/lua54.can:161
+end -- ./compiler/lua54.can:161
+if not ok then -- ./compiler/lua54.can:164
+return false -- ./compiler/lua54.can:165
+end -- ./compiler/lua54.can:165
+end -- ./compiler/lua54.can:165
+return true -- ./compiler/lua54.can:168
+end -- ./compiler/lua54.can:168
+local tags -- ./compiler/lua54.can:172
+local function lua(ast, forceTag, ...) -- ./compiler/lua54.can:174
+if options["mapLines"] and ast["pos"] then -- ./compiler/lua54.can:175
+lastInputPos = ast["pos"] -- ./compiler/lua54.can:176
+end -- ./compiler/lua54.can:176
+return tags[forceTag or ast["tag"]](ast, ...) -- ./compiler/lua54.can:178
+end -- ./compiler/lua54.can:178
+local UNPACK = function(list, i, j) -- ./compiler/lua54.can:182
+return "table.unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/lua54.can:183
+end -- ./compiler/lua54.can:183
+local APPEND = function(t, toAppend) -- ./compiler/lua54.can:185
+return "do" .. indent() .. "local " .. var("a") .. " = table.pack(" .. toAppend .. ")" .. newline() .. "table.move(" .. var("a") .. ", 1, " .. var("a") .. ".n, #" .. t .. "+1, " .. t .. ")" .. unindent() .. "end" -- ./compiler/lua54.can:186
+end -- ./compiler/lua54.can:186
+local CONTINUE_START = function() -- ./compiler/lua54.can:188
+return "do" .. indent() -- ./compiler/lua54.can:189
+end -- ./compiler/lua54.can:189
+local CONTINUE_STOP = function() -- ./compiler/lua54.can:191
+return unindent() .. "end" .. newline() .. "::" .. var("continue") .. "::" -- ./compiler/lua54.can:192
+end -- ./compiler/lua54.can:192
+local DESTRUCTURING_ASSIGN = function(destructured, newlineAfter, noLocal) -- ./compiler/lua54.can:194
+if newlineAfter == nil then newlineAfter = false end -- ./compiler/lua54.can:194
+if noLocal == nil then noLocal = false end -- ./compiler/lua54.can:194
+local vars = {} -- ./compiler/lua54.can:195
+local values = {} -- ./compiler/lua54.can:196
+for _, list in ipairs(destructured) do -- ./compiler/lua54.can:197
+for _, v in ipairs(list) do -- ./compiler/lua54.can:198
+local var, val -- ./compiler/lua54.can:199
+if v["tag"] == "Id" or v["tag"] == "AttributeId" then -- ./compiler/lua54.can:200
+var = v -- ./compiler/lua54.can:201
+val = { -- ./compiler/lua54.can:202
+["tag"] = "Index", -- ./compiler/lua54.can:202
+{ -- ./compiler/lua54.can:202
+["tag"] = "Id", -- ./compiler/lua54.can:202
+list["id"] -- ./compiler/lua54.can:202
+}, -- ./compiler/lua54.can:202
+{ -- ./compiler/lua54.can:202
+["tag"] = "String", -- ./compiler/lua54.can:202
+v[1] -- ./compiler/lua54.can:202
+} -- ./compiler/lua54.can:202
+} -- ./compiler/lua54.can:202
+elseif v["tag"] == "Pair" then -- ./compiler/lua54.can:203
+var = v[2] -- ./compiler/lua54.can:204
+val = { -- ./compiler/lua54.can:205
+["tag"] = "Index", -- ./compiler/lua54.can:205
+{ -- ./compiler/lua54.can:205
+["tag"] = "Id", -- ./compiler/lua54.can:205
+list["id"] -- ./compiler/lua54.can:205
+}, -- ./compiler/lua54.can:205
+v[1] -- ./compiler/lua54.can:205
+} -- ./compiler/lua54.can:205
+else -- ./compiler/lua54.can:205
+error("unknown destructuring element type: " .. tostring(v["tag"])) -- ./compiler/lua54.can:207
+end -- ./compiler/lua54.can:207
+if destructured["rightOp"] and destructured["leftOp"] then -- ./compiler/lua54.can:209
+val = { -- ./compiler/lua54.can:210
+["tag"] = "Op", -- ./compiler/lua54.can:210
+destructured["rightOp"], -- ./compiler/lua54.can:210
+var, -- ./compiler/lua54.can:210
+{ -- ./compiler/lua54.can:210
+["tag"] = "Op", -- ./compiler/lua54.can:210
+destructured["leftOp"], -- ./compiler/lua54.can:210
+val, -- ./compiler/lua54.can:210
+var -- ./compiler/lua54.can:210
+} -- ./compiler/lua54.can:210
+} -- ./compiler/lua54.can:210
+elseif destructured["rightOp"] then -- ./compiler/lua54.can:211
+val = { -- ./compiler/lua54.can:212
+["tag"] = "Op", -- ./compiler/lua54.can:212
+destructured["rightOp"], -- ./compiler/lua54.can:212
+var, -- ./compiler/lua54.can:212
+val -- ./compiler/lua54.can:212
+} -- ./compiler/lua54.can:212
+elseif destructured["leftOp"] then -- ./compiler/lua54.can:213
+val = { -- ./compiler/lua54.can:214
+["tag"] = "Op", -- ./compiler/lua54.can:214
+destructured["leftOp"], -- ./compiler/lua54.can:214
+val, -- ./compiler/lua54.can:214
+var -- ./compiler/lua54.can:214
+} -- ./compiler/lua54.can:214
+end -- ./compiler/lua54.can:214
+table["insert"](vars, lua(var)) -- ./compiler/lua54.can:216
+table["insert"](values, lua(val)) -- ./compiler/lua54.can:217
+end -- ./compiler/lua54.can:217
+end -- ./compiler/lua54.can:217
+if # vars > 0 then -- ./compiler/lua54.can:220
+local decl = noLocal and "" or "local " -- ./compiler/lua54.can:221
+if newlineAfter then -- ./compiler/lua54.can:222
+return decl .. table["concat"](vars, ", ") .. " = " .. table["concat"](values, ", ") .. newline() -- ./compiler/lua54.can:223
+else -- ./compiler/lua54.can:223
+return newline() .. decl .. table["concat"](vars, ", ") .. " = " .. table["concat"](values, ", ") -- ./compiler/lua54.can:225
+end -- ./compiler/lua54.can:225
+else -- ./compiler/lua54.can:225
+return "" -- ./compiler/lua54.can:228
+end -- ./compiler/lua54.can:228
+end -- ./compiler/lua54.can:228
+tags = setmetatable({ -- ./compiler/lua54.can:233
+["Block"] = function(t) -- ./compiler/lua54.can:235
+local hasPush = peek("push") == nil and any(t, { "Push" }, func) -- ./compiler/lua54.can:236
+if hasPush and hasPush == t[# t] then -- ./compiler/lua54.can:237
+hasPush["tag"] = "Return" -- ./compiler/lua54.can:238
+hasPush = false -- ./compiler/lua54.can:239
+end -- ./compiler/lua54.can:239
+local r = push("scope", {}) -- ./compiler/lua54.can:241
+if hasPush then -- ./compiler/lua54.can:242
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()) -- ./compiler/lua54.can:243
+end -- ./compiler/lua54.can:243
+for i = 1, # t - 1, 1 do -- ./compiler/lua54.can:245
+r = r .. (lua(t[i]) .. newline()) -- ./compiler/lua54.can:246
+end -- ./compiler/lua54.can:246
+if t[# t] then -- ./compiler/lua54.can:248
+r = r .. (lua(t[# t])) -- ./compiler/lua54.can:249
+end -- ./compiler/lua54.can:249
+if hasPush and (t[# t] and t[# t]["tag"] ~= "Return") then -- ./compiler/lua54.can:251
+r = r .. (newline() .. "return " .. UNPACK(var("push")) .. pop("push")) -- ./compiler/lua54.can:252
+end -- ./compiler/lua54.can:252
+return r .. pop("scope") -- ./compiler/lua54.can:254
+end, -- ./compiler/lua54.can:254
+["Do"] = function(t) -- ./compiler/lua54.can:260
+return "do" .. indent() .. lua(t, "Block") .. unindent() .. "end" -- ./compiler/lua54.can:261
+end, -- ./compiler/lua54.can:261
+["Set"] = function(t) -- ./compiler/lua54.can:264
+local expr = t[# t] -- ./compiler/lua54.can:266
+local vars, values = {}, {} -- ./compiler/lua54.can:267
+local destructuringVars, destructuringValues = {}, {} -- ./compiler/lua54.can:268
+for i, n in ipairs(t[1]) do -- ./compiler/lua54.can:269
+if n["tag"] == "DestructuringId" then -- ./compiler/lua54.can:270
+table["insert"](destructuringVars, n) -- ./compiler/lua54.can:271
+table["insert"](destructuringValues, expr[i]) -- ./compiler/lua54.can:272
+else -- ./compiler/lua54.can:272
+table["insert"](vars, n) -- ./compiler/lua54.can:274
+table["insert"](values, expr[i]) -- ./compiler/lua54.can:275
+end -- ./compiler/lua54.can:275
+end -- ./compiler/lua54.can:275
+if # t == 2 or # t == 3 then -- ./compiler/lua54.can:279
+local r = "" -- ./compiler/lua54.can:280
+if # vars > 0 then -- ./compiler/lua54.can:281
+r = lua(vars, "_lhs") .. " = " .. lua(values, "_lhs") -- ./compiler/lua54.can:282
+end -- ./compiler/lua54.can:282
+if # destructuringVars > 0 then -- ./compiler/lua54.can:284
+local destructured = {} -- ./compiler/lua54.can:285
+r = r .. ("local " .. push("destructuring", destructured) .. lua(destructuringVars, "_lhs") .. pop("destructuring") .. " = " .. lua(destructuringValues, "_lhs")) -- ./compiler/lua54.can:286
+return r .. DESTRUCTURING_ASSIGN(destructured, nil, true) -- ./compiler/lua54.can:287
+end -- ./compiler/lua54.can:287
+return r -- ./compiler/lua54.can:289
+elseif # t == 4 then -- ./compiler/lua54.can:290
+if t[3] == "=" then -- ./compiler/lua54.can:291
+local r = "" -- ./compiler/lua54.can:292
+if # vars > 0 then -- ./compiler/lua54.can:293
+r = r .. (lua(vars, "_lhs") .. " = " .. lua({ -- ./compiler/lua54.can:294
+t[2], -- ./compiler/lua54.can:294
+vars[1], -- ./compiler/lua54.can:294
+{ -- ./compiler/lua54.can:294
+["tag"] = "Paren", -- ./compiler/lua54.can:294
+values[1] -- ./compiler/lua54.can:294
+} -- ./compiler/lua54.can:294
+}, "Op")) -- ./compiler/lua54.can:294
+for i = 2, math["min"](# t[4], # vars), 1 do -- ./compiler/lua54.can:295
+r = r .. (", " .. lua({ -- ./compiler/lua54.can:296
+t[2], -- ./compiler/lua54.can:296
+vars[i], -- ./compiler/lua54.can:296
+{ -- ./compiler/lua54.can:296
+["tag"] = "Paren", -- ./compiler/lua54.can:296
+values[i] -- ./compiler/lua54.can:296
+} -- ./compiler/lua54.can:296
+}, "Op")) -- ./compiler/lua54.can:296
+end -- ./compiler/lua54.can:296
+end -- ./compiler/lua54.can:296
+if # destructuringVars > 0 then -- ./compiler/lua54.can:299
+local destructured = { ["rightOp"] = t[2] } -- ./compiler/lua54.can:300
+r = r .. ("local " .. push("destructuring", destructured) .. lua(destructuringVars, "_lhs") .. pop("destructuring") .. " = " .. lua(destructuringValues, "_lhs")) -- ./compiler/lua54.can:301
+return r .. DESTRUCTURING_ASSIGN(destructured, nil, true) -- ./compiler/lua54.can:302
+end -- ./compiler/lua54.can:302
+return r -- ./compiler/lua54.can:304
+else -- ./compiler/lua54.can:304
+local r = "" -- ./compiler/lua54.can:306
+if # vars > 0 then -- ./compiler/lua54.can:307
+r = r .. (lua(vars, "_lhs") .. " = " .. lua({ -- ./compiler/lua54.can:308
+t[3], -- ./compiler/lua54.can:308
+{ -- ./compiler/lua54.can:308
+["tag"] = "Paren", -- ./compiler/lua54.can:308
+values[1] -- ./compiler/lua54.can:308
+}, -- ./compiler/lua54.can:308
+vars[1] -- ./compiler/lua54.can:308
+}, "Op")) -- ./compiler/lua54.can:308
+for i = 2, math["min"](# t[4], # t[1]), 1 do -- ./compiler/lua54.can:309
+r = r .. (", " .. lua({ -- ./compiler/lua54.can:310
+t[3], -- ./compiler/lua54.can:310
+{ -- ./compiler/lua54.can:310
+["tag"] = "Paren", -- ./compiler/lua54.can:310
+values[i] -- ./compiler/lua54.can:310
+}, -- ./compiler/lua54.can:310
+vars[i] -- ./compiler/lua54.can:310
+}, "Op")) -- ./compiler/lua54.can:310
+end -- ./compiler/lua54.can:310
+end -- ./compiler/lua54.can:310
+if # destructuringVars > 0 then -- ./compiler/lua54.can:313
+local destructured = { ["leftOp"] = t[3] } -- ./compiler/lua54.can:314
+r = r .. ("local " .. push("destructuring", destructured) .. lua(destructuringVars, "_lhs") .. pop("destructuring") .. " = " .. lua(destructuringValues, "_lhs")) -- ./compiler/lua54.can:315
+return r .. DESTRUCTURING_ASSIGN(destructured, nil, true) -- ./compiler/lua54.can:316
+end -- ./compiler/lua54.can:316
+return r -- ./compiler/lua54.can:318
+end -- ./compiler/lua54.can:318
+else -- ./compiler/lua54.can:318
+local r = "" -- ./compiler/lua54.can:321
+if # vars > 0 then -- ./compiler/lua54.can:322
+r = r .. (lua(vars, "_lhs") .. " = " .. lua({ -- ./compiler/lua54.can:323
+t[2], -- ./compiler/lua54.can:323
+vars[1], -- ./compiler/lua54.can:323
+{ -- ./compiler/lua54.can:323
+["tag"] = "Op", -- ./compiler/lua54.can:323
+t[4], -- ./compiler/lua54.can:323
+{ -- ./compiler/lua54.can:323
+["tag"] = "Paren", -- ./compiler/lua54.can:323
+values[1] -- ./compiler/lua54.can:323
+}, -- ./compiler/lua54.can:323
+vars[1] -- ./compiler/lua54.can:323
+} -- ./compiler/lua54.can:323
+}, "Op")) -- ./compiler/lua54.can:323
+for i = 2, math["min"](# t[5], # t[1]), 1 do -- ./compiler/lua54.can:324
+r = r .. (", " .. lua({ -- ./compiler/lua54.can:325
+t[2], -- ./compiler/lua54.can:325
+vars[i], -- ./compiler/lua54.can:325
+{ -- ./compiler/lua54.can:325
+["tag"] = "Op", -- ./compiler/lua54.can:325
+t[4], -- ./compiler/lua54.can:325
+{ -- ./compiler/lua54.can:325
+["tag"] = "Paren", -- ./compiler/lua54.can:325
+values[i] -- ./compiler/lua54.can:325
+}, -- ./compiler/lua54.can:325
+vars[i] -- ./compiler/lua54.can:325
+} -- ./compiler/lua54.can:325
+}, "Op")) -- ./compiler/lua54.can:325
+end -- ./compiler/lua54.can:325
+end -- ./compiler/lua54.can:325
+if # destructuringVars > 0 then -- ./compiler/lua54.can:328
+local destructured = { -- ./compiler/lua54.can:329
+["rightOp"] = t[2], -- ./compiler/lua54.can:329
+["leftOp"] = t[4] -- ./compiler/lua54.can:329
+} -- ./compiler/lua54.can:329
+r = r .. ("local " .. push("destructuring", destructured) .. lua(destructuringVars, "_lhs") .. pop("destructuring") .. " = " .. lua(destructuringValues, "_lhs")) -- ./compiler/lua54.can:330
+return r .. DESTRUCTURING_ASSIGN(destructured, nil, true) -- ./compiler/lua54.can:331
+end -- ./compiler/lua54.can:331
+return r -- ./compiler/lua54.can:333
+end -- ./compiler/lua54.can:333
+end, -- ./compiler/lua54.can:333
+["While"] = function(t) -- ./compiler/lua54.can:337
+local r = "" -- ./compiler/lua54.can:338
+local hasContinue = any(t[2], { "Continue" }, loop) -- ./compiler/lua54.can:339
+local lets = search({ t[1] }, { "LetExpr" }) -- ./compiler/lua54.can:340
+if # lets > 0 then -- ./compiler/lua54.can:341
+r = r .. ("do" .. indent()) -- ./compiler/lua54.can:342
+for _, l in ipairs(lets) do -- ./compiler/lua54.can:343
+r = r .. (lua(l, "Let") .. newline()) -- ./compiler/lua54.can:344
+end -- ./compiler/lua54.can:344
+end -- ./compiler/lua54.can:344
+r = r .. ("while " .. lua(t[1]) .. " do" .. indent()) -- ./compiler/lua54.can:347
+if # lets > 0 then -- ./compiler/lua54.can:348
+r = r .. ("do" .. indent()) -- ./compiler/lua54.can:349
+end -- ./compiler/lua54.can:349
+if hasContinue then -- ./compiler/lua54.can:351
+r = r .. (CONTINUE_START()) -- ./compiler/lua54.can:352
+end -- ./compiler/lua54.can:352
+r = r .. (lua(t[2])) -- ./compiler/lua54.can:354
+if hasContinue then -- ./compiler/lua54.can:355
+r = r .. (CONTINUE_STOP()) -- ./compiler/lua54.can:356
+end -- ./compiler/lua54.can:356
+r = r .. (unindent() .. "end") -- ./compiler/lua54.can:358
+if # lets > 0 then -- ./compiler/lua54.can:359
+for _, l in ipairs(lets) do -- ./compiler/lua54.can:360
+r = r .. (newline() .. lua(l, "Set")) -- ./compiler/lua54.can:361
+end -- ./compiler/lua54.can:361
+r = r .. (unindent() .. "end" .. unindent() .. "end") -- ./compiler/lua54.can:363
+end -- ./compiler/lua54.can:363
+return r -- ./compiler/lua54.can:365
+end, -- ./compiler/lua54.can:365
+["Repeat"] = function(t) -- ./compiler/lua54.can:368
+local hasContinue = any(t[1], { "Continue" }, loop) -- ./compiler/lua54.can:369
+local r = "repeat" .. indent() -- ./compiler/lua54.can:370
+if hasContinue then -- ./compiler/lua54.can:371
+r = r .. (CONTINUE_START()) -- ./compiler/lua54.can:372
+end -- ./compiler/lua54.can:372
+r = r .. (lua(t[1])) -- ./compiler/lua54.can:374
+if hasContinue then -- ./compiler/lua54.can:375
+r = r .. (CONTINUE_STOP()) -- ./compiler/lua54.can:376
+end -- ./compiler/lua54.can:376
+r = r .. (unindent() .. "until " .. lua(t[2])) -- ./compiler/lua54.can:378
+return r -- ./compiler/lua54.can:379
+end, -- ./compiler/lua54.can:379
+["If"] = function(t) -- ./compiler/lua54.can:382
+local r = "" -- ./compiler/lua54.can:383
+local toClose = 0 -- ./compiler/lua54.can:384
+local lets = search({ t[1] }, { "LetExpr" }) -- ./compiler/lua54.can:385
+if # lets > 0 then -- ./compiler/lua54.can:386
+r = r .. ("do" .. indent()) -- ./compiler/lua54.can:387
+toClose = toClose + (1) -- ./compiler/lua54.can:388
+for _, l in ipairs(lets) do -- ./compiler/lua54.can:389
+r = r .. (lua(l, "Let") .. newline()) -- ./compiler/lua54.can:390
+end -- ./compiler/lua54.can:390
+end -- ./compiler/lua54.can:390
+r = r .. ("if " .. lua(t[1]) .. " then" .. indent() .. lua(t[2]) .. unindent()) -- ./compiler/lua54.can:393
+for i = 3, # t - 1, 2 do -- ./compiler/lua54.can:394
+lets = search({ t[i] }, { "LetExpr" }) -- ./compiler/lua54.can:395
+if # lets > 0 then -- ./compiler/lua54.can:396
+r = r .. ("else" .. indent()) -- ./compiler/lua54.can:397
+toClose = toClose + (1) -- ./compiler/lua54.can:398
+for _, l in ipairs(lets) do -- ./compiler/lua54.can:399
+r = r .. (lua(l, "Let") .. newline()) -- ./compiler/lua54.can:400
+end -- ./compiler/lua54.can:400
+else -- ./compiler/lua54.can:400
+r = r .. ("else") -- ./compiler/lua54.can:403
+end -- ./compiler/lua54.can:403
+r = r .. ("if " .. lua(t[i]) .. " then" .. indent() .. lua(t[i + 1]) .. unindent()) -- ./compiler/lua54.can:405
+end -- ./compiler/lua54.can:405
+if # t % 2 == 1 then -- ./compiler/lua54.can:407
+r = r .. ("else" .. indent() .. lua(t[# t]) .. unindent()) -- ./compiler/lua54.can:408
+end -- ./compiler/lua54.can:408
+r = r .. ("end") -- ./compiler/lua54.can:410
+for i = 1, toClose do -- ./compiler/lua54.can:411
+r = r .. (unindent() .. "end") -- ./compiler/lua54.can:412
+end -- ./compiler/lua54.can:412
+return r -- ./compiler/lua54.can:414
+end, -- ./compiler/lua54.can:414
+["Fornum"] = function(t) -- ./compiler/lua54.can:417
+local r = "for " .. lua(t[1]) .. " = " .. lua(t[2]) .. ", " .. lua(t[3]) -- ./compiler/lua54.can:418
+if # t == 5 then -- ./compiler/lua54.can:419
+local hasContinue = any(t[5], { "Continue" }, loop) -- ./compiler/lua54.can:420
+r = r .. (", " .. lua(t[4]) .. " do" .. indent()) -- ./compiler/lua54.can:421
+if hasContinue then -- ./compiler/lua54.can:422
+r = r .. (CONTINUE_START()) -- ./compiler/lua54.can:423
+end -- ./compiler/lua54.can:423
+r = r .. (lua(t[5])) -- ./compiler/lua54.can:425
+if hasContinue then -- ./compiler/lua54.can:426
+r = r .. (CONTINUE_STOP()) -- ./compiler/lua54.can:427
+end -- ./compiler/lua54.can:427
+return r .. unindent() .. "end" -- ./compiler/lua54.can:429
+else -- ./compiler/lua54.can:429
+local hasContinue = any(t[4], { "Continue" }, loop) -- ./compiler/lua54.can:431
+r = r .. (" do" .. indent()) -- ./compiler/lua54.can:432
+if hasContinue then -- ./compiler/lua54.can:433
+r = r .. (CONTINUE_START()) -- ./compiler/lua54.can:434
+end -- ./compiler/lua54.can:434
+r = r .. (lua(t[4])) -- ./compiler/lua54.can:436
+if hasContinue then -- ./compiler/lua54.can:437
+r = r .. (CONTINUE_STOP()) -- ./compiler/lua54.can:438
+end -- ./compiler/lua54.can:438
+return r .. unindent() .. "end" -- ./compiler/lua54.can:440
+end -- ./compiler/lua54.can:440
+end, -- ./compiler/lua54.can:440
+["Forin"] = function(t) -- ./compiler/lua54.can:444
+local destructured = {} -- ./compiler/lua54.can:445
+local hasContinue = any(t[3], { "Continue" }, loop) -- ./compiler/lua54.can:446
+local r = "for " .. push("destructuring", destructured) .. lua(t[1], "_lhs") .. pop("destructuring") .. " in " .. lua(t[2], "_lhs") .. " do" .. indent() -- ./compiler/lua54.can:447
+if hasContinue then -- ./compiler/lua54.can:448
+r = r .. (CONTINUE_START()) -- ./compiler/lua54.can:449
+end -- ./compiler/lua54.can:449
+r = r .. (DESTRUCTURING_ASSIGN(destructured, true) .. lua(t[3])) -- ./compiler/lua54.can:451
+if hasContinue then -- ./compiler/lua54.can:452
+r = r .. (CONTINUE_STOP()) -- ./compiler/lua54.can:453
+end -- ./compiler/lua54.can:453
+return r .. unindent() .. "end" -- ./compiler/lua54.can:455
+end, -- ./compiler/lua54.can:455
+["Local"] = function(t) -- ./compiler/lua54.can:458
+local destructured = {} -- ./compiler/lua54.can:459
+local r = "local " .. push("destructuring", destructured) .. lua(t[1], "_lhs") .. pop("destructuring") -- ./compiler/lua54.can:460
+if t[2][1] then -- ./compiler/lua54.can:461
+r = r .. (" = " .. lua(t[2], "_lhs")) -- ./compiler/lua54.can:462
+end -- ./compiler/lua54.can:462
+return r .. DESTRUCTURING_ASSIGN(destructured) -- ./compiler/lua54.can:464
+end, -- ./compiler/lua54.can:464
+["Let"] = function(t) -- ./compiler/lua54.can:467
+local destructured = {} -- ./compiler/lua54.can:468
+local nameList = push("destructuring", destructured) .. lua(t[1], "_lhs") .. pop("destructuring") -- ./compiler/lua54.can:469
+local r = "local " .. nameList -- ./compiler/lua54.can:470
+if t[2][1] then -- ./compiler/lua54.can:471
+if all(t[2], { -- ./compiler/lua54.can:472
+"Nil", -- ./compiler/lua54.can:472
+"Dots", -- ./compiler/lua54.can:472
+"Boolean", -- ./compiler/lua54.can:472
+"Number", -- ./compiler/lua54.can:472
+"String" -- ./compiler/lua54.can:472
+}) then -- ./compiler/lua54.can:472
+r = r .. (" = " .. lua(t[2], "_lhs")) -- ./compiler/lua54.can:473
+else -- ./compiler/lua54.can:473
+r = r .. (newline() .. nameList .. " = " .. lua(t[2], "_lhs")) -- ./compiler/lua54.can:475
+end -- ./compiler/lua54.can:475
+end -- ./compiler/lua54.can:475
+return r .. DESTRUCTURING_ASSIGN(destructured) -- ./compiler/lua54.can:478
+end, -- ./compiler/lua54.can:478
+["Localrec"] = function(t) -- ./compiler/lua54.can:481
+return "local function " .. lua(t[1][1]) .. lua(t[2][1], "_functionWithoutKeyword") -- ./compiler/lua54.can:482
+end, -- ./compiler/lua54.can:482
+["Goto"] = function(t) -- ./compiler/lua54.can:485
+return "goto " .. lua(t, "Id") -- ./compiler/lua54.can:486
+end, -- ./compiler/lua54.can:486
+["Label"] = function(t) -- ./compiler/lua54.can:489
+return "::" .. lua(t, "Id") .. "::" -- ./compiler/lua54.can:490
+end, -- ./compiler/lua54.can:490
+["Return"] = function(t) -- ./compiler/lua54.can:493
+local push = peek("push") -- ./compiler/lua54.can:494
+if push then -- ./compiler/lua54.can:495
+local r = "" -- ./compiler/lua54.can:496
+for _, val in ipairs(t) do -- ./compiler/lua54.can:497
+r = r .. (push .. "[#" .. push .. "+1] = " .. lua(val) .. newline()) -- ./compiler/lua54.can:498
+end -- ./compiler/lua54.can:498
+return r .. "return " .. UNPACK(push) -- ./compiler/lua54.can:500
+else -- ./compiler/lua54.can:500
+return "return " .. lua(t, "_lhs") -- ./compiler/lua54.can:502
+end -- ./compiler/lua54.can:502
+end, -- ./compiler/lua54.can:502
+["Push"] = function(t) -- ./compiler/lua54.can:506
+local var = assert(peek("push"), "no context given for push") -- ./compiler/lua54.can:507
+r = "" -- ./compiler/lua54.can:508
+for i = 1, # t - 1, 1 do -- ./compiler/lua54.can:509
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[i]) .. newline()) -- ./compiler/lua54.can:510
+end -- ./compiler/lua54.can:510
+if t[# t] then -- ./compiler/lua54.can:512
+if t[# t]["tag"] == "Call" then -- ./compiler/lua54.can:513
+r = r .. (APPEND(var, lua(t[# t]))) -- ./compiler/lua54.can:514
+else -- ./compiler/lua54.can:514
+r = r .. (var .. "[#" .. var .. "+1] = " .. lua(t[# t])) -- ./compiler/lua54.can:516
+end -- ./compiler/lua54.can:516
+end -- ./compiler/lua54.can:516
+return r -- ./compiler/lua54.can:519
+end, -- ./compiler/lua54.can:519
+["Break"] = function() -- ./compiler/lua54.can:522
+return "break" -- ./compiler/lua54.can:523
+end, -- ./compiler/lua54.can:523
+["Continue"] = function() -- ./compiler/lua54.can:526
+return "goto " .. var("continue") -- ./compiler/lua54.can:527
+end, -- ./compiler/lua54.can:527
+["Nil"] = function() -- ./compiler/lua54.can:534
+return "nil" -- ./compiler/lua54.can:535
+end, -- ./compiler/lua54.can:535
+["Dots"] = function() -- ./compiler/lua54.can:538
+return "..." -- ./compiler/lua54.can:539
+end, -- ./compiler/lua54.can:539
+["Boolean"] = function(t) -- ./compiler/lua54.can:542
+return tostring(t[1]) -- ./compiler/lua54.can:543
+end, -- ./compiler/lua54.can:543
+["Number"] = function(t) -- ./compiler/lua54.can:546
+return tostring(t[1]) -- ./compiler/lua54.can:547
+end, -- ./compiler/lua54.can:547
+["String"] = function(t) -- ./compiler/lua54.can:550
+return ("%q"):format(t[1]) -- ./compiler/lua54.can:551
+end, -- ./compiler/lua54.can:551
+["_functionWithoutKeyword"] = function(t) -- ./compiler/lua54.can:554
+local r = "(" -- ./compiler/lua54.can:555
+local decl = {} -- ./compiler/lua54.can:556
+if t[1][1] then -- ./compiler/lua54.can:557
+if t[1][1]["tag"] == "ParPair" then -- ./compiler/lua54.can:558
+local id = lua(t[1][1][1]) -- ./compiler/lua54.can:559
+indentLevel = indentLevel + (1) -- ./compiler/lua54.can:560
+table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][1][2]) .. " end") -- ./compiler/lua54.can:561
+indentLevel = indentLevel - (1) -- ./compiler/lua54.can:562
+r = r .. (id) -- ./compiler/lua54.can:563
+else -- ./compiler/lua54.can:563
+r = r .. (lua(t[1][1])) -- ./compiler/lua54.can:565
+end -- ./compiler/lua54.can:565
+for i = 2, # t[1], 1 do -- ./compiler/lua54.can:567
+if t[1][i]["tag"] == "ParPair" then -- ./compiler/lua54.can:568
+local id = lua(t[1][i][1]) -- ./compiler/lua54.can:569
+indentLevel = indentLevel + (1) -- ./compiler/lua54.can:570
+table["insert"](decl, "if " .. id .. " == nil then " .. id .. " = " .. lua(t[1][i][2]) .. " end") -- ./compiler/lua54.can:571
+indentLevel = indentLevel - (1) -- ./compiler/lua54.can:572
+r = r .. (", " .. id) -- ./compiler/lua54.can:573
+else -- ./compiler/lua54.can:573
+r = r .. (", " .. lua(t[1][i])) -- ./compiler/lua54.can:575
+end -- ./compiler/lua54.can:575
+end -- ./compiler/lua54.can:575
+end -- ./compiler/lua54.can:575
+r = r .. (")" .. indent()) -- ./compiler/lua54.can:579
+for _, d in ipairs(decl) do -- ./compiler/lua54.can:580
+r = r .. (d .. newline()) -- ./compiler/lua54.can:581
+end -- ./compiler/lua54.can:581
+if t[2][# t[2]] and t[2][# t[2]]["tag"] == "Push" then -- ./compiler/lua54.can:583
+t[2][# t[2]]["tag"] = "Return" -- ./compiler/lua54.can:584
+end -- ./compiler/lua54.can:584
+local hasPush = any(t[2], { "Push" }, func) -- ./compiler/lua54.can:586
+if hasPush then -- ./compiler/lua54.can:587
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()) -- ./compiler/lua54.can:588
+else -- ./compiler/lua54.can:588
+push("push", false) -- ./compiler/lua54.can:590
+end -- ./compiler/lua54.can:590
+r = r .. (lua(t[2])) -- ./compiler/lua54.can:592
+if hasPush and (t[2][# t[2]] and t[2][# t[2]]["tag"] ~= "Return") then -- ./compiler/lua54.can:593
+r = r .. (newline() .. "return " .. UNPACK(var("push"))) -- ./compiler/lua54.can:594
+end -- ./compiler/lua54.can:594
+pop("push") -- ./compiler/lua54.can:596
+return r .. unindent() .. "end" -- ./compiler/lua54.can:597
+end, -- ./compiler/lua54.can:597
+["Function"] = function(t) -- ./compiler/lua54.can:599
+return "function" .. lua(t, "_functionWithoutKeyword") -- ./compiler/lua54.can:600
+end, -- ./compiler/lua54.can:600
+["Pair"] = function(t) -- ./compiler/lua54.can:603
+return "[" .. lua(t[1]) .. "] = " .. lua(t[2]) -- ./compiler/lua54.can:604
+end, -- ./compiler/lua54.can:604
+["Table"] = function(t) -- ./compiler/lua54.can:606
+if # t == 0 then -- ./compiler/lua54.can:607
+return "{}" -- ./compiler/lua54.can:608
+elseif # t == 1 then -- ./compiler/lua54.can:609
+return "{ " .. lua(t, "_lhs") .. " }" -- ./compiler/lua54.can:610
+else -- ./compiler/lua54.can:610
+return "{" .. indent() .. lua(t, "_lhs", nil, true) .. unindent() .. "}" -- ./compiler/lua54.can:612
+end -- ./compiler/lua54.can:612
+end, -- ./compiler/lua54.can:612
+["TableCompr"] = function(t) -- ./compiler/lua54.can:616
+return push("push", "self") .. "(function()" .. indent() .. "local self = {}" .. newline() .. lua(t[1]) .. newline() .. "return self" .. unindent() .. "end)()" .. pop("push") -- ./compiler/lua54.can:617
+end, -- ./compiler/lua54.can:617
+["Op"] = function(t) -- ./compiler/lua54.can:620
+local r -- ./compiler/lua54.can:621
+if # t == 2 then -- ./compiler/lua54.can:622
+if type(tags["_opid"][t[1]]) == "string" then -- ./compiler/lua54.can:623
+r = tags["_opid"][t[1]] .. " " .. lua(t[2]) -- ./compiler/lua54.can:624
+else -- ./compiler/lua54.can:624
+r = tags["_opid"][t[1]](t[2]) -- ./compiler/lua54.can:626
+end -- ./compiler/lua54.can:626
+else -- ./compiler/lua54.can:626
+if type(tags["_opid"][t[1]]) == "string" then -- ./compiler/lua54.can:629
+r = lua(t[2]) .. " " .. tags["_opid"][t[1]] .. " " .. lua(t[3]) -- ./compiler/lua54.can:630
+else -- ./compiler/lua54.can:630
+r = tags["_opid"][t[1]](t[2], t[3]) -- ./compiler/lua54.can:632
+end -- ./compiler/lua54.can:632
+end -- ./compiler/lua54.can:632
+return r -- ./compiler/lua54.can:635
+end, -- ./compiler/lua54.can:635
+["Paren"] = function(t) -- ./compiler/lua54.can:638
+return "(" .. lua(t[1]) .. ")" -- ./compiler/lua54.can:639
+end, -- ./compiler/lua54.can:639
+["MethodStub"] = function(t) -- ./compiler/lua54.can:642
+return "(function()" .. indent() .. "local " .. var("object") .. " = " .. lua(t[1]) .. newline() .. "local " .. var("method") .. " = " .. var("object") .. "." .. lua(t[2], "Id") .. newline() .. "if " .. var("method") .. " == nil then return nil end" .. newline() .. "return function(...) return " .. var("method") .. "(" .. var("object") .. ", ...) end" .. unindent() .. "end)()" -- ./compiler/lua54.can:648
+end, -- ./compiler/lua54.can:648
+["SafeMethodStub"] = function(t) -- ./compiler/lua54.can:651
+return "(function()" .. indent() .. "local " .. var("object") .. " = " .. lua(t[1]) .. newline() .. "if " .. var("object") .. " == nil then return nil end" .. newline() .. "local " .. var("method") .. " = " .. var("object") .. "." .. lua(t[2], "Id") .. newline() .. "if " .. var("method") .. " == nil then return nil end" .. newline() .. "return function(...) return " .. var("method") .. "(" .. var("object") .. ", ...) end" .. unindent() .. "end)()" -- ./compiler/lua54.can:658
+end, -- ./compiler/lua54.can:658
+["LetExpr"] = function(t) -- ./compiler/lua54.can:665
+return lua(t[1][1]) -- ./compiler/lua54.can:666
+end, -- ./compiler/lua54.can:666
+["_statexpr"] = function(t, stat) -- ./compiler/lua54.can:670
+local hasPush = any(t, { "Push" }, func) -- ./compiler/lua54.can:671
+local r = "(function()" .. indent() -- ./compiler/lua54.can:672
+if hasPush then -- ./compiler/lua54.can:673
+r = r .. (push("push", var("push")) .. "local " .. var("push") .. " = {}" .. newline()) -- ./compiler/lua54.can:674
+else -- ./compiler/lua54.can:674
+push("push", false) -- ./compiler/lua54.can:676
+end -- ./compiler/lua54.can:676
+r = r .. (lua(t, stat)) -- ./compiler/lua54.can:678
+if hasPush then -- ./compiler/lua54.can:679
+r = r .. (newline() .. "return " .. UNPACK(var("push"))) -- ./compiler/lua54.can:680
+end -- ./compiler/lua54.can:680
+pop("push") -- ./compiler/lua54.can:682
+r = r .. (unindent() .. "end)()") -- ./compiler/lua54.can:683
+return r -- ./compiler/lua54.can:684
+end, -- ./compiler/lua54.can:684
+["DoExpr"] = function(t) -- ./compiler/lua54.can:687
+if t[# t]["tag"] == "Push" then -- ./compiler/lua54.can:688
+t[# t]["tag"] = "Return" -- ./compiler/lua54.can:689
+end -- ./compiler/lua54.can:689
+return lua(t, "_statexpr", "Do") -- ./compiler/lua54.can:691
+end, -- ./compiler/lua54.can:691
+["WhileExpr"] = function(t) -- ./compiler/lua54.can:694
+return lua(t, "_statexpr", "While") -- ./compiler/lua54.can:695
+end, -- ./compiler/lua54.can:695
+["RepeatExpr"] = function(t) -- ./compiler/lua54.can:698
+return lua(t, "_statexpr", "Repeat") -- ./compiler/lua54.can:699
+end, -- ./compiler/lua54.can:699
+["IfExpr"] = function(t) -- ./compiler/lua54.can:702
+for i = 2, # t do -- ./compiler/lua54.can:703
+local block = t[i] -- ./compiler/lua54.can:704
+if block[# block] and block[# block]["tag"] == "Push" then -- ./compiler/lua54.can:705
+block[# block]["tag"] = "Return" -- ./compiler/lua54.can:706
+end -- ./compiler/lua54.can:706
+end -- ./compiler/lua54.can:706
+return lua(t, "_statexpr", "If") -- ./compiler/lua54.can:709
+end, -- ./compiler/lua54.can:709
+["FornumExpr"] = function(t) -- ./compiler/lua54.can:712
+return lua(t, "_statexpr", "Fornum") -- ./compiler/lua54.can:713
+end, -- ./compiler/lua54.can:713
+["ForinExpr"] = function(t) -- ./compiler/lua54.can:716
+return lua(t, "_statexpr", "Forin") -- ./compiler/lua54.can:717
+end, -- ./compiler/lua54.can:717
+["Call"] = function(t) -- ./compiler/lua54.can:723
+if t[1]["tag"] == "String" or t[1]["tag"] == "Table" then -- ./compiler/lua54.can:724
+return "(" .. lua(t[1]) .. ")(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua54.can:725
+elseif t[1]["tag"] == "MethodStub" then -- ./compiler/lua54.can:726
+if t[1][1]["tag"] == "String" or t[1][1]["tag"] == "Table" then -- ./compiler/lua54.can:727
+return "(" .. lua(t[1][1]) .. "):" .. lua(t[1][2], "Id") .. "(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua54.can:728
+else -- ./compiler/lua54.can:728
+return lua(t[1][1]) .. ":" .. lua(t[1][2], "Id") .. "(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua54.can:730
+end -- ./compiler/lua54.can:730
+else -- ./compiler/lua54.can:730
+return lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ")" -- ./compiler/lua54.can:733
+end -- ./compiler/lua54.can:733
+end, -- ./compiler/lua54.can:733
+["SafeCall"] = function(t) -- ./compiler/lua54.can:737
+if t[1]["tag"] ~= "Id" then -- ./compiler/lua54.can:738
+return lua(t, "SafeIndex") -- ./compiler/lua54.can:739
+else -- ./compiler/lua54.can:739
+return "(" .. lua(t[1]) .. " ~= nil and " .. lua(t[1]) .. "(" .. lua(t, "_lhs", 2) .. ") or nil)" -- ./compiler/lua54.can:741
+end -- ./compiler/lua54.can:741
+end, -- ./compiler/lua54.can:741
+["_lhs"] = function(t, start, newlines) -- ./compiler/lua54.can:746
+if start == nil then start = 1 end -- ./compiler/lua54.can:746
+local r -- ./compiler/lua54.can:747
+if t[start] then -- ./compiler/lua54.can:748
+r = lua(t[start]) -- ./compiler/lua54.can:749
+for i = start + 1, # t, 1 do -- ./compiler/lua54.can:750
+r = r .. ("," .. (newlines and newline() or " ") .. lua(t[i])) -- ./compiler/lua54.can:751
+end -- ./compiler/lua54.can:751
+else -- ./compiler/lua54.can:751
+r = "" -- ./compiler/lua54.can:754
+end -- ./compiler/lua54.can:754
+return r -- ./compiler/lua54.can:756
+end, -- ./compiler/lua54.can:756
+["Id"] = function(t) -- ./compiler/lua54.can:759
+return t[1] -- ./compiler/lua54.can:760
+end, -- ./compiler/lua54.can:760
+["AttributeId"] = function(t) -- ./compiler/lua54.can:763
+if t[2] then -- ./compiler/lua54.can:764
+return t[1] .. " <" .. t[2] .. ">" -- ./compiler/lua54.can:765
+else -- ./compiler/lua54.can:765
+return t[1] -- ./compiler/lua54.can:767
+end -- ./compiler/lua54.can:767
+end, -- ./compiler/lua54.can:767
+["DestructuringId"] = function(t) -- ./compiler/lua54.can:771
+if t["id"] then -- ./compiler/lua54.can:772
+return t["id"] -- ./compiler/lua54.can:773
+else -- ./compiler/lua54.can:773
+local d = assert(peek("destructuring"), "DestructuringId not in a destructurable assignement") -- ./compiler/lua54.can:775
+local vars = { ["id"] = tmp() } -- ./compiler/lua54.can:776
+for j = 1, # t, 1 do -- ./compiler/lua54.can:777
+table["insert"](vars, t[j]) -- ./compiler/lua54.can:778
+end -- ./compiler/lua54.can:778
+table["insert"](d, vars) -- ./compiler/lua54.can:780
+t["id"] = vars["id"] -- ./compiler/lua54.can:781
+return vars["id"] -- ./compiler/lua54.can:782
+end -- ./compiler/lua54.can:782
+end, -- ./compiler/lua54.can:782
+["Index"] = function(t) -- ./compiler/lua54.can:786
+if t[1]["tag"] == "String" or t[1]["tag"] == "Table" then -- ./compiler/lua54.can:787
+return "(" .. lua(t[1]) .. ")[" .. lua(t[2]) .. "]" -- ./compiler/lua54.can:788
+else -- ./compiler/lua54.can:788
+return lua(t[1]) .. "[" .. lua(t[2]) .. "]" -- ./compiler/lua54.can:790
+end -- ./compiler/lua54.can:790
+end, -- ./compiler/lua54.can:790
+["SafeIndex"] = function(t) -- ./compiler/lua54.can:794
+if t[1]["tag"] ~= "Id" then -- ./compiler/lua54.can:795
+local l = {} -- ./compiler/lua54.can:796
+while t["tag"] == "SafeIndex" or t["tag"] == "SafeCall" do -- ./compiler/lua54.can:797
+table["insert"](l, 1, t) -- ./compiler/lua54.can:798
+t = t[1] -- ./compiler/lua54.can:799
+end -- ./compiler/lua54.can:799
+local r = "(function()" .. indent() .. "local " .. var("safe") .. " = " .. lua(l[1][1]) .. newline() -- ./compiler/lua54.can:801
+for _, e in ipairs(l) do -- ./compiler/lua54.can:802
+r = r .. ("if " .. var("safe") .. " == nil then return nil end" .. newline()) -- ./compiler/lua54.can:803
+if e["tag"] == "SafeIndex" then -- ./compiler/lua54.can:804
+r = r .. (var("safe") .. " = " .. var("safe") .. "[" .. lua(e[2]) .. "]" .. newline()) -- ./compiler/lua54.can:805
+else -- ./compiler/lua54.can:805
+r = r .. (var("safe") .. " = " .. var("safe") .. "(" .. lua(e, "_lhs", 2) .. ")" .. newline()) -- ./compiler/lua54.can:807
+end -- ./compiler/lua54.can:807
+end -- ./compiler/lua54.can:807
+r = r .. ("return " .. var("safe") .. unindent() .. "end)()") -- ./compiler/lua54.can:810
+return r -- ./compiler/lua54.can:811
+else -- ./compiler/lua54.can:811
+return "(" .. lua(t[1]) .. " ~= nil and " .. lua(t[1]) .. "[" .. lua(t[2]) .. "] or nil)" -- ./compiler/lua54.can:813
+end -- ./compiler/lua54.can:813
+end, -- ./compiler/lua54.can:813
+["_opid"] = { -- ./compiler/lua54.can:818
+["add"] = "+", -- ./compiler/lua54.can:819
+["sub"] = "-", -- ./compiler/lua54.can:819
+["mul"] = "*", -- ./compiler/lua54.can:819
+["div"] = "/", -- ./compiler/lua54.can:819
+["idiv"] = "//", -- ./compiler/lua54.can:820
+["mod"] = "%", -- ./compiler/lua54.can:820
+["pow"] = "^", -- ./compiler/lua54.can:820
+["concat"] = "..", -- ./compiler/lua54.can:820
+["band"] = "&", -- ./compiler/lua54.can:821
+["bor"] = "|", -- ./compiler/lua54.can:821
+["bxor"] = "~", -- ./compiler/lua54.can:821
+["shl"] = "<<", -- ./compiler/lua54.can:821
+["shr"] = ">>", -- ./compiler/lua54.can:821
+["eq"] = "==", -- ./compiler/lua54.can:822
+["ne"] = "~=", -- ./compiler/lua54.can:822
+["lt"] = "<", -- ./compiler/lua54.can:822
+["gt"] = ">", -- ./compiler/lua54.can:822
+["le"] = "<=", -- ./compiler/lua54.can:822
+["ge"] = ">=", -- ./compiler/lua54.can:822
+["and"] = "and", -- ./compiler/lua54.can:823
+["or"] = "or", -- ./compiler/lua54.can:823
+["unm"] = "-", -- ./compiler/lua54.can:823
+["len"] = "#", -- ./compiler/lua54.can:823
+["bnot"] = "~", -- ./compiler/lua54.can:823
+["not"] = "not" -- ./compiler/lua54.can:823
+} -- ./compiler/lua54.can:823
+}, { ["__index"] = function(self, key) -- ./compiler/lua54.can:826
+error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:827
+end }) -- ./compiler/lua54.can:827
+targetName = "Lua 5.3" -- ./compiler/lua53.can:1
+tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
+if t[2] then -- ./compiler/lua53.can:5
+error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
+else -- ./compiler/lua53.can:6
+return t[1] -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+targetName = "Lua 5.2" -- ./compiler/lua52.can:1
+APPEND = function(t, toAppend) -- ./compiler/lua52.can:3
+return "do" .. indent() .. "local " .. var("a") .. ", " .. var("p") .. " = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #" .. var("a") .. " do" .. indent() .. t .. "[" .. var("p") .. "] = " .. var("a") .. "[i]" .. newline() .. "" .. var("p") .. " = " .. var("p") .. " + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/lua52.can:4
+end -- ./compiler/lua52.can:4
+tags["_opid"]["idiv"] = function(left, right) -- ./compiler/lua52.can:7
+return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/lua52.can:8
+end -- ./compiler/lua52.can:8
+tags["_opid"]["band"] = function(left, right) -- ./compiler/lua52.can:10
+return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:11
+end -- ./compiler/lua52.can:11
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/lua52.can:13
+return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:14
+end -- ./compiler/lua52.can:14
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/lua52.can:16
+return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:17
+end -- ./compiler/lua52.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/lua52.can:19
+return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:20
+end -- ./compiler/lua52.can:20
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/lua52.can:22
+return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:23
+end -- ./compiler/lua52.can:23
+tags["_opid"]["bnot"] = function(right) -- ./compiler/lua52.can:25
+return "bit32.bnot(" .. lua(right) .. ")" -- ./compiler/lua52.can:26
+end -- ./compiler/lua52.can:26
+targetName = "LuaJIT" -- ./compiler/luajit.can:1
+UNPACK = function(list, i, j) -- ./compiler/luajit.can:3
+return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/luajit.can:4
+end -- ./compiler/luajit.can:4
+tags["_opid"]["band"] = function(left, right) -- ./compiler/luajit.can:7
+addRequire("bit", "band", "band") -- ./compiler/luajit.can:8
+return var("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:9
+end -- ./compiler/luajit.can:9
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/luajit.can:11
+addRequire("bit", "bor", "bor") -- ./compiler/luajit.can:12
+return var("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:13
+end -- ./compiler/luajit.can:13
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/luajit.can:15
+addRequire("bit", "bxor", "bxor") -- ./compiler/luajit.can:16
+return var("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:17
+end -- ./compiler/luajit.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/luajit.can:19
+addRequire("bit", "lshift", "lshift") -- ./compiler/luajit.can:20
+return var("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:21
+end -- ./compiler/luajit.can:21
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/luajit.can:23
+addRequire("bit", "rshift", "rshift") -- ./compiler/luajit.can:24
+return var("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:25
+end -- ./compiler/luajit.can:25
+tags["_opid"]["bnot"] = function(right) -- ./compiler/luajit.can:27
+addRequire("bit", "bnot", "bnot") -- ./compiler/luajit.can:28
+return var("bnot") .. "(" .. lua(right) .. ")" -- ./compiler/luajit.can:29
+end -- ./compiler/luajit.can:29
+local code = lua(ast) .. newline() -- ./compiler/lua54.can:833
+return requireStr .. code -- ./compiler/lua54.can:834
+end -- ./compiler/lua54.can:834
+end -- ./compiler/lua54.can:834
+local lua54 = _() or lua54 -- ./compiler/lua54.can:839
+return lua54 -- ./compiler/lua53.can:18
+end -- ./compiler/lua53.can:18
+local lua53 = _() or lua53 -- ./compiler/lua53.can:22
+return lua53 -- ./compiler/lua52.can:35
+end -- ./compiler/lua52.can:35
+local lua52 = _() or lua52 -- ./compiler/lua52.can:39
+return lua52 -- ./compiler/luajit.can:38
+end -- ./compiler/luajit.can:38
+local luajit = _() or luajit -- ./compiler/luajit.can:42
+package["loaded"]["compiler.luajit"] = luajit or true -- ./compiler/luajit.can:43
+local function _() -- ./compiler/luajit.can:46
+local function _() -- ./compiler/luajit.can:48
+local function _() -- ./compiler/luajit.can:50
 local function _() -- ./compiler/luajit.can:52
 local function _() -- ./compiler/luajit.can:54
-local function _() -- ./compiler/luajit.can:56
-local function _() -- ./compiler/luajit.can:58
 local targetName = "Lua 5.4" -- ./compiler/lua54.can:1
 return function(code, ast, options) -- ./compiler/lua54.can:3
 local lastInputPos = 1 -- ./compiler/lua54.can:5
@@ -3604,27 +4565,108 @@ end }) -- ./compiler/lua54.can:827
 targetName = "Lua 5.3" -- ./compiler/lua53.can:1
 tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
 if t[2] then -- ./compiler/lua53.can:5
-error("target does not support variable attributes") -- ./compiler/lua53.can:6
+error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
 else -- ./compiler/lua53.can:6
 return t[1] -- ./compiler/lua53.can:8
 end -- ./compiler/lua53.can:8
 end -- ./compiler/lua53.can:8
+targetName = "Lua 5.2" -- ./compiler/lua52.can:1
+APPEND = function(t, toAppend) -- ./compiler/lua52.can:3
+return "do" .. indent() .. "local " .. var("a") .. ", " .. var("p") .. " = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #" .. var("a") .. " do" .. indent() .. t .. "[" .. var("p") .. "] = " .. var("a") .. "[i]" .. newline() .. "" .. var("p") .. " = " .. var("p") .. " + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/lua52.can:4
+end -- ./compiler/lua52.can:4
+tags["_opid"]["idiv"] = function(left, right) -- ./compiler/lua52.can:7
+return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/lua52.can:8
+end -- ./compiler/lua52.can:8
+tags["_opid"]["band"] = function(left, right) -- ./compiler/lua52.can:10
+return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:11
+end -- ./compiler/lua52.can:11
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/lua52.can:13
+return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:14
+end -- ./compiler/lua52.can:14
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/lua52.can:16
+return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:17
+end -- ./compiler/lua52.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/lua52.can:19
+return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:20
+end -- ./compiler/lua52.can:20
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/lua52.can:22
+return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:23
+end -- ./compiler/lua52.can:23
+tags["_opid"]["bnot"] = function(right) -- ./compiler/lua52.can:25
+return "bit32.bnot(" .. lua(right) .. ")" -- ./compiler/lua52.can:26
+end -- ./compiler/lua52.can:26
+targetName = "LuaJIT" -- ./compiler/luajit.can:1
+UNPACK = function(list, i, j) -- ./compiler/luajit.can:3
+return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/luajit.can:4
+end -- ./compiler/luajit.can:4
+tags["_opid"]["band"] = function(left, right) -- ./compiler/luajit.can:7
+addRequire("bit", "band", "band") -- ./compiler/luajit.can:8
+return var("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:9
+end -- ./compiler/luajit.can:9
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/luajit.can:11
+addRequire("bit", "bor", "bor") -- ./compiler/luajit.can:12
+return var("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:13
+end -- ./compiler/luajit.can:13
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/luajit.can:15
+addRequire("bit", "bxor", "bxor") -- ./compiler/luajit.can:16
+return var("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:17
+end -- ./compiler/luajit.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/luajit.can:19
+addRequire("bit", "lshift", "lshift") -- ./compiler/luajit.can:20
+return var("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:21
+end -- ./compiler/luajit.can:21
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/luajit.can:23
+addRequire("bit", "rshift", "rshift") -- ./compiler/luajit.can:24
+return var("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:25
+end -- ./compiler/luajit.can:25
+tags["_opid"]["bnot"] = function(right) -- ./compiler/luajit.can:27
+addRequire("bit", "bnot", "bnot") -- ./compiler/luajit.can:28
+return var("bnot") .. "(" .. lua(right) .. ")" -- ./compiler/luajit.can:29
+end -- ./compiler/luajit.can:29
+targetName = "Lua 5.1" -- ./compiler/lua51.can:1
+states["continue"] = {} -- ./compiler/lua51.can:3
+CONTINUE_START = function() -- ./compiler/lua51.can:5
+return "local " .. var("break") .. newline() .. "repeat" .. indent() .. push("continue", var("break")) -- ./compiler/lua51.can:6
+end -- ./compiler/lua51.can:6
+CONTINUE_STOP = function() -- ./compiler/lua51.can:8
+return pop("continue") .. unindent() .. "until true" .. newline() .. "if " .. var("break") .. " then break end" -- ./compiler/lua51.can:9
+end -- ./compiler/lua51.can:9
+tags["Continue"] = function() -- ./compiler/lua51.can:12
+return "break" -- ./compiler/lua51.can:13
+end -- ./compiler/lua51.can:13
+tags["Break"] = function() -- ./compiler/lua51.can:15
+local inContinue = peek("continue") -- ./compiler/lua51.can:16
+if inContinue then -- ./compiler/lua51.can:17
+return inContinue .. " = true" .. newline() .. "break" -- ./compiler/lua51.can:18
+else -- ./compiler/lua51.can:18
+return "break" -- ./compiler/lua51.can:20
+end -- ./compiler/lua51.can:20
+end -- ./compiler/lua51.can:20
+tags["Goto"] = function() -- ./compiler/lua51.can:25
+error("target " .. targetName .. " does not support gotos") -- ./compiler/lua51.can:26
+end -- ./compiler/lua51.can:26
+tags["Label"] = function() -- ./compiler/lua51.can:28
+error("target " .. targetName .. " does not support goto labels") -- ./compiler/lua51.can:29
+end -- ./compiler/lua51.can:29
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:833
 return requireStr .. code -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 end -- ./compiler/lua54.can:834
 local lua54 = _() or lua54 -- ./compiler/lua54.can:839
-return lua54 -- ./compiler/lua53.can:16
-end -- ./compiler/lua53.can:16
-local lua53 = _() or lua53 -- ./compiler/lua53.can:20
-return lua53 -- ./compiler/luajit.can:44
-end -- ./compiler/luajit.can:44
-local luajit = _() or luajit -- ./compiler/luajit.can:48
-return luajit -- ./compiler/lua51.can:32
-end -- ./compiler/lua51.can:32
-local lua51 = _() or lua51 -- ./compiler/lua51.can:36
-package["loaded"]["compiler.lua51"] = lua51 or true -- ./compiler/lua51.can:37
-local function _() -- ./compiler/lua51.can:41
+return lua54 -- ./compiler/lua53.can:18
+end -- ./compiler/lua53.can:18
+local lua53 = _() or lua53 -- ./compiler/lua53.can:22
+return lua53 -- ./compiler/lua52.can:35
+end -- ./compiler/lua52.can:35
+local lua52 = _() or lua52 -- ./compiler/lua52.can:39
+return lua52 -- ./compiler/luajit.can:38
+end -- ./compiler/luajit.can:38
+local luajit = _() or luajit -- ./compiler/luajit.can:42
+return luajit -- ./compiler/lua51.can:38
+end -- ./compiler/lua51.can:38
+local lua51 = _() or lua51 -- ./compiler/lua51.can:42
+package["loaded"]["compiler.lua51"] = lua51 or true -- ./compiler/lua51.can:43
+local function _() -- ./compiler/lua51.can:47
 local scope = {} -- ./candran/can-parser/scope.lua:4
 scope["lineno"] = function(s, i) -- ./candran/can-parser/scope.lua:6
 if i == 1 then -- ./candran/can-parser/scope.lua:7
@@ -5355,260 +6397,260 @@ return parser -- ./candran/can-parser/parser.lua:777
 end -- ./candran/can-parser/parser.lua:777
 local parser = _() or parser -- ./candran/can-parser/parser.lua:781
 package["loaded"]["candran.can-parser.parser"] = parser or true -- ./candran/can-parser/parser.lua:782
-local unpack = unpack or table["unpack"] -- candran.can:14
-local candran = { ["VERSION"] = "0.13.1" } -- candran.can:17
-candran["default"] = { -- candran.can:21
-["target"] = "lua54", -- candran.can:22
-["indentation"] = "", -- candran.can:23
+local unpack = unpack or table["unpack"] -- candran.can:15
+local candran = { ["VERSION"] = "0.13.1" } -- candran.can:18
+candran["default"] = { -- candran.can:22
+["target"] = "lua54", -- candran.can:23
+["indentation"] = "", -- candran.can:24
 ["newline"] = "\
-", -- candran.can:24
-["variablePrefix"] = "__CAN_", -- candran.can:25
-["mapLines"] = true, -- candran.can:26
-["chunkname"] = "nil", -- candran.can:27
-["rewriteErrors"] = true -- candran.can:28
-} -- candran.can:28
-if _VERSION == "Lua 5.1" then -- candran.can:32
-if package["loaded"]["jit"] then -- candran.can:33
-candran["default"]["target"] = "luajit" -- candran.can:34
-else -- candran.can:34
-candran["default"]["target"] = "lua51" -- candran.can:36
-end -- candran.can:36
-elseif _VERSION == "Lua 5.2" then -- candran.can:38
-candran["default"]["target"] = "lua51" -- candran.can:39
-elseif _VERSION == "Lua 5.3" then -- candran.can:40
-candran["default"]["target"] = "lua53" -- candran.can:41
-end -- candran.can:41
-candran["preprocess"] = function(input, options) -- candran.can:50
-if options == nil then options = {} end -- candran.can:50
-options = util["merge"](candran["default"], options) -- candran.can:51
-local preprocessor = "" -- candran.can:54
-local i = 0 -- candran.can:55
-local inLongString = false -- candran.can:56
-local inComment = false -- candran.can:57
+", -- candran.can:25
+["variablePrefix"] = "__CAN_", -- candran.can:26
+["mapLines"] = true, -- candran.can:27
+["chunkname"] = "nil", -- candran.can:28
+["rewriteErrors"] = true -- candran.can:29
+} -- candran.can:29
+if _VERSION == "Lua 5.1" then -- candran.can:33
+if package["loaded"]["jit"] then -- candran.can:34
+candran["default"]["target"] = "luajit" -- candran.can:35
+else -- candran.can:35
+candran["default"]["target"] = "lua51" -- candran.can:37
+end -- candran.can:37
+elseif _VERSION == "Lua 5.2" then -- candran.can:39
+candran["default"]["target"] = "lua52" -- candran.can:40
+elseif _VERSION == "Lua 5.3" then -- candran.can:41
+candran["default"]["target"] = "lua53" -- candran.can:42
+end -- candran.can:42
+candran["preprocess"] = function(input, options) -- candran.can:51
+if options == nil then options = {} end -- candran.can:51
+options = util["merge"](candran["default"], options) -- candran.can:52
+local preprocessor = "" -- candran.can:55
+local i = 0 -- candran.can:56
+local inLongString = false -- candran.can:57
+local inComment = false -- candran.can:58
 for line in (input .. "\
 "):gmatch("(.-\
-)") do -- candran.can:58
-i = i + (1) -- candran.can:59
-if inComment then -- candran.can:61
-inComment = not line:match("%]%]") -- candran.can:62
-elseif inLongString then -- candran.can:63
-inLongString = not line:match("%]%]") -- candran.can:64
-else -- candran.can:64
-if line:match("[^%-]%[%[") then -- candran.can:66
-inLongString = true -- candran.can:67
-elseif line:match("%-%-%[%[") then -- candran.can:68
-inComment = true -- candran.can:69
-end -- candran.can:69
-end -- candran.can:69
-if not inComment and not inLongString and line:match("^%s*#") and not line:match("^#!") then -- candran.can:72
-preprocessor = preprocessor .. (line:gsub("^%s*#", "")) -- candran.can:73
-else -- candran.can:73
-local l = line:sub(1, - 2) -- candran.can:75
-if not inLongString and options["mapLines"] and not l:match("%-%- (.-)%:(%d+)$") then -- candran.can:76
+)") do -- candran.can:59
+i = i + (1) -- candran.can:60
+if inComment then -- candran.can:62
+inComment = not line:match("%]%]") -- candran.can:63
+elseif inLongString then -- candran.can:64
+inLongString = not line:match("%]%]") -- candran.can:65
+else -- candran.can:65
+if line:match("[^%-]%[%[") then -- candran.can:67
+inLongString = true -- candran.can:68
+elseif line:match("%-%-%[%[") then -- candran.can:69
+inComment = true -- candran.can:70
+end -- candran.can:70
+end -- candran.can:70
+if not inComment and not inLongString and line:match("^%s*#") and not line:match("^#!") then -- candran.can:73
+preprocessor = preprocessor .. (line:gsub("^%s*#", "")) -- candran.can:74
+else -- candran.can:74
+local l = line:sub(1, - 2) -- candran.can:76
+if not inLongString and options["mapLines"] and not l:match("%-%- (.-)%:(%d+)$") then -- candran.can:77
 preprocessor = preprocessor .. (("write(%q)"):format(l .. " -- " .. options["chunkname"] .. ":" .. i) .. "\
-") -- candran.can:77
-else -- candran.can:77
+") -- candran.can:78
+else -- candran.can:78
 preprocessor = preprocessor .. (("write(%q)"):format(line:sub(1, - 2)) .. "\
-") -- candran.can:79
-end -- candran.can:79
-end -- candran.can:79
-end -- candran.can:79
-preprocessor = preprocessor .. ("return output") -- candran.can:83
-local env = util["merge"](_G, options) -- candran.can:86
-env["candran"] = candran -- candran.can:88
-env["output"] = "" -- candran.can:90
-env["import"] = function(modpath, margs) -- candran.can:97
-if margs == nil then margs = {} end -- candran.can:97
-local filepath = assert(util["search"](modpath, { -- candran.can:98
-"can", -- candran.can:98
-"lua" -- candran.can:98
-}), "No module named \"" .. modpath .. "\"") -- candran.can:98
-local f = io["open"](filepath) -- candran.can:101
-if not f then -- candran.can:102
-error("can't open the module file to import") -- candran.can:102
-end -- candran.can:102
-margs = util["merge"](options, { -- candran.can:104
-["chunkname"] = filepath, -- candran.can:104
-["loadLocal"] = true, -- candran.can:104
-["loadPackage"] = true -- candran.can:104
-}, margs) -- candran.can:104
-local modcontent = assert(candran["preprocess"](f:read("*a"), margs)) -- candran.can:105
-f:close() -- candran.can:106
-local modname = modpath:match("[^%.]+$") -- candran.can:109
+") -- candran.can:80
+end -- candran.can:80
+end -- candran.can:80
+end -- candran.can:80
+preprocessor = preprocessor .. ("return output") -- candran.can:84
+local env = util["merge"](_G, options) -- candran.can:87
+env["candran"] = candran -- candran.can:89
+env["output"] = "" -- candran.can:91
+env["import"] = function(modpath, margs) -- candran.can:98
+if margs == nil then margs = {} end -- candran.can:98
+local filepath = assert(util["search"](modpath, { -- candran.can:99
+"can", -- candran.can:99
+"lua" -- candran.can:99
+}), "No module named \"" .. modpath .. "\"") -- candran.can:99
+local f = io["open"](filepath) -- candran.can:102
+if not f then -- candran.can:103
+error("can't open the module file to import") -- candran.can:103
+end -- candran.can:103
+margs = util["merge"](options, { -- candran.can:105
+["chunkname"] = filepath, -- candran.can:105
+["loadLocal"] = true, -- candran.can:105
+["loadPackage"] = true -- candran.can:105
+}, margs) -- candran.can:105
+local modcontent = assert(candran["preprocess"](f:read("*a"), margs)) -- candran.can:106
+f:close() -- candran.can:107
+local modname = modpath:match("[^%.]+$") -- candran.can:110
 env["write"]("-- MODULE " .. modpath .. " --\
 " .. "local function _()\
 " .. modcontent .. "\
 " .. "end\
 " .. (margs["loadLocal"] and ("local %s = _() or %s\
 "):format(modname, modname) or "") .. (margs["loadPackage"] and ("package.loaded[%q] = %s or true\
-"):format(modpath, margs["loadLocal"] and modname or "_()") or "") .. "-- END OF MODULE " .. modpath .. " --") -- candran.can:118
-end -- candran.can:118
-env["include"] = function(file) -- candran.can:123
-local f = io["open"](file) -- candran.can:124
-if not f then -- candran.can:125
-error("can't open the file " .. file .. " to include") -- candran.can:125
-end -- candran.can:125
-env["write"](f:read("*a")) -- candran.can:126
-f:close() -- candran.can:127
-end -- candran.can:127
-env["write"] = function(...) -- candran.can:131
+"):format(modpath, margs["loadLocal"] and modname or "_()") or "") .. "-- END OF MODULE " .. modpath .. " --") -- candran.can:119
+end -- candran.can:119
+env["include"] = function(file) -- candran.can:124
+local f = io["open"](file) -- candran.can:125
+if not f then -- candran.can:126
+error("can't open the file " .. file .. " to include") -- candran.can:126
+end -- candran.can:126
+env["write"](f:read("*a")) -- candran.can:127
+f:close() -- candran.can:128
+end -- candran.can:128
+env["write"] = function(...) -- candran.can:132
 env["output"] = env["output"] .. (table["concat"]({ ... }, "\9") .. "\
-") -- candran.can:132
-end -- candran.can:132
-env["placeholder"] = function(name) -- candran.can:136
-if env[name] then -- candran.can:137
-env["write"](env[name]) -- candran.can:138
-end -- candran.can:138
-end -- candran.can:138
-local preprocess, err = candran["compile"](preprocessor, options) -- candran.can:143
-if not preprocess then -- candran.can:144
-return nil, "in preprocessor: " .. err -- candran.can:145
-end -- candran.can:145
-preprocess, err = util["load"](preprocessor, "candran preprocessor", env) -- candran.can:148
-if not preprocess then -- candran.can:149
-return nil, "in preprocessor: " .. err -- candran.can:150
-end -- candran.can:150
-local success, output = pcall(preprocess) -- candran.can:154
-if not success then -- candran.can:155
-return nil, "in preprocessor: " .. output -- candran.can:156
-end -- candran.can:156
-return output -- candran.can:159
-end -- candran.can:159
-candran["compile"] = function(input, options) -- candran.can:168
-if options == nil then options = {} end -- candran.can:168
-options = util["merge"](candran["default"], options) -- candran.can:169
-local ast, errmsg = parser["parse"](input, options["chunkname"]) -- candran.can:171
-if not ast then -- candran.can:173
-return nil, errmsg -- candran.can:174
-end -- candran.can:174
-return require("compiler." .. options["target"])(input, ast, options) -- candran.can:177
-end -- candran.can:177
-candran["make"] = function(code, options) -- candran.can:186
-local r, err = candran["preprocess"](code, options) -- candran.can:187
-if r then -- candran.can:188
-r, err = candran["compile"](r, options) -- candran.can:189
-if r then -- candran.can:190
-return r -- candran.can:191
-end -- candran.can:191
-end -- candran.can:191
-return r, err -- candran.can:194
-end -- candran.can:194
-local errorRewritingActive = false -- candran.can:197
-local codeCache = {} -- candran.can:198
-candran["loadfile"] = function(filepath, env, options) -- candran.can:201
-local f, err = io["open"](filepath) -- candran.can:202
-if not f then -- candran.can:203
-return nil, ("cannot open %s"):format(err) -- candran.can:204
-end -- candran.can:204
-local content = f:read("*a") -- candran.can:206
-f:close() -- candran.can:207
-return candran["load"](content, filepath, env, options) -- candran.can:209
-end -- candran.can:209
-candran["load"] = function(chunk, chunkname, env, options) -- candran.can:214
-if options == nil then options = {} end -- candran.can:214
-options = util["merge"]({ ["chunkname"] = tostring(chunkname or chunk) }, options) -- candran.can:215
-local code, err = candran["make"](chunk, options) -- candran.can:217
-if not code then -- candran.can:218
-return code, err -- candran.can:219
-end -- candran.can:219
-codeCache[options["chunkname"]] = code -- candran.can:222
-local f, err = util["load"](code, options["chunkname"], env) -- candran.can:223
-if f == nil then -- candran.can:228
-return f, "candran unexpectedly generated invalid code: " .. err -- candran.can:229
-end -- candran.can:229
-if options["rewriteErrors"] == false then -- candran.can:232
-return f -- candran.can:233
-else -- candran.can:233
-return function(...) -- candran.can:235
-local params = { ... } -- candran.can:236
-if not errorRewritingActive then -- candran.can:237
-errorRewritingActive = true -- candran.can:238
-local t = { xpcall(function() -- candran.can:239
-return f(unpack(params)) -- candran.can:239
-end, candran["messageHandler"]) } -- candran.can:239
-errorRewritingActive = false -- candran.can:240
-if t[1] == false then -- candran.can:241
-error(t[2], 0) -- candran.can:242
-end -- candran.can:242
-return unpack(t, 2) -- candran.can:244
-else -- candran.can:244
-return f(...) -- candran.can:246
-end -- candran.can:246
-end -- candran.can:246
-end -- candran.can:246
-end -- candran.can:246
-candran["dofile"] = function(filename, options) -- candran.can:254
-local f, err = candran["loadfile"](filename, nil, options) -- candran.can:255
-if f == nil then -- candran.can:257
-error(err) -- candran.can:258
-else -- candran.can:258
-return f() -- candran.can:260
-end -- candran.can:260
-end -- candran.can:260
-candran["messageHandler"] = function(message) -- candran.can:266
+") -- candran.can:133
+end -- candran.can:133
+env["placeholder"] = function(name) -- candran.can:137
+if env[name] then -- candran.can:138
+env["write"](env[name]) -- candran.can:139
+end -- candran.can:139
+end -- candran.can:139
+local preprocess, err = candran["compile"](preprocessor, options) -- candran.can:144
+if not preprocess then -- candran.can:145
+return nil, "in preprocessor: " .. err -- candran.can:146
+end -- candran.can:146
+preprocess, err = util["load"](preprocessor, "candran preprocessor", env) -- candran.can:149
+if not preprocess then -- candran.can:150
+return nil, "in preprocessor: " .. err -- candran.can:151
+end -- candran.can:151
+local success, output = pcall(preprocess) -- candran.can:155
+if not success then -- candran.can:156
+return nil, "in preprocessor: " .. output -- candran.can:157
+end -- candran.can:157
+return output -- candran.can:160
+end -- candran.can:160
+candran["compile"] = function(input, options) -- candran.can:169
+if options == nil then options = {} end -- candran.can:169
+options = util["merge"](candran["default"], options) -- candran.can:170
+local ast, errmsg = parser["parse"](input, options["chunkname"]) -- candran.can:172
+if not ast then -- candran.can:174
+return nil, errmsg -- candran.can:175
+end -- candran.can:175
+return require("compiler." .. options["target"])(input, ast, options) -- candran.can:178
+end -- candran.can:178
+candran["make"] = function(code, options) -- candran.can:187
+local r, err = candran["preprocess"](code, options) -- candran.can:188
+if r then -- candran.can:189
+r, err = candran["compile"](r, options) -- candran.can:190
+if r then -- candran.can:191
+return r -- candran.can:192
+end -- candran.can:192
+end -- candran.can:192
+return r, err -- candran.can:195
+end -- candran.can:195
+local errorRewritingActive = false -- candran.can:198
+local codeCache = {} -- candran.can:199
+candran["loadfile"] = function(filepath, env, options) -- candran.can:202
+local f, err = io["open"](filepath) -- candran.can:203
+if not f then -- candran.can:204
+return nil, ("cannot open %s"):format(err) -- candran.can:205
+end -- candran.can:205
+local content = f:read("*a") -- candran.can:207
+f:close() -- candran.can:208
+return candran["load"](content, filepath, env, options) -- candran.can:210
+end -- candran.can:210
+candran["load"] = function(chunk, chunkname, env, options) -- candran.can:215
+if options == nil then options = {} end -- candran.can:215
+options = util["merge"]({ ["chunkname"] = tostring(chunkname or chunk) }, options) -- candran.can:216
+local code, err = candran["make"](chunk, options) -- candran.can:218
+if not code then -- candran.can:219
+return code, err -- candran.can:220
+end -- candran.can:220
+codeCache[options["chunkname"]] = code -- candran.can:223
+local f, err = util["load"](code, options["chunkname"], env) -- candran.can:224
+if f == nil then -- candran.can:229
+return f, "candran unexpectedly generated invalid code: " .. err -- candran.can:230
+end -- candran.can:230
+if options["rewriteErrors"] == false then -- candran.can:233
+return f -- candran.can:234
+else -- candran.can:234
+return function(...) -- candran.can:236
+local params = { ... } -- candran.can:237
+if not errorRewritingActive then -- candran.can:238
+errorRewritingActive = true -- candran.can:239
+local t = { xpcall(function() -- candran.can:240
+return f(unpack(params)) -- candran.can:240
+end, candran["messageHandler"]) } -- candran.can:240
+errorRewritingActive = false -- candran.can:241
+if t[1] == false then -- candran.can:242
+error(t[2], 0) -- candran.can:243
+end -- candran.can:243
+return unpack(t, 2) -- candran.can:245
+else -- candran.can:245
+return f(...) -- candran.can:247
+end -- candran.can:247
+end -- candran.can:247
+end -- candran.can:247
+end -- candran.can:247
+candran["dofile"] = function(filename, options) -- candran.can:255
+local f, err = candran["loadfile"](filename, nil, options) -- candran.can:256
+if f == nil then -- candran.can:258
+error(err) -- candran.can:259
+else -- candran.can:259
+return f() -- candran.can:261
+end -- candran.can:261
+end -- candran.can:261
+candran["messageHandler"] = function(message) -- candran.can:267
 return debug["traceback"](message, 2):gsub("(\
 ?%s*)([^\
-]-)%:(%d+)%:", function(indentation, source, line) -- candran.can:267
-line = tonumber(line) -- candran.can:268
-local originalFile -- candran.can:270
-local strName = source:match("%[string \"(.-)\"%]") -- candran.can:271
-if strName then -- candran.can:272
-if codeCache[strName] then -- candran.can:273
-originalFile = codeCache[strName] -- candran.can:274
-source = strName -- candran.can:275
-end -- candran.can:275
-else -- candran.can:275
-local fi = io["open"](source, "r") -- candran.can:278
-if fi then -- candran.can:279
-originalFile = fi:read("*a") -- candran.can:280
-fi:close() -- candran.can:281
-end -- candran.can:281
-end -- candran.can:281
-if originalFile then -- candran.can:285
-local i = 0 -- candran.can:286
+]-)%:(%d+)%:", function(indentation, source, line) -- candran.can:268
+line = tonumber(line) -- candran.can:269
+local originalFile -- candran.can:271
+local strName = source:match("%[string \"(.-)\"%]") -- candran.can:272
+if strName then -- candran.can:273
+if codeCache[strName] then -- candran.can:274
+originalFile = codeCache[strName] -- candran.can:275
+source = strName -- candran.can:276
+end -- candran.can:276
+else -- candran.can:276
+local fi = io["open"](source, "r") -- candran.can:279
+if fi then -- candran.can:280
+originalFile = fi:read("*a") -- candran.can:281
+fi:close() -- candran.can:282
+end -- candran.can:282
+end -- candran.can:282
+if originalFile then -- candran.can:286
+local i = 0 -- candran.can:287
 for l in (originalFile .. "\
 "):gmatch("([^\
 ]*)\
-") do -- candran.can:287
-i = i + 1 -- candran.can:288
-if i == line then -- candran.can:289
-local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$") -- candran.can:290
-if lineMap then -- candran.can:291
-if extSource ~= source then -- candran.can:292
-return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:293
-else -- candran.can:293
-return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):" -- candran.can:295
-end -- candran.can:295
-end -- candran.can:295
-break -- candran.can:298
-end -- candran.can:298
-end -- candran.can:298
-end -- candran.can:298
-end) -- candran.can:298
-end -- candran.can:298
-candran["searcher"] = function(modpath) -- candran.can:306
-local filepath = util["search"](modpath, { "can" }) -- candran.can:307
-if not filepath then -- candran.can:308
-if _VERSION == "Lua 5.4" then -- candran.can:309
-return "no candran file in package.path" -- candran.can:310
-else -- candran.can:310
+") do -- candran.can:288
+i = i + 1 -- candran.can:289
+if i == line then -- candran.can:290
+local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$") -- candran.can:291
+if lineMap then -- candran.can:292
+if extSource ~= source then -- candran.can:293
+return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:294
+else -- candran.can:294
+return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):" -- candran.can:296
+end -- candran.can:296
+end -- candran.can:296
+break -- candran.can:299
+end -- candran.can:299
+end -- candran.can:299
+end -- candran.can:299
+end) -- candran.can:299
+end -- candran.can:299
+candran["searcher"] = function(modpath) -- candran.can:307
+local filepath = util["search"](modpath, { "can" }) -- candran.can:308
+if not filepath then -- candran.can:309
+if _VERSION == "Lua 5.4" then -- candran.can:310
+return "no candran file in package.path" -- candran.can:311
+else -- candran.can:311
 return "\
-\9no candran file in package.path" -- candran.can:312
-end -- candran.can:312
-end -- candran.can:312
-local r, s = candran["loadfile"](filepath) -- candran.can:315
-if r then -- candran.can:316
-return r -- candran.can:317
-else -- candran.can:317
-return s -- candran.can:319
-end -- candran.can:319
-end -- candran.can:319
-candran["setup"] = function() -- candran.can:324
-if _VERSION == "Lua 5.1" then -- candran.can:325
-table["insert"](package["loaders"], 2, candran["searcher"]) -- candran.can:326
-else -- candran.can:326
-table["insert"](package["searchers"], 2, candran["searcher"]) -- candran.can:328
-end -- candran.can:328
-return candran -- candran.can:330
-end -- candran.can:330
-return candran -- candran.can:333
+\9no candran file in package.path" -- candran.can:313
+end -- candran.can:313
+end -- candran.can:313
+local r, s = candran["loadfile"](filepath) -- candran.can:316
+if r then -- candran.can:317
+return r -- candran.can:318
+else -- candran.can:318
+return s -- candran.can:320
+end -- candran.can:320
+end -- candran.can:320
+candran["setup"] = function() -- candran.can:325
+if _VERSION == "Lua 5.1" then -- candran.can:326
+table["insert"](package["loaders"], 2, candran["searcher"]) -- candran.can:327
+else -- candran.can:327
+table["insert"](package["searchers"], 2, candran["searcher"]) -- candran.can:329
+end -- candran.can:329
+return candran -- candran.can:331
+end -- candran.can:331
+return candran -- candran.can:334

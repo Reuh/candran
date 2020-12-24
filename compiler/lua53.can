@@ -3,11 +3,13 @@ targetName = "Lua 5.3"
 -- Unsuported features
 tags.AttributeId = (t)
 	if t[2] then
-		error("target does not support variable attributes")
+		error("target "..targetName.." does not support variable attributes")
 	else
 		return t[1]
 	end
 end
+
+#placeholder("patch")
 
 #local patch = output
 #output = ""
