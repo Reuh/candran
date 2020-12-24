@@ -5356,7 +5356,7 @@ end -- ./candran/can-parser/parser.lua:777
 local parser = _() or parser -- ./candran/can-parser/parser.lua:781
 package["loaded"]["candran.can-parser.parser"] = parser or true -- ./candran/can-parser/parser.lua:782
 local unpack = unpack or table["unpack"] -- candran.can:14
-local candran = { ["VERSION"] = "0.13.0" } -- candran.can:17
+local candran = { ["VERSION"] = "0.13.1" } -- candran.can:17
 candran["default"] = { -- candran.can:21
 ["target"] = "lua54", -- candran.can:22
 ["indentation"] = "", -- candran.can:23
@@ -5376,8 +5376,8 @@ end -- candran.can:36
 elseif _VERSION == "Lua 5.2" then -- candran.can:38
 candran["default"]["target"] = "lua51" -- candran.can:39
 elseif _VERSION == "Lua 5.3" then -- candran.can:40
- -- candran.can:42
-end -- candran.can:42
+candran["default"]["target"] = "lua53" -- candran.can:41
+end -- candran.can:41
 candran["preprocess"] = function(input, options) -- candran.can:50
 if options == nil then options = {} end -- candran.can:50
 options = util["merge"](candran["default"], options) -- candran.can:51
@@ -5589,17 +5589,26 @@ end -- candran.can:298
 candran["searcher"] = function(modpath) -- candran.can:306
 local filepath = util["search"](modpath, { "can" }) -- candran.can:307
 if not filepath then -- candran.can:308
+if _VERSION == "Lua 5.4" then -- candran.can:309
+return "no candran file in package.path" -- candran.can:310
+else -- candran.can:310
 return "\
-\9no candran file in package.path" -- candran.can:309
-end -- candran.can:309
-return candran["loadfile"](filepath) -- candran.can:311
-end -- candran.can:311
-candran["setup"] = function() -- candran.can:315
-if _VERSION == "Lua 5.1" then -- candran.can:316
-table["insert"](package["loaders"], 2, candran["searcher"]) -- candran.can:317
+\9no candran file in package.path" -- candran.can:312
+end -- candran.can:312
+end -- candran.can:312
+local r, s = candran["loadfile"](filepath) -- candran.can:315
+if r then -- candran.can:316
+return r -- candran.can:317
 else -- candran.can:317
-table["insert"](package["searchers"], 2, candran["searcher"]) -- candran.can:319
+return s -- candran.can:319
 end -- candran.can:319
-return candran -- candran.can:321
-end -- candran.can:321
-return candran -- candran.can:324
+end -- candran.can:319
+candran["setup"] = function() -- candran.can:324
+if _VERSION == "Lua 5.1" then -- candran.can:325
+table["insert"](package["loaders"], 2, candran["searcher"]) -- candran.can:326
+else -- candran.can:326
+table["insert"](package["searchers"], 2, candran["searcher"]) -- candran.can:328
+end -- candran.can:328
+return candran -- candran.can:330
+end -- candran.can:330
+return candran -- candran.can:333
