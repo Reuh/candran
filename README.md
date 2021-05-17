@@ -74,7 +74,7 @@ end
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
 #### Quick setup
-Install Candran automatically using LuaRocks: ```sudo luarocks install rockspec/candran-0.12.0-1.rockspec```.
+Install Candran automatically using LuaRocks: ```sudo luarocks install candran```.
 
 Or manually install LPegLabel (```luarocks install lpeglabel```, version 1.5 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
