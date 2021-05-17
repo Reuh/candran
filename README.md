@@ -82,7 +82,7 @@ You can optionally install lua-linenoise (```luarocks install linenoise```, vers
 
 You can register the Candran package searcher in your main Lua file (`require("candran").setup()`) and any subsequent `require` call in your project will automatically search for Candran modules.
 
-If you use LÖVE, some integration with Candran is detailled [here](#https://github.com/Reuh/candran/wiki/L%C3%96VE).
+If you use LÖVE, some integration with Candran is detailled [here](https://github.com/Reuh/candran/wiki/L%C3%96VE).
 
 #### Editor support
 Most editors should be able to use their existing Lua support for Candran code. If you want full support for the additional syntax in your editor:
