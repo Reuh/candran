@@ -18,7 +18,7 @@ local function calculate(toadd=25) -- default parameters
 end
 
 let a = {
-	hey = true,
+	hey = 5 // 2, -- Lua 5.3+ syntax, that will be translated to work with the current Lua version
 
 	child = nil,
 
@@ -82,6 +82,8 @@ You can optionally install lua-linenoise (```luarocks install linenoise```, vers
 
 You can register the Candran package searcher in your main Lua file (`require("candran").setup()`) and any subsequent `require` call in your project will automatically search for Candran modules.
 
+If you use LÖVE, some integration with Candran is detailled [here](#https://github.com/Reuh/candran/wiki/L%C3%96VE).
+
 #### Editor support
 Most editors should be able to use their existing Lua support for Candran code. If you want full support for the additional syntax in your editor:
 * **Sublime Text 3**:
@@ -95,7 +97,7 @@ For linting, if your editor support [luacheck](https://github.com/luarocks/luach
 The language
 ------------
 ### Syntax additions
-After the preprocessor is run the Candran code is compiled to Lua. Candran code adds the folowing syntax to Lua:
+After the [preprocessor](#preprocessor) is run the Candran code is compiled to Lua. Candran code adds the folowing syntax to Lua 5.4 syntax:
 
 ##### Assignment operators
 * ````var += nb````
@@ -186,7 +188,7 @@ close b = {}
 const x, y, z = 1, 2, 3 -- every variable will be defined using <const>
 ```
 
-Shortcut to Lua 5.4 variable attribute. Do not behave like `let`, as attributes require the variable to be constant and therefore can't be predeclared.
+Shortcut to Lua 5.4 variable attribute. Do not behave like `let`, as attributes require the variable to be constant and therefore can't be predeclared. Only compatibel with Lua 5.4 target.
 
 ##### `continue` keyword
 ```lua
@@ -439,12 +441,14 @@ Will output ````print("Bonjour")```` or ````print("Hello")```` depending of the 
 
 The preprocessor has access to the following variables:
 * ````candran````: the Candran library table.
-* ````output````: the current preprocessor output string. Can be redefined at any time.
-* ````import(module[, [options])````: a function which import a module. This should be equivalent to using _require(module)_ in the Candran code, except the module will be embedded in the current file. _options_ is an optional preprocessor arguments table for the imported module (current preprocessor arguments will be inherited). Options specific to this function: ```loadLocal``` (default ```true```): ```true``` to automatically load the module into a local variable (i.e. ```local thing = require("module.thing")```); ```loadPackage``` (default ```true```): ```true``` to automatically load the module into the loaded packages table (so it will be available for following ```require("module")``` calls).
+* ````output````: the current preprocessor output string. Can be redefined at any time. If you want to write something in the preprocessor output, it is preferred to use `write(...)` instead of directly modifying `output`.
+* ````import(module[, [options])````: a function which import a module. This should be equivalent to using _require(module)_ in the Candran code, except the module will be embedded in the current file. _options_ is an optional preprocessor arguments table for the imported module (current preprocessor arguments will be inherited). Options specific to this function:
+	* ```loadLocal``` (default ```true```): ```true``` to automatically load the module into a local variable (i.e. ```local thing = require("module.thing")```)
+	* ```loadPackage``` (default ```true```): ```true``` to automatically load the module into the loaded packages table (so it will be available for following ```require("module")``` calls).
 * ````include(filename)````: a function which copy the contents of the file _filename_ to the output.
 * ````write(...)````: write to the preprocessor output. For example, ````#write("hello()")```` will output ````hello()```` in the final file.
 * ```placeholder(name)```: if the variable _name_ is defined in the preprocessor environement, its content will be inserted here.
-* ````...````: each arguments passed to the preprocessor is directly available in the environment.
+* each arguments passed to the preprocessor is directly available in the environment.
 * and every standard Lua library.
 
 Compile targets
@@ -468,7 +472,7 @@ Candran will try to translate Lua 5.4 syntax into something usable with the curr
 Usage
 -----
 ### Command-line usage
-The library can be used standalone through the ```canc``` and ```can``` utility:
+The library can be used standalone through the ```canc``` (for compiling Candran files) and ```can``` (for running Candran files directly) utilities:
 
 *	````canc````
 
@@ -516,7 +520,7 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
 *   ```can```
 
-	Start a simplisitic Candran REPL.
+	Start a simplisitic Candran REPL. Will automatically call `candran.setup()`.
 
 	If you want a better REPL (autocompletion, history, ability to move the cursor), install lua-linenoise: ```luarocks install linenoise``` (automatically installed if Candran was installed using LuaRocks).
 
@@ -524,7 +528,7 @@ The library can be used standalone through the ```canc``` and ```can``` utility:
 
 	Preprocess, compile and run _filename_ using the options provided.
 
-	This will automatically register the Candran package searcher, so required Candran modules will be compiled as they are needed.
+	This will automatically register the Candran package searcher using `candran.setup()`, so required Candran modules will be compiled as they are needed.
 
 	This command will use error rewriting unless explicitely enabled (by setting the `rewriteErrors=false` option).
 
@@ -589,9 +593,13 @@ If you are using the preprocessor ```import()``` function, the source Candran fi
 example.can:12(final.lua:5): attempt to call a nil value (global 'iWantAnError')
 ```
 
-You can perform error rewriting manually using:
+Please note that Candran can only wrap code directly called from Candran; if an error is raised from Lua, there will be no rewriting of Candran lines the stacktrace. These lines are indicated using `(compiled candran)` before the line number.
+
+If you want Candran to always wrap errors, you will need to wrap your whole code in a `xpcall`: `xpcall(func, candran.messageHandler)`.
 
 * ```candran.messageHandler(message)```: the error message handler used by Candran. Given `message` the Lua error string, returns full Candran traceback where soure files and lines are rewritten to their Candran source. You can use it as is in xpcall as a message handler.
+
+Also note that the Candran message handler will add a new, rewritten, stacktrace to the error message; it can't replace the default Lua one. You will therefore see two stacktraces when raising an error, the last one being the Lua one and can be ignored.
 
 ##### Package searching helpers
 Candran comes with a custom package searcher which will automatically find, preprocesses and compile ```.can``` files.
@@ -605,7 +613,7 @@ require("candran").setup()
 at the top of your main Lua file. If a Candran file is found when you call ```require()```, it will be automatically compiled and loaded. If both a Lua and Candran file match a module name, the Candran file will be loaded.
 
 * ```candran.searcher(modpath)```: Candran package searcher function. Use the existing package.path.
-* ```candran.setup()```: register the Candran package searcher, and return the `candran` table.
+* ```candran.setup()```: register the Candran package searcher (if not already done), and return the `candran` table.
 
 ##### Available compiler & preprocessor options
 You can give arbitrary options to the compiler and preprocessor, but Candran already provide and uses these with their associated default values:
