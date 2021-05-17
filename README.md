@@ -597,7 +597,7 @@ Please note that Candran can only wrap code directly called from Candran; if an 
 
 If you want Candran to always wrap errors, you will need to wrap your whole code in a `xpcall`: `xpcall(func, candran.messageHandler)`.
 
-* ```candran.messageHandler(message)```: the error message handler used by Candran. Given `message` the Lua error string, returns full Candran traceback where soure files and lines are rewritten to their Candran source. You can use it as is in xpcall as a message handler.
+* ```candran.messageHandler(message[, noTraceback])```: the error message handler used by Candran. Given `message` the Lua error string, returns full Candran traceback where soure files and lines are rewritten to their Candran source. You can use it as is in xpcall as a message handler. If `noTraceback` is `true`, Candran will only rewrite `message` and not add a new traceback.
 
 Also note that the Candran message handler will add a new, rewritten, stacktrace to the error message; it can't replace the default Lua one. You will therefore see two stacktraces when raising an error, the last one being the Lua one and can be ignored.
 

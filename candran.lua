@@ -6586,8 +6586,8 @@ else -- candran.can:260
 return f() -- candran.can:262
 end -- candran.can:262
 end -- candran.can:262
-candran["messageHandler"] = function(message) -- candran.can:268
-if not message:match("\
+candran["messageHandler"] = function(message, noTraceback) -- candran.can:268
+if not noTraceback and not message:match("\
 stack traceback:\
 ") then -- candran.can:269
 message = debug["traceback"](message, 2) -- candran.can:270

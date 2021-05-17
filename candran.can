@@ -265,8 +265,8 @@ end
 
 --- Candran error message handler.
 -- Use it in xpcall to rewrite stacktraces to display Candran source file lines instead of compiled Lua lines.
-function candran.messageHandler(message)
-	if not message:match("\nstack traceback:\n") then
+function candran.messageHandler(message, noTraceback)
+	if not noTraceback and not message:match("\nstack traceback:\n") then
 		message = debug.traceback(message, 2)
 	end
 	return message:gsub("(\n?%s*)([^\n]-)%:(%d+)%:", function(indentation, source, line)
