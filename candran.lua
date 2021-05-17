@@ -6347,10 +6347,10 @@ end + P("--") * (P(1) - P("\
 ["ShortStr"] = P("\"") * Cs((V("EscSeq") + (P(1) - S("\"\
 "))) ^ 0) * expect(P("\""), "Quote") + P("'") * Cs((V("EscSeq") + (P(1) - S("'\
 "))) ^ 0) * expect(P("'"), "Quote"), -- ./candran/can-parser/parser.lua:693
-["EscSeq"] = P("\\") / "" * (P("a") / "\7" + P("b") / "\8" + P("f") / "\12" + P("n") / "\
-" + P("r") / "\13" + P("t") / "\9" + P("v") / "\11" + P("\
+["EscSeq"] = P("\\") / "" * (P("a") / "" + P("b") / "" + P("f") / "" + P("n") / "\
+" + P("r") / "\r" + P("t") / "	" + P("v") / "" + P("\
 ") / "\
-" + P("\13") / "\
+" + P("\r") / "\
 " + P("\\") / "\\" + P("\"") / "\"" + P("'") / "'" + P("z") * space ^ 0 / "" + digit * digit ^ - 2 / tonumber / string["char"] + P("x") * expect(C(xdigit * xdigit), "HexEsc") * Cc(16) / tonumber / string["char"] + P("u") * expect("{", "OBraceUEsc") * expect(C(xdigit ^ 1), "DigitUEsc") * Cc(16) * expect("}", "CBraceUEsc") / tonumber / (utf8 and utf8["char"] or string["char"]) + throw("EscSeq")), -- ./candran/can-parser/parser.lua:723
 ["LongStr"] = V("Open") * C((P(1) - V("CloseEq")) ^ 0) * expect(V("Close"), "CloseLStr") / function(s, eqs) -- ./candran/can-parser/parser.lua:726
 return s -- ./candran/can-parser/parser.lua:726
@@ -6495,7 +6495,7 @@ env["write"](f:read("*a")) -- candran.can:128
 f:close() -- candran.can:129
 end -- candran.can:129
 env["write"] = function(...) -- candran.can:133
-env["output"] = env["output"] .. (table["concat"]({ ... }, "\9") .. "\
+env["output"] = env["output"] .. (table["concat"]({ ... }, "	") .. "\
 ") -- candran.can:134
 end -- candran.can:134
 env["placeholder"] = function(name) -- candran.can:138
@@ -6642,16 +6642,16 @@ if _VERSION == "Lua 5.4" then -- candran.can:313
 return "no candran file in package.path" -- candran.can:314
 else -- candran.can:314
 return "\
-\9no candran file in package.path" -- candran.can:316
+	no candran file in package.path" -- candran.can:316
 end -- candran.can:316
 end -- candran.can:316
-return function() -- candran.can:319
+return function(modpath) -- candran.can:319
 local r, s = candran["loadfile"](filepath) -- candran.can:320
 if r then -- candran.can:321
-return r() -- candran.can:322
+return r(modpath, filepath) -- candran.can:322
 else -- candran.can:322
 error(("error loading candran module '%s' from file '%s':\
-\9%s"):format(modpath, filepath, s), 0) -- candran.can:324
+	%s"):format(modpath, filepath, s), 0) -- candran.can:324
 end -- candran.can:324
 end, filepath -- candran.can:326
 end -- candran.can:326
@@ -6668,7 +6668,7 @@ if s == candran["searcher"] then -- candran.can:338
 return candran -- candran.can:339
 end -- candran.can:339
 end -- candran.can:339
-table["insert"](searchers, 2, candran["searcher"]) -- candran.can:343
+table["insert"](searchers, 1, candran["searcher"]) -- candran.can:343
 return candran -- candran.can:344
 end -- candran.can:344
 return candran -- candran.can:347

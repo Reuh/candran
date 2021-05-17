@@ -316,10 +316,10 @@ function candran.searcher(modpath)
 			return "\n\tno candran file in package.path"
 		end
 	end
-	return ()
+	return (modpath) -- 2nd argument is not passed in Lua 5.1, so a closure is required
 		local r, s = candran.loadfile(filepath)
 		if r then
-			return r()
+			return r(modpath, filepath)
 		else
 			error("error loading candran module '%s' from file '%s':\n\t%s":format(modpath, filepath, s), 0)
 		end
