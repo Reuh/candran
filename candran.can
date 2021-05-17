@@ -340,7 +340,7 @@ function candran.setup()
 		end
 	end
 	-- setup
-	table.insert(searchers, 2, candran.searcher)
+	table.insert(searchers, 1, candran.searcher)
 	return candran
 end
 
