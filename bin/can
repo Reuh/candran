@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
 
-local candran = require("candran")
+local candran = require("candran").setup()
 local cmdline = require("candran.cmdline")
 
 local args = cmdline(arg)
@@ -27,7 +27,11 @@ if arg[#arg] == "-" then
 		io.stderr:write("can: "..err.."\n")
 		os.exit(1)
 	end
-	f()
+	local r, e = xpcall(f, candran.messageHandler)
+	if not r then
+		io.stderr:write(e.."\n")
+		os.exit(1)
+	end
 -- file
 elseif #args >= 1 then
 	local f, err = candran.loadfile(args[1], nil, args)
@@ -35,7 +39,11 @@ elseif #args >= 1 then
 		io.stderr:write("can: "..err.."\n")
 		os.exit(1)
 	else
-		f()
+		local r, e = xpcall(f, candran.messageHandler)
+		if not r then
+			io.stderr:write(e.."\n")
+			os.exit(1)
+		end
 	end
 -- REPL
 else
