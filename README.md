@@ -6,9 +6,9 @@ Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing L
 
 ````lua
 #import("lib.thing") -- static import
-#local debug or= false
+#local debug = false
 
-#if debug
+#if debug then
 #	define("log(...)", "print(...)")
 #else
 #	define("log(...)", "") -- remove calls to log from the compiled code when debug is true
