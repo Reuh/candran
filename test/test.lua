@@ -151,6 +151,54 @@ return a
 #error("preprocessor should ignore long strings")
 ]])
 
+test("preprocessor macro remove function", [[
+#define("log(...)", "")
+log("test")
+return true
+]], true)
+
+test("preprocessor macro replace function", [[
+#define("log(x)", "a = x")
+log("test")
+return a
+]], "test")
+
+test("preprocessor macro identifier replace function", [[
+#define("test(x)", "x = 42")
+test(hello)
+return hello
+]], 42)
+
+test("preprocessor macro replace function with vararg", [[
+#define("log(...)", "a, b, c = ...")
+log(1, 2, 3)
+assert(a == 1)
+assert(b == 2)
+assert(c == 3)
+return true
+]], true)
+
+test("preprocessor macro replace function with vararg and arg", [[
+#define("log(x, ...)", "a, b, c = x, ...")
+log(1, 2, 3)
+assert(a == 1)
+assert(b == 2)
+assert(c == 3)
+return true
+]], true)
+
+test("preprocessor macro replace variable", [[
+#define("a", "42")
+return a
+]], 42)
+
+test("preprocessor macro prevent recursive macro", [[
+#define("f(x)", "x")
+local x = 42
+x = f(x)
+return x
+]], 42)
+
 ----------------------
 -- SYNTAX ADDITIONS --
 ----------------------

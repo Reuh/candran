@@ -27,6 +27,20 @@ function util.load(str, name, env)
 	end
 end
 
+function util.recmerge(...)
+	local r = {}
+	for _, t in ipairs({...}) do
+		for k, v in pairs(t) do
+			if type(v) == "table" then
+				r[k] = util.merge(v, r[k])
+			else
+				r[k] = v
+			end
+		end
+	end
+	return r
+end
+
 function util.merge(...)
 	local r = {}
 	for _, t in ipairs({...}) do

@@ -306,6 +306,11 @@ local function fixShortFunc (t)
     return t
 end
 
+local function markImplicit (t)
+    t.implicit = true
+    return t
+end
+
 local function statToExpr (t) -- tag a StatExpr
     t.tag = t.tag .. "Expr"
     return t
@@ -577,7 +582,7 @@ local G = { V"Lua",
   RetStat         = tagC("Return", kw("return") * commaSep(V"Expr", "RetList")^-1);
 
   PushStat         = tagC("Push", kw("push") * commaSep(V"Expr", "RetList")^-1);
-  ImplicitPushStat = tagC("Push", commaSep(V"Expr", "RetList"));
+  ImplicitPushStat = tagC("Push", commaSep(V"Expr", "RetList")) / markImplicit;
 
   NameList              = tagC("NameList", commaSep(V"Id"));
   DestructuringNameList = tagC("NameList", commaSep(V"DestructuringId")),
@@ -757,6 +762,20 @@ local G = { V"Lua",
   BinOp     = V"OrOp" + V"AndOp" + V"BOrOp" + V"BXorOp" + V"BAndOp" + V"ShiftOp" + V"ConcatOp" + V"AddOp" + V"MulOp" + V"PowOp";
 }
 
+-- used to parse macro indentifier in define() preprocessor function
+local macroidentifier = {
+  expect(V"MacroIdentifier", "InvalidStat") * expect(P(-1), "Extra"),
+
+  MacroIdentifier   = tagC("MacroFunction", V"Id" * sym("(") * V"MacroFunctionArgs" * expect(sym(")"), "CParenPList"))
+                    + V"Id";
+
+  MacroFunctionArgs = V"NameList" * (sym(",") * expect(tagC("Dots", sym("...")), "ParList"))^-1 / addDots
+                    + Ct(tagC("Dots", sym("...")))
+                    + Ct(Cc());
+
+}
+for k,v in pairs(G) do if macroidentifier[k] == nil then macroidentifier[k] = v end end -- copy other rules from main syntax
+
 local parser = {}
 
 local validator = require("candran.can-parser.validator")
@@ -772,6 +791,17 @@ function parser.parse (subject, filename)
     return ast, syntaxerror(errorinfo, errpos, errmsg)
   end
   return validate(ast, errorinfo)
+end
+
+function parser.parsemacroidentifier (subject, filename)
+  local errorinfo = { subject = subject, filename = filename }
+  lpeg.setmaxstack(1000)
+  local ast, label, errpos = lpeg.match(macroidentifier, subject, nil, errorinfo)
+  if not ast then
+    local errmsg = labels[label][2]
+    return ast, syntaxerror(errorinfo, errpos, errmsg)
+  end
+  return ast
 end
 
 return parser

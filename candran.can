@@ -47,10 +47,15 @@ end
 -- @tparam input string input code
 -- @tparam options table arguments for the preprocessor. They will be inserted into the preprocessor environement.
 -- @treturn[1] output string output code
+-- @treturn[1] macros registered macros
 -- @treturn[2] nil nil if error
 -- @treturn[2] error string error message
 function candran.preprocess(input, options={})
 	options = util.merge(candran.default, options)
+	local macros = {
+		functions = {},
+		variables = {}
+	}
 
 	-- generate preprocessor code
 	local preprocessor = ""
@@ -104,7 +109,8 @@ function candran.preprocess(input, options={})
 		if not f then error("can't open the module file to import") end
 
 		margs = util.merge(options, { chunkname = filepath, loadLocal = true, loadPackage = true }, margs)
-		local modcontent = assert(candran.preprocess(f:read("*a"), margs))
+		local modcontent, modmacros = assert(candran.preprocess(f:read("*a"), margs))
+		macros = util.recmerge(macros, modmacros)
 		f:close()
 
 		-- get module name (ex: module name of path.to.module is module)
@@ -140,6 +146,30 @@ function candran.preprocess(input, options={})
 			env.write(env[name])
 		end
 	end
+	env.define = function(identifier, replacement)
+		-- parse identifier
+		local iast, ierr = parser.parsemacroidentifier(identifier, options.chunkname)
+		if not iast then
+			return error("in macro identifier: %s":format(ierr))
+		end
+		-- parse replacement value
+		local rast, rerr = parser.parse(replacement, options.chunkname)
+		if not rast then
+			return error("in macro replacement: %s":format(rerr))
+		end
+		-- when giving a single value as a replacement, bypass the implicit push
+		if #rast == 1 and rast[1].tag == "Push" and rast[1].implicit then
+			rast = rast[1][1]
+		end
+		-- add macros
+		if iast.tag == "MacroFunction" then
+			macros.functions[iast[1][1]] = { args = iast[2], replacement = rast }
+		elseif iast.tag == "Id" then
+			macros.variables[iast[1]] = rast
+		else
+			error("invalid macro type %s":format(iast.tag))
+		end
+	end
 
 	-- compile & load preprocessor
 	local preprocess, err = candran.compile(preprocessor, options)
@@ -158,16 +188,17 @@ function candran.preprocess(input, options={})
 		return nil, "in preprocessor: "..output
 	end
 
-	return output
+	return output, macros
 end
 
 --- Run the compiler
 -- @tparam input string input code
 -- @tparam options table options for the compiler
+-- @tparam macros table defined macros, as returned by the preprocessor
 -- @treturn[1] output string output code
 -- @treturn[2] nil nil if error
 -- @treturn[2] error string error message
-function candran.compile(input, options={})
+function candran.compile(input, options={}, macros)
 	options = util.merge(candran.default, options)
 
 	local ast, errmsg = parser.parse(input, options.chunkname)
@@ -176,7 +207,7 @@ function candran.compile(input, options={})
 		return nil, errmsg
 	end
 
-	return require("compiler."..options.target)(input, ast, options)
+	return require("compiler."..options.target)(input, ast, options, macros)
 end
 
 --- Preprocess & compile code
@@ -188,7 +219,7 @@ end
 function candran.make(code, options)
 	local r, err = candran.preprocess(code, options)
 	if r then
-		r, err = candran.compile(r, options)
+		r, err = candran.compile(r, options, err)
 		if r then
 			return r
 		end
