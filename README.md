@@ -8,6 +8,13 @@ Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing L
 #import("lib.thing") -- static import
 #local debug or= false
 
+#if debug
+#	define("log(...)", "print(...)")
+#else
+#	define("log(...)", "") -- remove calls to log from the compiled code when debug is true
+#end
+log("example macro") -- preprocessor macros
+
 local function calculate(toadd=25) -- default parameters
 	local result = thing.do()
 	result += toadd
@@ -448,8 +455,33 @@ The preprocessor has access to the following variables:
 * ````include(filename)````: a function which copy the contents of the file _filename_ to the output.
 * ````write(...)````: write to the preprocessor output. For example, ````#write("hello()")```` will output ````hello()```` in the final file.
 * ```placeholder(name)```: if the variable _name_ is defined in the preprocessor environement, its content will be inserted here.
+* ```define(identifier, replacement)```: define a macro. See below.
 * each arguments passed to the preprocessor is directly available in the environment.
 * and every standard Lua library.
+
+#### Macros
+
+Using `define(identifier, replacement)` in the preprocessor, you can define macros. Both identifier and replacement are expected to be string containing Candran/Lua code.
+
+There are two types of macros: variables, which replace every instance of the given identifier with the replacement text; and functions, which will replace every call to this function with the replacement text, also replacing its arguments. The `...` will be replaced with every remaining argument. Macros can not be recursive.
+
+If the replacement text is empty, the macro will simply be removed from the compiled code.
+
+```lua
+-- Variable macro
+#define("x", 42)
+print(x) -- 42
+
+-- Function macros
+#define("f(x)", "print(x)")
+f(42) -- replaced with print(42)
+
+#define("log(s, ...)", "print(s..": ", ...)")
+log("network", "error") -- network: error
+
+#define("debug()", "")
+debug() -- not present in complied code
+```
 
 Compile targets
 ---------------
@@ -567,8 +599,8 @@ The table returned by _require("candran")_ gives you access to:
 
 ##### Compiler & preprocessor
 * ````candran.VERSION````: Candran's version string (e.g. `"0.10.0"`).
-* ````candran.preprocess(code[, options])````: return the Candran code _code_, preprocessed with the _options_ options table; or nil, err in case of error.
-* ````candran.compile(code[, options])````: return the Candran code compiled to Lua with the _options_ option table; or nil, err in case of error.
+* ````candran.preprocess(code[, options])````: return the Candran code _code_, `macros` table. The code is preprocessed with the _options_ options table; `macros` is indented to be passed to `candran.compile` to apply the defined macros. In case of error, returns nil, error.
+* ````candran.compile(code[, options[, macros]])````: return the Candran code compiled to Lua with the _options_ option table and the macros `macros` (table returned by the preprocessor); or nil, err in case of error.
 * ````candran.make(code[, options])````: return the Candran code, preprocessed and compiled with the _options_ options table; or nil, err in case of error.
 
 ##### Code loading helpers
