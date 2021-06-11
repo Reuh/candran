@@ -461,11 +461,13 @@ The preprocessor has access to the following variables:
 
 #### Macros
 
-Using `define(identifier, replacement)` in the preprocessor, you can define macros. Both identifier and replacement are expected to be string containing Candran/Lua code.
+Using `define(identifier, replacement)` in the preprocessor, you can define macros. `identifier` is expected to be string containing Candran/Lua code (representing either a identifier or a function call), and `replacement` can be either a string containing Candran/Lua code or a function.
 
-There are two types of macros: variables, which replace every instance of the given identifier with the replacement text; and functions, which will replace every call to this function with the replacement text, also replacing its arguments. The `...` will be replaced with every remaining argument. Macros can not be recursive.
+There are two types of macros identifiers: variables, which replace every instance of the given identifier with the replacement; and functions, which will replace every call to this function with the replacement, also replacing its arguments. The `...` will be replaced with every remaining argument. Macros can not be recursive.
 
-If the replacement text is empty, the macro will simply be removed from the compiled code.
+If `replacement` is a string, the macro will be replaced with this string, replacing the macros arguments in the string. If `replacement` is a function, the function will be called every time the macro is encoutered, with the macro arguments passed as strings, and is expected to return a string that will be used as a replacement.
+
+If `replacement` is the empty empty, the macro will simply be removed from the compiled code.
 
 ```lua
 -- Variable macro
@@ -481,7 +483,16 @@ log("network", "error") -- network: error
 
 #define("debug()", "")
 debug() -- not present in complied code
+
+#define("_assert(what, err)", function(what, err)
+#	return "if "..what.." then error("..err..") end"
+#end)
+_assert(5 = 2, "failed") -- replaced with if 5 = 2 then error("failed") end
 ```
+
+Candran provide some predefined macros by default:
+* `__STR__(expr)`: returns a string litteral representing the expression (e.g., `__STR__(5 + 2)` expands to `"5 + 2"`)
+* `constexpr(expr)`: calculate the result of the expression in the preprocessor, and returns a representation of the returned value, i.e. precalculate an expression at compile time
 
 Compile targets
 ---------------
