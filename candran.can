@@ -234,7 +234,7 @@ local codeCache = {}
 function candran.loadfile(filepath, env, options)
 	local f, err = io.open(filepath)
 	if not f then
-		return nil, "cannot open %s":format(err)
+		return nil, "cannot open %s":format(tostring(err))
 	end
 	local content = f:read("*a")
 	f:close()
@@ -352,7 +352,7 @@ function candran.searcher(modpath)
 		if r then
 			return r(modpath, filepath)
 		else
-			error("error loading candran module '%s' from file '%s':\n\t%s":format(modpath, filepath, s), 0)
+			error("error loading candran module '%s' from file '%s':\n\t%s":format(modpath, filepath, tostring(s)), 0)
 		end
 	end, filepath
 end

@@ -23,7 +23,7 @@ if #arg < 1 or args.help or args.h then
 	print("Default options:")
 	for opt, val in pairs(candran.default) do
 		if type(val) == "string" then val = val:gsub("\n", "\\n") end
-		print(("  %s=%q"):format(opt, val))
+		print(("  %s=%q"):format(opt, tostring(val)))
 	end
 	return
 end
