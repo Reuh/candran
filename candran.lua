@@ -141,7 +141,277 @@ end -- ./candran/cmdline.lua:125
 end -- ./candran/cmdline.lua:125
 local cmdline = _() or cmdline -- ./candran/cmdline.lua:130
 package["loaded"]["candran.cmdline"] = cmdline or true -- ./candran/cmdline.lua:131
-local function _() -- ./candran/cmdline.lua:135
+local function _() -- ./candran/cmdline.lua:134
+local n, v = "serpent", "0.302" -- ./candran/serpent.lua:24
+local c, d = "Paul Kulchenko", "Lua serializer and pretty printer" -- ./candran/serpent.lua:25
+local snum = { -- ./candran/serpent.lua:26
+[tostring(1 / 0)] = "1/0 --[[math.huge]]", -- ./candran/serpent.lua:26
+[tostring(- 1 / 0)] = "-1/0 --[[-math.huge]]", -- ./candran/serpent.lua:26
+[tostring(0 / 0)] = "0/0" -- ./candran/serpent.lua:26
+} -- ./candran/serpent.lua:26
+local badtype = { -- ./candran/serpent.lua:27
+["thread"] = true, -- ./candran/serpent.lua:27
+["userdata"] = true, -- ./candran/serpent.lua:27
+["cdata"] = true -- ./candran/serpent.lua:27
+} -- ./candran/serpent.lua:27
+local getmetatable = debug and debug["getmetatable"] or getmetatable -- ./candran/serpent.lua:28
+local pairs = function(t) -- ./candran/serpent.lua:29
+return next, t -- ./candran/serpent.lua:29
+end -- ./candran/serpent.lua:29
+local keyword, globals, G = {}, {}, (_G or _ENV) -- ./candran/serpent.lua:30
+for _, k in ipairs({ -- ./candran/serpent.lua:31
+"and", -- ./candran/serpent.lua:31
+"break", -- ./candran/serpent.lua:31
+"do", -- ./candran/serpent.lua:31
+"else", -- ./candran/serpent.lua:31
+"elseif", -- ./candran/serpent.lua:31
+"end", -- ./candran/serpent.lua:31
+"false", -- ./candran/serpent.lua:31
+"for", -- ./candran/serpent.lua:32
+"function", -- ./candran/serpent.lua:32
+"goto", -- ./candran/serpent.lua:32
+"if", -- ./candran/serpent.lua:32
+"in", -- ./candran/serpent.lua:32
+"local", -- ./candran/serpent.lua:32
+"nil", -- ./candran/serpent.lua:32
+"not", -- ./candran/serpent.lua:32
+"or", -- ./candran/serpent.lua:32
+"repeat", -- ./candran/serpent.lua:32
+"return", -- ./candran/serpent.lua:33
+"then", -- ./candran/serpent.lua:33
+"true", -- ./candran/serpent.lua:33
+"until", -- ./candran/serpent.lua:33
+"while" -- ./candran/serpent.lua:33
+}) do -- ./candran/serpent.lua:33
+keyword[k] = true -- ./candran/serpent.lua:33
+end -- ./candran/serpent.lua:33
+for k, v in pairs(G) do -- ./candran/serpent.lua:34
+globals[v] = k -- ./candran/serpent.lua:34
+end -- ./candran/serpent.lua:34
+for _, g in ipairs({ -- ./candran/serpent.lua:35
+"coroutine", -- ./candran/serpent.lua:35
+"debug", -- ./candran/serpent.lua:35
+"io", -- ./candran/serpent.lua:35
+"math", -- ./candran/serpent.lua:35
+"string", -- ./candran/serpent.lua:35
+"table", -- ./candran/serpent.lua:35
+"os" -- ./candran/serpent.lua:35
+}) do -- ./candran/serpent.lua:35
+for k, v in pairs(type(G[g]) == "table" and G[g] or {}) do -- ./candran/serpent.lua:36
+globals[v] = g .. "." .. k -- ./candran/serpent.lua:36
+end -- ./candran/serpent.lua:36
+end -- ./candran/serpent.lua:36
+local function s(t, opts) -- ./candran/serpent.lua:38
+local name, indent, fatal, maxnum = opts["name"], opts["indent"], opts["fatal"], opts["maxnum"] -- ./candran/serpent.lua:39
+local sparse, custom, huge = opts["sparse"], opts["custom"], not opts["nohuge"] -- ./candran/serpent.lua:40
+local space, maxl = (opts["compact"] and "" or " "), (opts["maxlevel"] or math["huge"]) -- ./candran/serpent.lua:41
+local maxlen, metatostring = tonumber(opts["maxlength"]), opts["metatostring"] -- ./candran/serpent.lua:42
+local iname, comm = "_" .. (name or ""), opts["comment"] and (tonumber(opts["comment"]) or math["huge"]) -- ./candran/serpent.lua:43
+local numformat = opts["numformat"] or "%.17g" -- ./candran/serpent.lua:44
+local seen, sref, syms, symn = {}, { "local " .. iname .. "={}" }, {}, 0 -- ./candran/serpent.lua:45
+local function gensym(val) -- ./candran/serpent.lua:46
+return "_" .. (tostring(tostring(val)):gsub("[^%w]", ""):gsub("(%d%w+)", function(s) -- ./candran/serpent.lua:48
+if not syms[s] then -- ./candran/serpent.lua:48
+symn = symn + 1 -- ./candran/serpent.lua:48
+syms[s] = symn -- ./candran/serpent.lua:48
+end -- ./candran/serpent.lua:48
+return tostring(syms[s]) -- ./candran/serpent.lua:48
+end)) -- ./candran/serpent.lua:48
+end -- ./candran/serpent.lua:48
+local function safestr(s) -- ./candran/serpent.lua:49
+return type(s) == "number" and tostring(huge and snum[tostring(s)] or numformat:format(s)) or type(s) ~= "string" and tostring(s) or ("%q"):format(s):gsub("\
+", "n"):gsub("\26", "\\026") -- ./candran/serpent.lua:51
+end -- ./candran/serpent.lua:51
+local function comment(s, l) -- ./candran/serpent.lua:52
+return comm and (l or 0) < comm and " --[[" .. select(2, pcall(tostring, s)) .. "]]" or "" -- ./candran/serpent.lua:52
+end -- ./candran/serpent.lua:52
+local function globerr(s, l) -- ./candran/serpent.lua:53
+return globals[s] and globals[s] .. comment(s, l) or not fatal and safestr(select(2, pcall(tostring, s))) or error("Can't serialize " .. tostring(s)) -- ./candran/serpent.lua:54
+end -- ./candran/serpent.lua:54
+local function safename(path, name) -- ./candran/serpent.lua:55
+local n = name == nil and "" or name -- ./candran/serpent.lua:56
+local plain = type(n) == "string" and n:match("^[%l%u_][%w_]*$") and not keyword[n] -- ./candran/serpent.lua:57
+local safe = plain and n or "[" .. safestr(n) .. "]" -- ./candran/serpent.lua:58
+return (path or "") .. (plain and path and "." or "") .. safe, safe -- ./candran/serpent.lua:59
+end -- ./candran/serpent.lua:59
+local alphanumsort = type(opts["sortkeys"]) == "function" and opts["sortkeys"] or function(k, o, n) -- ./candran/serpent.lua:60
+local maxn, to = tonumber(n) or 12, { -- ./candran/serpent.lua:61
+["number"] = "a", -- ./candran/serpent.lua:61
+["string"] = "b" -- ./candran/serpent.lua:61
+} -- ./candran/serpent.lua:61
+local function padnum(d) -- ./candran/serpent.lua:62
+return ("%0" .. tostring(maxn) .. "d"):format(tonumber(d)) -- ./candran/serpent.lua:62
+end -- ./candran/serpent.lua:62
+table["sort"](k, function(a, b) -- ./candran/serpent.lua:63
+return (k[a] ~= nil and 0 or to[type(a)] or "z") .. (tostring(a):gsub("%d+", padnum)) < (k[b] ~= nil and 0 or to[type(b)] or "z") .. (tostring(b):gsub("%d+", padnum)) -- ./candran/serpent.lua:66
+end) -- ./candran/serpent.lua:66
+end -- ./candran/serpent.lua:66
+local function val2str(t, name, indent, insref, path, plainindex, level) -- ./candran/serpent.lua:67
+local ttype, level, mt = type(t), (level or 0), getmetatable(t) -- ./candran/serpent.lua:68
+local spath, sname = safename(path, name) -- ./candran/serpent.lua:69
+local tag = plainindex and ((type(name) == "number") and "" or name .. space .. "=" .. space) or (name ~= nil and sname .. space .. "=" .. space or "") -- ./candran/serpent.lua:72
+if seen[t] then -- ./candran/serpent.lua:73
+sref[# sref + 1] = spath .. space .. "=" .. space .. seen[t] -- ./candran/serpent.lua:74
+return tag .. "nil" .. comment("ref", level) -- ./candran/serpent.lua:75
+end -- ./candran/serpent.lua:75
+if type(mt) == "table" and metatostring ~= false then -- ./candran/serpent.lua:77
+local to, tr = pcall(function() -- ./candran/serpent.lua:78
+return mt["__tostring"](t) -- ./candran/serpent.lua:78
+end) -- ./candran/serpent.lua:78
+local so, sr = pcall(function() -- ./candran/serpent.lua:79
+return mt["__serialize"](t) -- ./candran/serpent.lua:79
+end) -- ./candran/serpent.lua:79
+if (to or so) then -- ./candran/serpent.lua:80
+seen[t] = insref or spath -- ./candran/serpent.lua:81
+t = so and sr or tr -- ./candran/serpent.lua:82
+ttype = type(t) -- ./candran/serpent.lua:83
+end -- ./candran/serpent.lua:83
+end -- ./candran/serpent.lua:83
+if ttype == "table" then -- ./candran/serpent.lua:86
+if level >= maxl then -- ./candran/serpent.lua:87
+return tag .. "{}" .. comment("maxlvl", level) -- ./candran/serpent.lua:87
+end -- ./candran/serpent.lua:87
+seen[t] = insref or spath -- ./candran/serpent.lua:88
+if next(t) == nil then -- ./candran/serpent.lua:89
+return tag .. "{}" .. comment(t, level) -- ./candran/serpent.lua:89
+end -- ./candran/serpent.lua:89
+if maxlen and maxlen < 0 then -- ./candran/serpent.lua:90
+return tag .. "{}" .. comment("maxlen", level) -- ./candran/serpent.lua:90
+end -- ./candran/serpent.lua:90
+local maxn, o, out = math["min"](# t, maxnum or # t), {}, {} -- ./candran/serpent.lua:91
+for key = 1, maxn do -- ./candran/serpent.lua:92
+o[key] = key -- ./candran/serpent.lua:92
+end -- ./candran/serpent.lua:92
+if not maxnum or # o < maxnum then -- ./candran/serpent.lua:93
+local n = # o -- ./candran/serpent.lua:94
+for key in pairs(t) do -- ./candran/serpent.lua:95
+if o[key] ~= key then -- ./candran/serpent.lua:95
+n = n + 1 -- ./candran/serpent.lua:95
+o[n] = key -- ./candran/serpent.lua:95
+end -- ./candran/serpent.lua:95
+end -- ./candran/serpent.lua:95
+end -- ./candran/serpent.lua:95
+if maxnum and # o > maxnum then -- ./candran/serpent.lua:96
+o[maxnum + 1] = nil -- ./candran/serpent.lua:96
+end -- ./candran/serpent.lua:96
+if opts["sortkeys"] and # o > maxn then -- ./candran/serpent.lua:97
+alphanumsort(o, t, opts["sortkeys"]) -- ./candran/serpent.lua:97
+end -- ./candran/serpent.lua:97
+local sparse = sparse and # o > maxn -- ./candran/serpent.lua:98
+for n, key in ipairs(o) do -- ./candran/serpent.lua:99
+local value, ktype, plainindex = t[key], type(key), n <= maxn and not sparse -- ./candran/serpent.lua:100
+if opts["valignore"] and opts["valignore"][value] or opts["keyallow"] and not opts["keyallow"][key] or opts["keyignore"] and opts["keyignore"][key] or opts["valtypeignore"] and opts["valtypeignore"][type(value)] or sparse and value == nil then -- ./candran/serpent.lua:105
+ -- ./candran/serpent.lua:106
+elseif ktype == "table" or ktype == "function" or badtype[ktype] then -- ./candran/serpent.lua:106
+if not seen[key] and not globals[key] then -- ./candran/serpent.lua:107
+sref[# sref + 1] = "placeholder" -- ./candran/serpent.lua:108
+local sname = safename(iname, gensym(key)) -- ./candran/serpent.lua:109
+sref[# sref] = val2str(key, sname, indent, sname, iname, true) -- ./candran/serpent.lua:110
+end -- ./candran/serpent.lua:110
+sref[# sref + 1] = "placeholder" -- ./candran/serpent.lua:111
+local path = seen[t] .. "[" .. tostring(seen[key] or globals[key] or gensym(key)) .. "]" -- ./candran/serpent.lua:112
+sref[# sref] = path .. space .. "=" .. space .. tostring(seen[value] or val2str(value, nil, indent, path)) -- ./candran/serpent.lua:113
+else -- ./candran/serpent.lua:113
+out[# out + 1] = val2str(value, key, indent, nil, seen[t], plainindex, level + 1) -- ./candran/serpent.lua:115
+if maxlen then -- ./candran/serpent.lua:116
+maxlen = maxlen - # out[# out] -- ./candran/serpent.lua:117
+if maxlen < 0 then -- ./candran/serpent.lua:118
+break -- ./candran/serpent.lua:118
+end -- ./candran/serpent.lua:118
+end -- ./candran/serpent.lua:118
+end -- ./candran/serpent.lua:118
+end -- ./candran/serpent.lua:118
+local prefix = string["rep"](indent or "", level) -- ./candran/serpent.lua:122
+local head = indent and "{\
+" .. prefix .. indent or "{" -- ./candran/serpent.lua:123
+local body = table["concat"](out, "," .. (indent and "\
+" .. prefix .. indent or space)) -- ./candran/serpent.lua:124
+local tail = indent and "\
+" .. prefix .. "}" or "}" -- ./candran/serpent.lua:125
+return (custom and custom(tag, head, body, tail, level) or tag .. head .. body .. tail) .. comment(t, level) -- ./candran/serpent.lua:126
+elseif badtype[ttype] then -- ./candran/serpent.lua:127
+seen[t] = insref or spath -- ./candran/serpent.lua:128
+return tag .. globerr(t, level) -- ./candran/serpent.lua:129
+elseif ttype == "function" then -- ./candran/serpent.lua:130
+seen[t] = insref or spath -- ./candran/serpent.lua:131
+if opts["nocode"] then -- ./candran/serpent.lua:132
+return tag .. "function() --[[..skipped..]] end" .. comment(t, level) -- ./candran/serpent.lua:132
+end -- ./candran/serpent.lua:132
+local ok, res = pcall(string["dump"], t) -- ./candran/serpent.lua:133
+local func = ok and "((loadstring or load)(" .. safestr(res) .. ",'@serialized'))" .. comment(t, level) -- ./candran/serpent.lua:134
+return tag .. (func or globerr(t, level)) -- ./candran/serpent.lua:135
+else -- ./candran/serpent.lua:135
+return tag .. safestr(t) -- ./candran/serpent.lua:136
+end -- ./candran/serpent.lua:136
+end -- ./candran/serpent.lua:136
+local sepr = indent and "\
+" or ";" .. space -- ./candran/serpent.lua:138
+local body = val2str(t, name, indent) -- ./candran/serpent.lua:139
+local tail = # sref > 1 and table["concat"](sref, sepr) .. sepr or "" -- ./candran/serpent.lua:140
+local warn = opts["comment"] and # sref > 1 and space .. "--[[incomplete output with shared/self-references skipped]]" or "" -- ./candran/serpent.lua:141
+return not name and body .. warn or "do local " .. body .. sepr .. tail .. "return " .. name .. sepr .. "end" -- ./candran/serpent.lua:142
+end -- ./candran/serpent.lua:142
+local function deserialize(data, opts) -- ./candran/serpent.lua:145
+local env = (opts and opts["safe"] == false) and G or setmetatable({}, { -- ./candran/serpent.lua:147
+["__index"] = function(t, k) -- ./candran/serpent.lua:148
+return t -- ./candran/serpent.lua:148
+end, -- ./candran/serpent.lua:148
+["__call"] = function(t, ...) -- ./candran/serpent.lua:149
+error("cannot call functions") -- ./candran/serpent.lua:149
+end -- ./candran/serpent.lua:149
+}) -- ./candran/serpent.lua:149
+local f, res = (loadstring or load)("return " .. data, nil, nil, env) -- ./candran/serpent.lua:151
+if not f then -- ./candran/serpent.lua:152
+f, res = (loadstring or load)(data, nil, nil, env) -- ./candran/serpent.lua:152
+end -- ./candran/serpent.lua:152
+if not f then -- ./candran/serpent.lua:153
+return f, res -- ./candran/serpent.lua:153
+end -- ./candran/serpent.lua:153
+if setfenv then -- ./candran/serpent.lua:154
+setfenv(f, env) -- ./candran/serpent.lua:154
+end -- ./candran/serpent.lua:154
+return pcall(f) -- ./candran/serpent.lua:155
+end -- ./candran/serpent.lua:155
+local function merge(a, b) -- ./candran/serpent.lua:158
+if b then -- ./candran/serpent.lua:158
+for k, v in pairs(b) do -- ./candran/serpent.lua:158
+a[k] = v -- ./candran/serpent.lua:158
+end -- ./candran/serpent.lua:158
+end -- ./candran/serpent.lua:158
+return a -- ./candran/serpent.lua:158
+end -- ./candran/serpent.lua:158
+return { -- ./candran/serpent.lua:159
+["_NAME"] = n, -- ./candran/serpent.lua:159
+["_COPYRIGHT"] = c, -- ./candran/serpent.lua:159
+["_DESCRIPTION"] = d, -- ./candran/serpent.lua:159
+["_VERSION"] = v, -- ./candran/serpent.lua:159
+["serialize"] = s, -- ./candran/serpent.lua:159
+["load"] = deserialize, -- ./candran/serpent.lua:160
+["dump"] = function(a, opts) -- ./candran/serpent.lua:161
+return s(a, merge({ -- ./candran/serpent.lua:161
+["name"] = "_", -- ./candran/serpent.lua:161
+["compact"] = true, -- ./candran/serpent.lua:161
+["sparse"] = true -- ./candran/serpent.lua:161
+}, opts)) -- ./candran/serpent.lua:161
+end, -- ./candran/serpent.lua:161
+["line"] = function(a, opts) -- ./candran/serpent.lua:162
+return s(a, merge({ -- ./candran/serpent.lua:162
+["sortkeys"] = true, -- ./candran/serpent.lua:162
+["comment"] = true -- ./candran/serpent.lua:162
+}, opts)) -- ./candran/serpent.lua:162
+end, -- ./candran/serpent.lua:162
+["block"] = function(a, opts) -- ./candran/serpent.lua:163
+return s(a, merge({ -- ./candran/serpent.lua:163
+["indent"] = "  ", -- ./candran/serpent.lua:163
+["sortkeys"] = true, -- ./candran/serpent.lua:163
+["comment"] = true -- ./candran/serpent.lua:163
+}, opts)) -- ./candran/serpent.lua:163
+end -- ./candran/serpent.lua:163
+} -- ./candran/serpent.lua:163
+end -- ./candran/serpent.lua:163
+local serpent = _() or serpent -- ./candran/serpent.lua:167
+package["loaded"]["candran.serpent"] = serpent or true -- ./candran/serpent.lua:168
+local function _() -- ./candran/serpent.lua:172
 local util = require("candran.util") -- ./compiler/lua54.can:1
 local targetName = "Lua 5.4" -- ./compiler/lua54.can:3
 local unpack = unpack or table["unpack"] -- ./compiler/lua54.can:5
@@ -6797,311 +7067,318 @@ return parser -- ./candran/can-parser/parser.lua:807
 end -- ./candran/can-parser/parser.lua:807
 local parser = _() or parser -- ./candran/can-parser/parser.lua:811
 package["loaded"]["candran.can-parser.parser"] = parser or true -- ./candran/can-parser/parser.lua:812
-local unpack = unpack or table["unpack"] -- candran.can:15
-local candran = { ["VERSION"] = "0.14.0" } -- candran.can:18
-package["loaded"]["candran"] = candran -- candran.can:20
-candran["default"] = { -- candran.can:23
-["target"] = "lua54", -- candran.can:24
-["indentation"] = "", -- candran.can:25
+local unpack = unpack or table["unpack"] -- candran.can:16
+local candran = { ["VERSION"] = "0.14.0" } -- candran.can:19
+package["loaded"]["candran"] = candran -- candran.can:21
+candran["default"] = { -- candran.can:24
+["target"] = "lua54", -- candran.can:25
+["indentation"] = "", -- candran.can:26
 ["newline"] = "\
-", -- candran.can:26
-["variablePrefix"] = "__CAN_", -- candran.can:27
-["mapLines"] = true, -- candran.can:28
-["chunkname"] = "nil", -- candran.can:29
-["rewriteErrors"] = true -- candran.can:30
-} -- candran.can:30
-if _VERSION == "Lua 5.1" then -- candran.can:34
-if package["loaded"]["jit"] then -- candran.can:35
-candran["default"]["target"] = "luajit" -- candran.can:36
-else -- candran.can:36
-candran["default"]["target"] = "lua51" -- candran.can:38
-end -- candran.can:38
-elseif _VERSION == "Lua 5.2" then -- candran.can:40
-candran["default"]["target"] = "lua52" -- candran.can:41
-elseif _VERSION == "Lua 5.3" then -- candran.can:42
-candran["default"]["target"] = "lua53" -- candran.can:43
-end -- candran.can:43
-candran["preprocess"] = function(input, options) -- candran.can:53
-if options == nil then options = {} end -- candran.can:53
-options = util["merge"](candran["default"], options) -- candran.can:54
-local macros = { -- candran.can:55
-["functions"] = {}, -- candran.can:56
-["variables"] = {} -- candran.can:57
-} -- candran.can:57
-local preprocessor = "" -- candran.can:61
-local i = 0 -- candran.can:62
-local inLongString = false -- candran.can:63
-local inComment = false -- candran.can:64
+", -- candran.can:27
+["variablePrefix"] = "__CAN_", -- candran.can:28
+["mapLines"] = true, -- candran.can:29
+["chunkname"] = "nil", -- candran.can:30
+["rewriteErrors"] = true -- candran.can:31
+} -- candran.can:31
+if _VERSION == "Lua 5.1" then -- candran.can:35
+if package["loaded"]["jit"] then -- candran.can:36
+candran["default"]["target"] = "luajit" -- candran.can:37
+else -- candran.can:37
+candran["default"]["target"] = "lua51" -- candran.can:39
+end -- candran.can:39
+elseif _VERSION == "Lua 5.2" then -- candran.can:41
+candran["default"]["target"] = "lua52" -- candran.can:42
+elseif _VERSION == "Lua 5.3" then -- candran.can:43
+candran["default"]["target"] = "lua53" -- candran.can:44
+end -- candran.can:44
+candran["preprocess"] = function(input, options) -- candran.can:54
+if options == nil then options = {} end -- candran.can:54
+options = util["merge"](candran["default"], options) -- candran.can:55
+local macros = { -- candran.can:56
+["functions"] = {}, -- candran.can:57
+["variables"] = {} -- candran.can:58
+} -- candran.can:58
+local preprocessor = "" -- candran.can:62
+local i = 0 -- candran.can:63
+local inLongString = false -- candran.can:64
+local inComment = false -- candran.can:65
 for line in (input .. "\
 "):gmatch("(.-\
-)") do -- candran.can:65
-i = i + (1) -- candran.can:66
-if inComment then -- candran.can:68
-inComment = not line:match("%]%]") -- candran.can:69
-elseif inLongString then -- candran.can:70
-inLongString = not line:match("%]%]") -- candran.can:71
-else -- candran.can:71
-if line:match("[^%-]%[%[") then -- candran.can:73
-inLongString = true -- candran.can:74
-elseif line:match("%-%-%[%[") then -- candran.can:75
-inComment = true -- candran.can:76
-end -- candran.can:76
-end -- candran.can:76
-if not inComment and not inLongString and line:match("^%s*#") and not line:match("^#!") then -- candran.can:79
-preprocessor = preprocessor .. (line:gsub("^%s*#", "")) -- candran.can:80
-else -- candran.can:80
-local l = line:sub(1, - 2) -- candran.can:82
-if not inLongString and options["mapLines"] and not l:match("%-%- (.-)%:(%d+)$") then -- candran.can:83
+)") do -- candran.can:66
+i = i + (1) -- candran.can:67
+if inComment then -- candran.can:69
+inComment = not line:match("%]%]") -- candran.can:70
+elseif inLongString then -- candran.can:71
+inLongString = not line:match("%]%]") -- candran.can:72
+else -- candran.can:72
+if line:match("[^%-]%[%[") then -- candran.can:74
+inLongString = true -- candran.can:75
+elseif line:match("%-%-%[%[") then -- candran.can:76
+inComment = true -- candran.can:77
+end -- candran.can:77
+end -- candran.can:77
+if not inComment and not inLongString and line:match("^%s*#") and not line:match("^#!") then -- candran.can:80
+preprocessor = preprocessor .. (line:gsub("^%s*#", "")) -- candran.can:81
+else -- candran.can:81
+local l = line:sub(1, - 2) -- candran.can:83
+if not inLongString and options["mapLines"] and not l:match("%-%- (.-)%:(%d+)$") then -- candran.can:84
 preprocessor = preprocessor .. (("write(%q)"):format(l .. " -- " .. options["chunkname"] .. ":" .. i) .. "\
-") -- candran.can:84
-else -- candran.can:84
+") -- candran.can:85
+else -- candran.can:85
 preprocessor = preprocessor .. (("write(%q)"):format(line:sub(1, - 2)) .. "\
-") -- candran.can:86
-end -- candran.can:86
-end -- candran.can:86
-end -- candran.can:86
-preprocessor = preprocessor .. ("return output") -- candran.can:90
-local env = util["merge"](_G, options) -- candran.can:93
-env["candran"] = candran -- candran.can:95
-env["output"] = "" -- candran.can:97
-env["import"] = function(modpath, margs) -- candran.can:104
-if margs == nil then margs = {} end -- candran.can:104
-local filepath = assert(util["search"](modpath, { -- candran.can:105
-"can", -- candran.can:105
-"lua" -- candran.can:105
-}), "No module named \"" .. modpath .. "\"") -- candran.can:105
-local f = io["open"](filepath) -- candran.can:108
-if not f then -- candran.can:109
-error("can't open the module file to import") -- candran.can:109
-end -- candran.can:109
-margs = util["merge"](options, { -- candran.can:111
-["chunkname"] = filepath, -- candran.can:111
-["loadLocal"] = true, -- candran.can:111
-["loadPackage"] = true -- candran.can:111
-}, margs) -- candran.can:111
-local modcontent, modmacros = assert(candran["preprocess"](f:read("*a"), margs)) -- candran.can:112
-macros = util["recmerge"](macros, modmacros) -- candran.can:113
-f:close() -- candran.can:114
-local modname = modpath:match("[^%.]+$") -- candran.can:117
+") -- candran.can:87
+end -- candran.can:87
+end -- candran.can:87
+end -- candran.can:87
+preprocessor = preprocessor .. ("return output") -- candran.can:91
+local env = util["merge"](_G, options) -- candran.can:94
+env["candran"] = candran -- candran.can:96
+env["output"] = "" -- candran.can:98
+env["import"] = function(modpath, margs) -- candran.can:105
+if margs == nil then margs = {} end -- candran.can:105
+local filepath = assert(util["search"](modpath, { -- candran.can:106
+"can", -- candran.can:106
+"lua" -- candran.can:106
+}), "No module named \"" .. modpath .. "\"") -- candran.can:106
+local f = io["open"](filepath) -- candran.can:109
+if not f then -- candran.can:110
+error("can't open the module file to import") -- candran.can:110
+end -- candran.can:110
+margs = util["merge"](options, { -- candran.can:112
+["chunkname"] = filepath, -- candran.can:112
+["loadLocal"] = true, -- candran.can:112
+["loadPackage"] = true -- candran.can:112
+}, margs) -- candran.can:112
+local modcontent, modmacros = assert(candran["preprocess"](f:read("*a"), margs)) -- candran.can:113
+macros = util["recmerge"](macros, modmacros) -- candran.can:114
+f:close() -- candran.can:115
+local modname = modpath:match("[^%.]+$") -- candran.can:118
 env["write"]("-- MODULE " .. modpath .. " --\
 " .. "local function _()\
 " .. modcontent .. "\
 " .. "end\
 " .. (margs["loadLocal"] and ("local %s = _() or %s\
 "):format(modname, modname) or "") .. (margs["loadPackage"] and ("package.loaded[%q] = %s or true\
-"):format(modpath, margs["loadLocal"] and modname or "_()") or "") .. "-- END OF MODULE " .. modpath .. " --") -- candran.can:126
-end -- candran.can:126
-env["include"] = function(file) -- candran.can:131
-local f = io["open"](file) -- candran.can:132
-if not f then -- candran.can:133
-error("can't open the file " .. file .. " to include") -- candran.can:133
-end -- candran.can:133
-env["write"](f:read("*a")) -- candran.can:134
-f:close() -- candran.can:135
-end -- candran.can:135
-env["write"] = function(...) -- candran.can:139
+"):format(modpath, margs["loadLocal"] and modname or "_()") or "") .. "-- END OF MODULE " .. modpath .. " --") -- candran.can:127
+end -- candran.can:127
+env["include"] = function(file) -- candran.can:132
+local f = io["open"](file) -- candran.can:133
+if not f then -- candran.can:134
+error("can't open the file " .. file .. " to include") -- candran.can:134
+end -- candran.can:134
+env["write"](f:read("*a")) -- candran.can:135
+f:close() -- candran.can:136
+end -- candran.can:136
+env["write"] = function(...) -- candran.can:140
 env["output"] = env["output"] .. (table["concat"]({ ... }, "\9") .. "\
-") -- candran.can:140
-end -- candran.can:140
-env["placeholder"] = function(name) -- candran.can:144
-if env[name] then -- candran.can:145
-env["write"](env[name]) -- candran.can:146
-end -- candran.can:146
-end -- candran.can:146
-env["define"] = function(identifier, replacement) -- candran.can:149
-local iast, ierr = parser["parsemacroidentifier"](identifier, options["chunkname"]) -- candran.can:151
-if not iast then -- candran.can:152
-return error(("in macro identifier: %s"):format(tostring(ierr))) -- candran.can:153
-end -- candran.can:153
-if type(replacement) == "string" then -- candran.can:156
-local rast, rerr = parser["parse"](replacement, options["chunkname"]) -- candran.can:157
-if not rast then -- candran.can:158
-return error(("in macro replacement: %s"):format(tostring(rerr))) -- candran.can:159
-end -- candran.can:159
-if # rast == 1 and rast[1]["tag"] == "Push" and rast[1]["implicit"] then -- candran.can:162
-rast = rast[1][1] -- candran.can:163
-end -- candran.can:163
-replacement = rast -- candran.can:165
-elseif type(replacement) ~= "function" then -- candran.can:166
-error("bad argument #2 to 'define' (string or function expected)") -- candran.can:167
-end -- candran.can:167
-if iast["tag"] == "MacroFunction" then -- candran.can:170
-macros["functions"][iast[1][1]] = { -- candran.can:171
-["args"] = iast[2], -- candran.can:171
-["replacement"] = replacement -- candran.can:171
-} -- candran.can:171
-elseif iast["tag"] == "Id" then -- candran.can:172
-macros["variables"][iast[1]] = replacement -- candran.can:173
-else -- candran.can:173
-error(("invalid macro type %s"):format(tostring(iast["tag"]))) -- candran.can:175
-end -- candran.can:175
-end -- candran.can:175
-local preprocess, err = candran["compile"](preprocessor, options) -- candran.can:180
-if not preprocess then -- candran.can:181
-return nil, "in preprocessor: " .. err -- candran.can:182
-end -- candran.can:182
-preprocess, err = util["load"](preprocessor, "candran preprocessor", env) -- candran.can:185
-if not preprocess then -- candran.can:186
-return nil, "in preprocessor: " .. err -- candran.can:187
-end -- candran.can:187
-local success, output = pcall(preprocess) -- candran.can:191
-if not success then -- candran.can:192
-return nil, "in preprocessor: " .. output -- candran.can:193
-end -- candran.can:193
-return output, macros -- candran.can:196
+") -- candran.can:141
+end -- candran.can:141
+env["placeholder"] = function(name) -- candran.can:145
+if env[name] then -- candran.can:146
+env["write"](env[name]) -- candran.can:147
+end -- candran.can:147
+end -- candran.can:147
+env["define"] = function(identifier, replacement) -- candran.can:150
+local iast, ierr = parser["parsemacroidentifier"](identifier, options["chunkname"]) -- candran.can:152
+if not iast then -- candran.can:153
+return error(("in macro identifier: %s"):format(tostring(ierr))) -- candran.can:154
+end -- candran.can:154
+if type(replacement) == "string" then -- candran.can:157
+local rast, rerr = parser["parse"](replacement, options["chunkname"]) -- candran.can:158
+if not rast then -- candran.can:159
+return error(("in macro replacement: %s"):format(tostring(rerr))) -- candran.can:160
+end -- candran.can:160
+if # rast == 1 and rast[1]["tag"] == "Push" and rast[1]["implicit"] then -- candran.can:163
+rast = rast[1][1] -- candran.can:164
+end -- candran.can:164
+replacement = rast -- candran.can:166
+elseif type(replacement) ~= "function" then -- candran.can:167
+error("bad argument #2 to 'define' (string or function expected)") -- candran.can:168
+end -- candran.can:168
+if iast["tag"] == "MacroFunction" then -- candran.can:171
+macros["functions"][iast[1][1]] = { -- candran.can:172
+["args"] = iast[2], -- candran.can:172
+["replacement"] = replacement -- candran.can:172
+} -- candran.can:172
+elseif iast["tag"] == "Id" then -- candran.can:173
+macros["variables"][iast[1]] = replacement -- candran.can:174
+else -- candran.can:174
+error(("invalid macro type %s"):format(tostring(iast["tag"]))) -- candran.can:176
+end -- candran.can:176
+end -- candran.can:176
+env["define"]("__STR__(x)", function(x) -- candran.can:182
+return ("%q"):format(x) -- candran.can:182
+end) -- candran.can:182
+local s = require("candran.serpent") -- candran.can:183
+env["define"]("constexpr(expr)", function(expr) -- candran.can:184
+return s["block"](assert(candran["load"](expr))(), { ["fatal"] = true }) -- candran.can:185
+end) -- candran.can:185
+local preprocess, err = candran["compile"](preprocessor, options) -- candran.can:189
+if not preprocess then -- candran.can:190
+return nil, "in preprocessor: " .. err -- candran.can:191
+end -- candran.can:191
+preprocess, err = util["load"](preprocessor, "candran preprocessor", env) -- candran.can:194
+if not preprocess then -- candran.can:195
+return nil, "in preprocessor: " .. err -- candran.can:196
 end -- candran.can:196
-candran["compile"] = function(input, options, macros) -- candran.can:206
-if options == nil then options = {} end -- candran.can:206
-options = util["merge"](candran["default"], options) -- candran.can:207
-local ast, errmsg = parser["parse"](input, options["chunkname"]) -- candran.can:209
-if not ast then -- candran.can:211
-return nil, errmsg -- candran.can:212
-end -- candran.can:212
-return require("compiler." .. options["target"])(input, ast, options, macros) -- candran.can:215
-end -- candran.can:215
-candran["make"] = function(code, options) -- candran.can:224
-local r, err = candran["preprocess"](code, options) -- candran.can:225
-if r then -- candran.can:226
-r, err = candran["compile"](r, options, err) -- candran.can:227
-if r then -- candran.can:228
-return r -- candran.can:229
-end -- candran.can:229
-end -- candran.can:229
-return r, err -- candran.can:232
-end -- candran.can:232
-local errorRewritingActive = false -- candran.can:235
-local codeCache = {} -- candran.can:236
-candran["loadfile"] = function(filepath, env, options) -- candran.can:239
-local f, err = io["open"](filepath) -- candran.can:240
-if not f then -- candran.can:241
-return nil, ("cannot open %s"):format(tostring(err)) -- candran.can:242
-end -- candran.can:242
-local content = f:read("*a") -- candran.can:244
-f:close() -- candran.can:245
-return candran["load"](content, filepath, env, options) -- candran.can:247
-end -- candran.can:247
-candran["load"] = function(chunk, chunkname, env, options) -- candran.can:252
-if options == nil then options = {} end -- candran.can:252
-options = util["merge"]({ ["chunkname"] = tostring(chunkname or chunk) }, options) -- candran.can:253
-local code, err = candran["make"](chunk, options) -- candran.can:255
-if not code then -- candran.can:256
-return code, err -- candran.can:257
-end -- candran.can:257
-codeCache[options["chunkname"]] = code -- candran.can:260
-local f -- candran.can:261
-f, err = util["load"](code, ("=%s(%s)"):format(options["chunkname"], "compiled candran"), env) -- candran.can:262
-if f == nil then -- candran.can:267
-return f, "candran unexpectedly generated invalid code: " .. err -- candran.can:268
-end -- candran.can:268
-if options["rewriteErrors"] == false then -- candran.can:271
-return f -- candran.can:272
-else -- candran.can:272
-return function(...) -- candran.can:274
-if not errorRewritingActive then -- candran.can:275
-errorRewritingActive = true -- candran.can:276
-local t = { xpcall(f, candran["messageHandler"], ...) } -- candran.can:277
-errorRewritingActive = false -- candran.can:278
-if t[1] == false then -- candran.can:279
-error(t[2], 0) -- candran.can:280
-end -- candran.can:280
-return unpack(t, 2) -- candran.can:282
-else -- candran.can:282
-return f(...) -- candran.can:284
-end -- candran.can:284
-end -- candran.can:284
-end -- candran.can:284
-end -- candran.can:284
-candran["dofile"] = function(filename, options) -- candran.can:292
-local f, err = candran["loadfile"](filename, nil, options) -- candran.can:293
-if f == nil then -- candran.can:295
-error(err) -- candran.can:296
-else -- candran.can:296
-return f() -- candran.can:298
-end -- candran.can:298
-end -- candran.can:298
-candran["messageHandler"] = function(message, noTraceback) -- candran.can:304
+local success, output = pcall(preprocess) -- candran.can:200
+if not success then -- candran.can:201
+return nil, "in preprocessor: " .. output -- candran.can:202
+end -- candran.can:202
+return output, macros -- candran.can:205
+end -- candran.can:205
+candran["compile"] = function(input, options, macros) -- candran.can:215
+if options == nil then options = {} end -- candran.can:215
+options = util["merge"](candran["default"], options) -- candran.can:216
+local ast, errmsg = parser["parse"](input, options["chunkname"]) -- candran.can:218
+if not ast then -- candran.can:220
+return nil, errmsg -- candran.can:221
+end -- candran.can:221
+return require("compiler." .. options["target"])(input, ast, options, macros) -- candran.can:224
+end -- candran.can:224
+candran["make"] = function(code, options) -- candran.can:233
+local r, err = candran["preprocess"](code, options) -- candran.can:234
+if r then -- candran.can:235
+r, err = candran["compile"](r, options, err) -- candran.can:236
+if r then -- candran.can:237
+return r -- candran.can:238
+end -- candran.can:238
+end -- candran.can:238
+return r, err -- candran.can:241
+end -- candran.can:241
+local errorRewritingActive = false -- candran.can:244
+local codeCache = {} -- candran.can:245
+candran["loadfile"] = function(filepath, env, options) -- candran.can:248
+local f, err = io["open"](filepath) -- candran.can:249
+if not f then -- candran.can:250
+return nil, ("cannot open %s"):format(tostring(err)) -- candran.can:251
+end -- candran.can:251
+local content = f:read("*a") -- candran.can:253
+f:close() -- candran.can:254
+return candran["load"](content, filepath, env, options) -- candran.can:256
+end -- candran.can:256
+candran["load"] = function(chunk, chunkname, env, options) -- candran.can:261
+if options == nil then options = {} end -- candran.can:261
+options = util["merge"]({ ["chunkname"] = tostring(chunkname or chunk) }, options) -- candran.can:262
+local code, err = candran["make"](chunk, options) -- candran.can:264
+if not code then -- candran.can:265
+return code, err -- candran.can:266
+end -- candran.can:266
+codeCache[options["chunkname"]] = code -- candran.can:269
+local f -- candran.can:270
+f, err = util["load"](code, ("=%s(%s)"):format(options["chunkname"], "compiled candran"), env) -- candran.can:271
+if f == nil then -- candran.can:276
+return f, "candran unexpectedly generated invalid code: " .. err -- candran.can:277
+end -- candran.can:277
+if options["rewriteErrors"] == false then -- candran.can:280
+return f -- candran.can:281
+else -- candran.can:281
+return function(...) -- candran.can:283
+if not errorRewritingActive then -- candran.can:284
+errorRewritingActive = true -- candran.can:285
+local t = { xpcall(f, candran["messageHandler"], ...) } -- candran.can:286
+errorRewritingActive = false -- candran.can:287
+if t[1] == false then -- candran.can:288
+error(t[2], 0) -- candran.can:289
+end -- candran.can:289
+return unpack(t, 2) -- candran.can:291
+else -- candran.can:291
+return f(...) -- candran.can:293
+end -- candran.can:293
+end -- candran.can:293
+end -- candran.can:293
+end -- candran.can:293
+candran["dofile"] = function(filename, options) -- candran.can:301
+local f, err = candran["loadfile"](filename, nil, options) -- candran.can:302
+if f == nil then -- candran.can:304
+error(err) -- candran.can:305
+else -- candran.can:305
+return f() -- candran.can:307
+end -- candran.can:307
+end -- candran.can:307
+candran["messageHandler"] = function(message, noTraceback) -- candran.can:313
 if not noTraceback and not message:match("\
 stack traceback:\
-") then -- candran.can:305
-message = debug["traceback"](message, 2) -- candran.can:306
-end -- candran.can:306
+") then -- candran.can:314
+message = debug["traceback"](message, 2) -- candran.can:315
+end -- candran.can:315
 return message:gsub("(\
 ?%s*)([^\
-]-)%:(%d+)%:", function(indentation, source, line) -- candran.can:308
-line = tonumber(line) -- candran.can:309
-local originalFile -- candran.can:311
-local strName = source:match("^(.-)%(compiled candran%)$") -- candran.can:312
-if strName then -- candran.can:313
-if codeCache[strName] then -- candran.can:314
-originalFile = codeCache[strName] -- candran.can:315
-source = strName -- candran.can:316
-end -- candran.can:316
-else -- candran.can:316
-do -- candran.can:319
-local fi -- candran.can:319
-fi = io["open"](source, "r") -- candran.can:319
-if fi then -- candran.can:319
-originalFile = fi:read("*a") -- candran.can:320
-fi:close() -- candran.can:321
-end -- candran.can:321
-end -- candran.can:321
-end -- candran.can:321
-if originalFile then -- candran.can:325
-local i = 0 -- candran.can:326
+]-)%:(%d+)%:", function(indentation, source, line) -- candran.can:317
+line = tonumber(line) -- candran.can:318
+local originalFile -- candran.can:320
+local strName = source:match("^(.-)%(compiled candran%)$") -- candran.can:321
+if strName then -- candran.can:322
+if codeCache[strName] then -- candran.can:323
+originalFile = codeCache[strName] -- candran.can:324
+source = strName -- candran.can:325
+end -- candran.can:325
+else -- candran.can:325
+do -- candran.can:328
+local fi -- candran.can:328
+fi = io["open"](source, "r") -- candran.can:328
+if fi then -- candran.can:328
+originalFile = fi:read("*a") -- candran.can:329
+fi:close() -- candran.can:330
+end -- candran.can:330
+end -- candran.can:330
+end -- candran.can:330
+if originalFile then -- candran.can:334
+local i = 0 -- candran.can:335
 for l in (originalFile .. "\
 "):gmatch("([^\
 ]*)\
-") do -- candran.can:327
-i = i + 1 -- candran.can:328
-if i == line then -- candran.can:329
-local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$") -- candran.can:330
-if lineMap then -- candran.can:331
-if extSource ~= source then -- candran.can:332
-return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:333
-else -- candran.can:333
-return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):" -- candran.can:335
-end -- candran.can:335
-end -- candran.can:335
-break -- candran.can:338
-end -- candran.can:338
-end -- candran.can:338
-end -- candran.can:338
-end) -- candran.can:338
-end -- candran.can:338
-candran["searcher"] = function(modpath) -- candran.can:346
-local filepath = util["search"](modpath, { "can" }) -- candran.can:347
-if not filepath then -- candran.can:348
-if _VERSION == "Lua 5.4" then -- candran.can:349
-return "no candran file in package.path" -- candran.can:350
-else -- candran.can:350
+") do -- candran.can:336
+i = i + 1 -- candran.can:337
+if i == line then -- candran.can:338
+local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$") -- candran.can:339
+if lineMap then -- candran.can:340
+if extSource ~= source then -- candran.can:341
+return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:342
+else -- candran.can:342
+return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):" -- candran.can:344
+end -- candran.can:344
+end -- candran.can:344
+break -- candran.can:347
+end -- candran.can:347
+end -- candran.can:347
+end -- candran.can:347
+end) -- candran.can:347
+end -- candran.can:347
+candran["searcher"] = function(modpath) -- candran.can:355
+local filepath = util["search"](modpath, { "can" }) -- candran.can:356
+if not filepath then -- candran.can:357
+if _VERSION == "Lua 5.4" then -- candran.can:358
+return "no candran file in package.path" -- candran.can:359
+else -- candran.can:359
 return "\
-\9no candran file in package.path" -- candran.can:352
-end -- candran.can:352
-end -- candran.can:352
-return function(modpath) -- candran.can:355
-local r, s = candran["loadfile"](filepath) -- candran.can:356
-if r then -- candran.can:357
-return r(modpath, filepath) -- candran.can:358
-else -- candran.can:358
+\9no candran file in package.path" -- candran.can:361
+end -- candran.can:361
+end -- candran.can:361
+return function(modpath) -- candran.can:364
+local r, s = candran["loadfile"](filepath) -- candran.can:365
+if r then -- candran.can:366
+return r(modpath, filepath) -- candran.can:367
+else -- candran.can:367
 error(("error loading candran module '%s' from file '%s':\
-\9%s"):format(modpath, filepath, tostring(s)), 0) -- candran.can:360
-end -- candran.can:360
-end, filepath -- candran.can:362
-end -- candran.can:362
-candran["setup"] = function() -- candran.can:366
-local searchers = (function() -- candran.can:367
-if _VERSION == "Lua 5.1" then -- candran.can:367
-return package["loaders"] -- candran.can:368
-else -- candran.can:368
-return package["searchers"] -- candran.can:370
-end -- candran.can:370
-end)() -- candran.can:370
-for _, s in ipairs(searchers) do -- candran.can:373
-if s == candran["searcher"] then -- candran.can:374
-return candran -- candran.can:375
-end -- candran.can:375
-end -- candran.can:375
-table["insert"](searchers, 1, candran["searcher"]) -- candran.can:379
-return candran -- candran.can:380
-end -- candran.can:380
-return candran -- candran.can:383
+\9%s"):format(modpath, filepath, tostring(s)), 0) -- candran.can:369
+end -- candran.can:369
+end, filepath -- candran.can:371
+end -- candran.can:371
+candran["setup"] = function() -- candran.can:375
+local searchers = (function() -- candran.can:376
+if _VERSION == "Lua 5.1" then -- candran.can:376
+return package["loaders"] -- candran.can:377
+else -- candran.can:377
+return package["searchers"] -- candran.can:379
+end -- candran.can:379
+end)() -- candran.can:379
+for _, s in ipairs(searchers) do -- candran.can:382
+if s == candran["searcher"] then -- candran.can:383
+return candran -- candran.can:384
+end -- candran.can:384
+end -- candran.can:384
+table["insert"](searchers, 1, candran["searcher"]) -- candran.can:388
+return candran -- candran.can:389
+end -- candran.can:389
+return candran -- candran.can:392

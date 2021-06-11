@@ -1,5 +1,6 @@
 #import("candran.util")
 #import("candran.cmdline")
+#import("candran.serpent")
 
 #import("compiler.lua54")
 #import("compiler.lua53")
@@ -175,6 +176,14 @@ function candran.preprocess(input, options={})
 			error("invalid macro type %s":format(tostring(iast.tag)))
 		end
 	end
+
+	-- default macros
+	-- TODO make it optional
+	env.define("__STR__(x)", function(x) return ("%q"):format(x) end)
+	local s = require("candran.serpent")
+	env.define("constexpr(expr)", function(expr)
+		return s.block(assert(candran.load(expr))(), {fatal = true})
+	end)
 
 	-- compile & load preprocessor
 	local preprocess, err = candran.compile(preprocessor, options)
