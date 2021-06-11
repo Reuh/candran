@@ -150,24 +150,29 @@ function candran.preprocess(input, options={})
 		-- parse identifier
 		local iast, ierr = parser.parsemacroidentifier(identifier, options.chunkname)
 		if not iast then
-			return error("in macro identifier: %s":format(ierr))
+			return error("in macro identifier: %s":format(tostring(ierr)))
 		end
 		-- parse replacement value
-		local rast, rerr = parser.parse(replacement, options.chunkname)
-		if not rast then
-			return error("in macro replacement: %s":format(rerr))
-		end
-		-- when giving a single value as a replacement, bypass the implicit push
-		if #rast == 1 and rast[1].tag == "Push" and rast[1].implicit then
-			rast = rast[1][1]
+		if type(replacement) == "string" then
+			local rast, rerr = parser.parse(replacement, options.chunkname)
+			if not rast then
+				return error("in macro replacement: %s":format(tostring(rerr)))
+			end
+			-- when giving a single value as a replacement, bypass the implicit push
+			if #rast == 1 and rast[1].tag == "Push" and rast[1].implicit then
+				rast = rast[1][1]
+			end
+			replacement = rast
+		elseif type(replacement) ~= "function" then
+			error("bad argument #2 to 'define' (string or function expected)")
 		end
 		-- add macros
 		if iast.tag == "MacroFunction" then
-			macros.functions[iast[1][1]] = { args = iast[2], replacement = rast }
+			macros.functions[iast[1][1]] = { args = iast[2], replacement = replacement }
 		elseif iast.tag == "Id" then
-			macros.variables[iast[1]] = rast
+			macros.variables[iast[1]] = replacement
 		else
-			error("invalid macro type %s":format(iast.tag))
+			error("invalid macro type %s":format(tostring(iast.tag)))
 		end
 	end
 

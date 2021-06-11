@@ -199,6 +199,17 @@ x = f(x)
 return x
 ]], 42)
 
+test("preprocessor macro replace variable with function", [[
+#define("a", function() return "42" end)
+return a
+]], 42)
+
+test("preprocessor macro replace function with function", [[
+#define("test(x)", function(x) return ("%s = 42"):format(x) end)
+test(hello)
+return hello
+]], 42)
+
 ----------------------
 -- SYNTAX ADDITIONS --
 ----------------------

@@ -2,6 +2,8 @@ local util = require("candran.util")
 
 local targetName = "Lua 5.4"
 
+local unpack = unpack or table.unpack
+
 return function(code, ast, options, macros={functions={}, variables={}})
 	--- Line mapping
 	local lastInputPos = 1 -- last token position in the input code
@@ -740,24 +742,33 @@ return function(code, ast, options, macros={functions={}, variables={}})
 			elseif t[1].tag == "Id" and not nomacro.functions[t[1][1]] and macros.functions[t[1][1]] then
 				local macro = macros.functions[t[1][1]]
 				local replacement = macro.replacement
-				local macroargs = util.merge(peek("macroargs"))
-				for i, arg in ipairs(macro.args) do
-					if arg.tag == "Dots" then
-						macroargs["..."] = [for j=i+1, #t do t[j] end]
-					elseif arg.tag == "Id" then
-						if t[i+1] == nil then
-							error("bad argument #%s to macro %s (value expected)":format(i, t[1][1]))
-						end
-						macroargs[arg[1]] = t[i+1]
-					else
-						error("unexpected argument type %s in macro %s":format(arg.tag, t[1][1]))
-					end
-				end
-				push("macroargs", macroargs)
+				local r
 				nomacro.functions[t[1][1]] = true
-				local r = lua(replacement)
+				if type(replacement) == "function" then
+					local args = {}
+					for i=2, #t do
+						table.insert(args, lua(t[i]))
+					end
+					r = replacement(unpack(args))
+				else
+					local macroargs = util.merge(peek("macroargs"))
+					for i, arg in ipairs(macro.args) do
+						if arg.tag == "Dots" then
+							macroargs["..."] = [for j=i+1, #t do t[j] end]
+						elseif arg.tag == "Id" then
+							if t[i+1] == nil then
+								error("bad argument #%s to macro %s (value expected)":format(i, t[1][1]))
+							end
+							macroargs[arg[1]] = t[i+1]
+						else
+							error("unexpected argument type %s in macro %s":format(arg.tag, t[1][1]))
+						end
+					end
+					push("macroargs", macroargs)
+					r = lua(replacement)
+					pop("macroargs")
+				end
 				nomacro.functions[t[1][1]] = nil
-				pop("macroargs")
 				return r
 			elseif t[1].tag == "MethodStub" then -- method call
 				if t[1][1].tag == "String" or t[1][1].tag == "Table" then
@@ -793,21 +804,23 @@ return function(code, ast, options, macros={functions={}, variables={}})
 		end,
 		-- Id{ <string> }
 		Id = (t)
+			local r = t[1]
 			local macroargs = peek("macroargs")
 			if not nomacro.variables[t[1]] then
+				nomacro.variables[t[1]] = true
 				if macroargs and macroargs[t[1]] then -- replace with macro argument
-					nomacro.variables[t[1]] = true
-					local r = lua(macroargs[t[1]])
-					nomacro.variables[t[1]] = nil
-					return r
+					r = lua(macroargs[t[1]])
 				elseif macros.variables[t[1]] ~= nil then -- replace with macro variable
-					nomacro.variables[t[1]] = true
-					local r = lua(macros.variables[t[1]])
-					nomacro.variables[t[1]] = nil
-					return r
+					local macro = macros.variables[t[1]]
+					if type(macro) == "function" then
+						r = macro()
+					else
+						r = lua(macro)
+					end
 				end
+				nomacro.variables[t[1]] = nil
 			end
-			return t[1]
+			return r
 		end,
 		-- AttributeId{ <string> <string>? }
 		AttributeId = (t)
