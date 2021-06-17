@@ -1,4 +1,6 @@
-local function _() -- candran.can:2
+local candran = { ["VERSION"] = "0.14.0" } -- candran.can:2
+package["loaded"]["candran"] = candran -- candran.can:4
+local function _() -- candran.can:7
 local candran = require("candran") -- ./candran/util.can:1
 local util = {} -- ./candran/util.can:2
 util["search"] = function(modpath, exts) -- ./candran/util.can:4
@@ -7010,9 +7012,7 @@ return parser -- ./candran/can-parser/parser.lua:807
 end -- ./candran/can-parser/parser.lua:807
 local parser = _() or parser -- ./candran/can-parser/parser.lua:811
 package["loaded"]["candran.can-parser.parser"] = parser or true -- ./candran/can-parser/parser.lua:812
-local unpack = unpack or table["unpack"] -- candran.can:15
-local candran = { ["VERSION"] = "0.14.0" } -- candran.can:18
-package["loaded"]["candran"] = candran -- candran.can:20
+local unpack = unpack or table["unpack"] -- candran.can:20
 candran["default"] = { -- candran.can:23
 ["target"] = "lua54", -- candran.can:24
 ["indentation"] = "", -- candran.can:25

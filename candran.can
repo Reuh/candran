@@ -1,3 +1,8 @@
+local candran = {
+	VERSION = "0.14.0"
+}
+package.loaded["candran"] = candran
+
 #import("candran.util")
 #import("candran.serpent")
 
@@ -13,11 +18,6 @@
 #import("candran.can-parser.parser")
 
 local unpack = unpack or table.unpack
-
-local candran = {
-	VERSION = "0.14.0"
-}
-package.loaded["candran"] = candran
 
 --- Default options.
 candran.default = {
