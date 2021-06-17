@@ -1,3 +1,4 @@
+local candran = require("candran")
 local util = {}
 
 function util.search(modpath, exts={})
@@ -50,5 +51,69 @@ function util.merge(...)
 	end
 	return r
 end
+
+util.cli = {
+	-- add option to set Candran options to an argparse parser
+	addCandranOptions = function(parser)
+		parser:group("Compiler options",
+			parser:option("-t --target")
+				:description "Target Lua version: lua54, lua53, lua52, luajit or lua51"
+				:default(candran.default.target),
+
+			parser:option("--indentation")
+				:description "Character(s) used for indentation in the compiled file"
+				:default(candran.default.indentation),
+
+			parser:option("--newline")
+				:description "Character(s) used for newlines in the compiled file"
+				:default(candran.default.newline),
+
+			parser:option("--variable-prefix")
+				:description "Prefix used when Candran needs to set a local variable to provide some functionality"
+				:default(candran.default.variablePrefix),
+
+			parser:flag("--no-map-lines")
+				:description "Do not add comments at the end of each line indicating the associated source line and file (error rewriting will not work)"
+		)
+
+		parser:group("Preprocessor options",
+			parser:flag("--no-builtin-macros")
+				:description "Disable built-in macros",
+
+			parser:option("-D --define")
+				:description "Define a preprocessor constant"
+				:args("1-2")
+				:argname{"name", "value"}
+				:count("*")
+		)
+
+		parser:option("--chunkname")
+			:description "Chunkname used when running the code"
+
+		parser:flag("--no-rewrite-errors")
+			:description "Disable error rewriting when running the code"
+	end,
+
+	-- convert parsed arguments to a Candran options table
+	makeCandranOptions = function(args)
+		local preprocessorEnv = {}
+		for _, o in ipairs(args.define) do
+			preprocessorEnv[o[1]] = tonumber(o[2]) or o[2] or true
+		end
+
+		local options = {
+			target = args.target,
+			indentation = args.indentation,
+			newline = args.newline,
+			variablePrefix = args.variable_prefix,
+			mapLines = not args.no_map_lines,
+			chunkname = args.chunkname,
+			rewriteErrors = not args.no_rewrite_errors,
+			builtInMacros = not args.no_builtin_macros,
+			preprocessorEnv = preprocessorEnv
+		}
+		return options
+	end
+}
 
 return util

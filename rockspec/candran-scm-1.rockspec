@@ -18,14 +18,16 @@ description = {
 }
 
 source = {
-	url = "git://github.com/Reuh/candran"
+	url = "git://github.com/Reuh/candran",
+	branch = "argparse"
 }
 
 dependencies = {
 	"lua >= 5.1",
 	"lpeglabel >= 1.5.0",
 	"linenoise >= 0.9",
-	"luacheck >= 0.23.0"
+	"luacheck >= 0.23.0",
+	"argparse >= 0.7.0"
 }
 
 build = {

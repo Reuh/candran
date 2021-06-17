@@ -1,5 +1,4 @@
 #import("candran.util")
-#import("candran.cmdline")
 #import("candran.serpent")
 
 #import("compiler.lua54")
@@ -29,7 +28,8 @@ candran.default = {
 	mapLines = true,
 	chunkname = "nil",
 	rewriteErrors = true,
-	noBuiltInMacros = false
+	builtInMacros = true,
+	preprocessorEnv = {}
 }
 
 -- Autodetect version
@@ -92,7 +92,7 @@ function candran.preprocess(input, options={})
 	preprocessor ..= "return output"
 
 	-- make preprocessor environement
-	local env = util.merge(_G, options)
+	local env = util.merge(_G, options.preprocessorEnv)
 	--- Candran library table
 	env.candran = candran
 	--- Current preprocessor output
@@ -179,7 +179,7 @@ function candran.preprocess(input, options={})
 	end
 
 	-- default macros
-	if not options.noBuiltInMacros then
+	if options.builtInMacros then
 		env.define("__STR__(x)", function(x) return ("%q"):format(x) end)
 		local s = require("candran.serpent")
 		env.define("__CONSTEXPR__(expr)", function(expr)

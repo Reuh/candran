@@ -1,28 +1,30 @@
 #!/usr/bin/env lua
 
 local candran = require("candran").setup()
-local cmdline = require("candran.cmdline")
+local util = require("candran.util")
+local argparse = require("argparse")
 
-local args = cmdline(arg)
+-- Parse args --
 
-if args.help or args.h then
-	print("Candran "..candran.VERSION.." interpreter by Reuh")
-	print("Usage: "..arg[0].." [options] filename")
-	print("Specify no options to start the REPL.")
-	print("Use - instead of a filename to read from the standard input.")
-	print("Interpreter options:")
-	print("  -help or -h       print this text")
-	print("Default options:")
-	for opt, val in pairs(candran.default) do
-		if type(val) == "string" then val = val:gsub("\n", "\\n") end
-		print(("  %s=%q"):format(opt, tostring(val)))
-	end
-	return
-end
+local parser = argparse()
+	:name "can"
+	:description("Candran "..candran.VERSION.." interpreter by Reuh.")
+	:epilog "For more info, see https://github.com/Reuh/candran"
+
+parser:argument("filename", "Candran file to run. Use - to read from standard input. Start the REPL if no filename given.")
+	:args "?"
+
+util.cli.addCandranOptions(parser)
+
+local args = parser:parse()
+
+local options = util.cli.makeCandranOptions(args)
+
+-- Run --
 
 -- stdin
-if arg[#arg] == "-" then
-	local f, err = candran.load(io.read("*a"), "stdin", nil, args)
+if args.filename == "-" then
+	local f, err = candran.load(io.read("*a"), "stdin", nil, options)
 	if not f then
 		io.stderr:write("can: "..err.."\n")
 		os.exit(1)
@@ -33,8 +35,8 @@ if arg[#arg] == "-" then
 		os.exit(1)
 	end
 -- file
-elseif #args >= 1 then
-	local f, err = candran.loadfile(args[1], nil, args)
+elseif args.filename then
+	local f, err = candran.loadfile(args.filename, nil, options)
 	if not f then
 		io.stderr:write("can: "..err.."\n")
 		os.exit(1)
@@ -47,6 +49,8 @@ elseif #args >= 1 then
 	end
 -- REPL
 else
+	candran.default = util.merge(candran.default, options)
+
 	-- Setup linenoise
 	local s, l = pcall(require, "linenoise")
 	if not s then -- pure Lua compatibility thingy

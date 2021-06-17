@@ -493,7 +493,7 @@ _assert(5 = 2, "failed") -- replaced with if 5 = 2 then error("failed") end
 Candran provide some predefined macros by default:
 * `__STR__(expr)`: returns a string litteral representing the expression (e.g., `__STR__(5 + 2)` expands to `"5 + 2"`)
 * `__CONSTEXPR__(expr)`: calculate the result of the expression in the preprocessor, and returns a representation of the returned value, i.e. precalculate an expression at compile time
-You can disable these built-in macros using the `noBuiltInMacros` compiler option.
+You can disable these built-in macros using the `builtInMacros` compiler option.
 
 Compile targets
 ---------------
@@ -663,14 +663,15 @@ at the top of your main Lua file. If a Candran file is found when you call ```re
 You can give arbitrary options to the compiler and preprocessor, but Candran already provide and uses these with their associated default values:
 
 ```lua
-target = "lua53" -- compiler target. "lua53", "lua52", "luajit" or "lua51" (default is automatically selected based on the Lua version used).
+target = "lua53" -- compiler target. "lua54", "lua53", "lua52", "luajit" or "lua51" (default is automatically selected based on the Lua version used).
 indentation = "" -- character(s) used for indentation in the compiled file.
 newline = "\n" -- character(s) used for newlines in the compiled file.
 variablePrefix = "__CAN_" -- Prefix used when Candran needs to set a local variable to provide some functionality (example: to load LuaJIT's bit lib when using bitwise operators).
 mapLines = true -- if true, compiled files will contain comments at the end of each line indicating the associated line and source file. Needed for error rewriting.
 chunkname = "nil" -- the chunkname used when running code using the helper functions and writing the line origin comments. Candran will try to set it to the original filename if it knows it.
 rewriteErrors = true -- true to enable error rewriting when loading code using the helper functions. Will wrap the whole code in a xpcall().
-noBuiltInMacros = false -- true to disable built-in macros __*__
+builtInMacros = true -- false to disable built-in macros __*__
+preprocessorEnv = {} -- environment to merge with the preprocessor environement
 ```
 
 You can change the defaults used for these variables in the table `candran.default`.
