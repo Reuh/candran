@@ -33,6 +33,6 @@ end
 
 #local patch = output
 #output = ""
-#import("compiler.luajit", { patch = patch, loadPackage = false })
+#import("compiler.luajit", { preprocessorEnv = { patch = patch }, loadPackage = false })
 
 return luajit

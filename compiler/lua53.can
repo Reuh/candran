@@ -13,6 +13,6 @@ end
 
 #local patch = output
 #output = ""
-#import("compiler.lua54", { patch = patch, loadPackage = false })
+#import("compiler.lua54", { preprocessorEnv = { patch = patch }, loadPackage = false })
 
 return lua54
