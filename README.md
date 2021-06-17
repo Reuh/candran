@@ -492,7 +492,8 @@ _assert(5 = 2, "failed") -- replaced with if 5 = 2 then error("failed") end
 
 Candran provide some predefined macros by default:
 * `__STR__(expr)`: returns a string litteral representing the expression (e.g., `__STR__(5 + 2)` expands to `"5 + 2"`)
-* `constexpr(expr)`: calculate the result of the expression in the preprocessor, and returns a representation of the returned value, i.e. precalculate an expression at compile time
+* `__CONSTEXPR__(expr)`: calculate the result of the expression in the preprocessor, and returns a representation of the returned value, i.e. precalculate an expression at compile time
+You can disable these built-in macros using the `noBuiltInMacros` compiler option.
 
 Compile targets
 ---------------
@@ -669,6 +670,7 @@ variablePrefix = "__CAN_" -- Prefix used when Candran needs to set a local varia
 mapLines = true -- if true, compiled files will contain comments at the end of each line indicating the associated line and source file. Needed for error rewriting.
 chunkname = "nil" -- the chunkname used when running code using the helper functions and writing the line origin comments. Candran will try to set it to the original filename if it knows it.
 rewriteErrors = true -- true to enable error rewriting when loading code using the helper functions. Will wrap the whole code in a xpcall().
+noBuiltInMacros = false -- true to disable built-in macros __*__
 ```
 
 You can change the defaults used for these variables in the table `candran.default`.
