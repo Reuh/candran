@@ -127,7 +127,7 @@ return a
 
 test("preprocessor placeholder function", [[
 #placeholder('foo')
-]], 5, { foo = "return 5" })
+]], 5, { preprocessorEnv = { foo = "return 5" } })
 
 test("preprocessor options", [[
 #if not foo == "sky" then
