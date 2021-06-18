@@ -184,6 +184,10 @@ function candran.preprocess(input, options={})
 			error("invalid macro type %s":format(tostring(iast.tag)))
 		end
 	end
+	env.set = function(identifier, value)
+		options.preprocessorEnv[identifier] = value
+		env[identifier] = value
+	end
 
 	-- default macros
 	if options.builtInMacros then

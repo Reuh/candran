@@ -2220,14 +2220,6 @@ end, -- ./compiler/lua54.can:876
 }, { ["__index"] = function(self, key) -- ./compiler/lua54.can:889
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:890
 end }) -- ./compiler/lua54.can:890
-targetName = "Lua 5.3" -- ./compiler/lua53.can:1
-tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
-if t[2] then -- ./compiler/lua53.can:5
-error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
-else -- ./compiler/lua53.can:6
-return t[1] -- ./compiler/lua53.can:8
-end -- ./compiler/lua53.can:8
-end -- ./compiler/lua53.can:8
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:896
 return requireStr .. code -- ./compiler/lua54.can:897
 end -- ./compiler/lua54.can:897
@@ -3167,39 +3159,6 @@ end, -- ./compiler/lua54.can:876
 }, { ["__index"] = function(self, key) -- ./compiler/lua54.can:889
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:890
 end }) -- ./compiler/lua54.can:890
-targetName = "Lua 5.3" -- ./compiler/lua53.can:1
-tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
-if t[2] then -- ./compiler/lua53.can:5
-error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
-else -- ./compiler/lua53.can:6
-return t[1] -- ./compiler/lua53.can:8
-end -- ./compiler/lua53.can:8
-end -- ./compiler/lua53.can:8
-targetName = "Lua 5.2" -- ./compiler/lua52.can:1
-APPEND = function(t, toAppend) -- ./compiler/lua52.can:3
-return "do" .. indent() .. "local " .. var("a") .. ", " .. var("p") .. " = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #" .. var("a") .. " do" .. indent() .. t .. "[" .. var("p") .. "] = " .. var("a") .. "[i]" .. newline() .. "" .. var("p") .. " = " .. var("p") .. " + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/lua52.can:4
-end -- ./compiler/lua52.can:4
-tags["_opid"]["idiv"] = function(left, right) -- ./compiler/lua52.can:7
-return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/lua52.can:8
-end -- ./compiler/lua52.can:8
-tags["_opid"]["band"] = function(left, right) -- ./compiler/lua52.can:10
-return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:11
-end -- ./compiler/lua52.can:11
-tags["_opid"]["bor"] = function(left, right) -- ./compiler/lua52.can:13
-return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:14
-end -- ./compiler/lua52.can:14
-tags["_opid"]["bxor"] = function(left, right) -- ./compiler/lua52.can:16
-return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:17
-end -- ./compiler/lua52.can:17
-tags["_opid"]["shl"] = function(left, right) -- ./compiler/lua52.can:19
-return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:20
-end -- ./compiler/lua52.can:20
-tags["_opid"]["shr"] = function(left, right) -- ./compiler/lua52.can:22
-return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:23
-end -- ./compiler/lua52.can:23
-tags["_opid"]["bnot"] = function(right) -- ./compiler/lua52.can:25
-return "bit32.bnot(" .. lua(right) .. ")" -- ./compiler/lua52.can:26
-end -- ./compiler/lua52.can:26
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:896
 return requireStr .. code -- ./compiler/lua54.can:897
 end -- ./compiler/lua54.can:897
@@ -4143,67 +4102,6 @@ end, -- ./compiler/lua54.can:876
 }, { ["__index"] = function(self, key) -- ./compiler/lua54.can:889
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:890
 end }) -- ./compiler/lua54.can:890
-targetName = "Lua 5.3" -- ./compiler/lua53.can:1
-tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
-if t[2] then -- ./compiler/lua53.can:5
-error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
-else -- ./compiler/lua53.can:6
-return t[1] -- ./compiler/lua53.can:8
-end -- ./compiler/lua53.can:8
-end -- ./compiler/lua53.can:8
-targetName = "Lua 5.2" -- ./compiler/lua52.can:1
-APPEND = function(t, toAppend) -- ./compiler/lua52.can:3
-return "do" .. indent() .. "local " .. var("a") .. ", " .. var("p") .. " = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #" .. var("a") .. " do" .. indent() .. t .. "[" .. var("p") .. "] = " .. var("a") .. "[i]" .. newline() .. "" .. var("p") .. " = " .. var("p") .. " + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/lua52.can:4
-end -- ./compiler/lua52.can:4
-tags["_opid"]["idiv"] = function(left, right) -- ./compiler/lua52.can:7
-return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/lua52.can:8
-end -- ./compiler/lua52.can:8
-tags["_opid"]["band"] = function(left, right) -- ./compiler/lua52.can:10
-return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:11
-end -- ./compiler/lua52.can:11
-tags["_opid"]["bor"] = function(left, right) -- ./compiler/lua52.can:13
-return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:14
-end -- ./compiler/lua52.can:14
-tags["_opid"]["bxor"] = function(left, right) -- ./compiler/lua52.can:16
-return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:17
-end -- ./compiler/lua52.can:17
-tags["_opid"]["shl"] = function(left, right) -- ./compiler/lua52.can:19
-return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:20
-end -- ./compiler/lua52.can:20
-tags["_opid"]["shr"] = function(left, right) -- ./compiler/lua52.can:22
-return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:23
-end -- ./compiler/lua52.can:23
-tags["_opid"]["bnot"] = function(right) -- ./compiler/lua52.can:25
-return "bit32.bnot(" .. lua(right) .. ")" -- ./compiler/lua52.can:26
-end -- ./compiler/lua52.can:26
-targetName = "LuaJIT" -- ./compiler/luajit.can:1
-UNPACK = function(list, i, j) -- ./compiler/luajit.can:3
-return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/luajit.can:4
-end -- ./compiler/luajit.can:4
-tags["_opid"]["band"] = function(left, right) -- ./compiler/luajit.can:7
-addRequire("bit", "band", "band") -- ./compiler/luajit.can:8
-return var("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:9
-end -- ./compiler/luajit.can:9
-tags["_opid"]["bor"] = function(left, right) -- ./compiler/luajit.can:11
-addRequire("bit", "bor", "bor") -- ./compiler/luajit.can:12
-return var("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:13
-end -- ./compiler/luajit.can:13
-tags["_opid"]["bxor"] = function(left, right) -- ./compiler/luajit.can:15
-addRequire("bit", "bxor", "bxor") -- ./compiler/luajit.can:16
-return var("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:17
-end -- ./compiler/luajit.can:17
-tags["_opid"]["shl"] = function(left, right) -- ./compiler/luajit.can:19
-addRequire("bit", "lshift", "lshift") -- ./compiler/luajit.can:20
-return var("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:21
-end -- ./compiler/luajit.can:21
-tags["_opid"]["shr"] = function(left, right) -- ./compiler/luajit.can:23
-addRequire("bit", "rshift", "rshift") -- ./compiler/luajit.can:24
-return var("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:25
-end -- ./compiler/luajit.can:25
-tags["_opid"]["bnot"] = function(right) -- ./compiler/luajit.can:27
-addRequire("bit", "bnot", "bnot") -- ./compiler/luajit.can:28
-return var("bnot") .. "(" .. lua(right) .. ")" -- ./compiler/luajit.can:29
-end -- ./compiler/luajit.can:29
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:896
 return requireStr .. code -- ./compiler/lua54.can:897
 end -- ./compiler/lua54.can:897
@@ -5151,92 +5049,6 @@ end, -- ./compiler/lua54.can:876
 }, { ["__index"] = function(self, key) -- ./compiler/lua54.can:889
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:890
 end }) -- ./compiler/lua54.can:890
-targetName = "Lua 5.3" -- ./compiler/lua53.can:1
-tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
-if t[2] then -- ./compiler/lua53.can:5
-error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
-else -- ./compiler/lua53.can:6
-return t[1] -- ./compiler/lua53.can:8
-end -- ./compiler/lua53.can:8
-end -- ./compiler/lua53.can:8
-targetName = "Lua 5.2" -- ./compiler/lua52.can:1
-APPEND = function(t, toAppend) -- ./compiler/lua52.can:3
-return "do" .. indent() .. "local " .. var("a") .. ", " .. var("p") .. " = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #" .. var("a") .. " do" .. indent() .. t .. "[" .. var("p") .. "] = " .. var("a") .. "[i]" .. newline() .. "" .. var("p") .. " = " .. var("p") .. " + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/lua52.can:4
-end -- ./compiler/lua52.can:4
-tags["_opid"]["idiv"] = function(left, right) -- ./compiler/lua52.can:7
-return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/lua52.can:8
-end -- ./compiler/lua52.can:8
-tags["_opid"]["band"] = function(left, right) -- ./compiler/lua52.can:10
-return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:11
-end -- ./compiler/lua52.can:11
-tags["_opid"]["bor"] = function(left, right) -- ./compiler/lua52.can:13
-return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:14
-end -- ./compiler/lua52.can:14
-tags["_opid"]["bxor"] = function(left, right) -- ./compiler/lua52.can:16
-return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:17
-end -- ./compiler/lua52.can:17
-tags["_opid"]["shl"] = function(left, right) -- ./compiler/lua52.can:19
-return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:20
-end -- ./compiler/lua52.can:20
-tags["_opid"]["shr"] = function(left, right) -- ./compiler/lua52.can:22
-return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:23
-end -- ./compiler/lua52.can:23
-tags["_opid"]["bnot"] = function(right) -- ./compiler/lua52.can:25
-return "bit32.bnot(" .. lua(right) .. ")" -- ./compiler/lua52.can:26
-end -- ./compiler/lua52.can:26
-targetName = "LuaJIT" -- ./compiler/luajit.can:1
-UNPACK = function(list, i, j) -- ./compiler/luajit.can:3
-return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/luajit.can:4
-end -- ./compiler/luajit.can:4
-tags["_opid"]["band"] = function(left, right) -- ./compiler/luajit.can:7
-addRequire("bit", "band", "band") -- ./compiler/luajit.can:8
-return var("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:9
-end -- ./compiler/luajit.can:9
-tags["_opid"]["bor"] = function(left, right) -- ./compiler/luajit.can:11
-addRequire("bit", "bor", "bor") -- ./compiler/luajit.can:12
-return var("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:13
-end -- ./compiler/luajit.can:13
-tags["_opid"]["bxor"] = function(left, right) -- ./compiler/luajit.can:15
-addRequire("bit", "bxor", "bxor") -- ./compiler/luajit.can:16
-return var("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:17
-end -- ./compiler/luajit.can:17
-tags["_opid"]["shl"] = function(left, right) -- ./compiler/luajit.can:19
-addRequire("bit", "lshift", "lshift") -- ./compiler/luajit.can:20
-return var("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:21
-end -- ./compiler/luajit.can:21
-tags["_opid"]["shr"] = function(left, right) -- ./compiler/luajit.can:23
-addRequire("bit", "rshift", "rshift") -- ./compiler/luajit.can:24
-return var("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:25
-end -- ./compiler/luajit.can:25
-tags["_opid"]["bnot"] = function(right) -- ./compiler/luajit.can:27
-addRequire("bit", "bnot", "bnot") -- ./compiler/luajit.can:28
-return var("bnot") .. "(" .. lua(right) .. ")" -- ./compiler/luajit.can:29
-end -- ./compiler/luajit.can:29
-targetName = "Lua 5.1" -- ./compiler/lua51.can:1
-states["continue"] = {} -- ./compiler/lua51.can:3
-CONTINUE_START = function() -- ./compiler/lua51.can:5
-return "local " .. var("break") .. newline() .. "repeat" .. indent() .. push("continue", var("break")) -- ./compiler/lua51.can:6
-end -- ./compiler/lua51.can:6
-CONTINUE_STOP = function() -- ./compiler/lua51.can:8
-return pop("continue") .. unindent() .. "until true" .. newline() .. "if " .. var("break") .. " then break end" -- ./compiler/lua51.can:9
-end -- ./compiler/lua51.can:9
-tags["Continue"] = function() -- ./compiler/lua51.can:12
-return "break" -- ./compiler/lua51.can:13
-end -- ./compiler/lua51.can:13
-tags["Break"] = function() -- ./compiler/lua51.can:15
-local inContinue = peek("continue") -- ./compiler/lua51.can:16
-if inContinue then -- ./compiler/lua51.can:17
-return inContinue .. " = true" .. newline() .. "break" -- ./compiler/lua51.can:18
-else -- ./compiler/lua51.can:18
-return "break" -- ./compiler/lua51.can:20
-end -- ./compiler/lua51.can:20
-end -- ./compiler/lua51.can:20
-tags["Goto"] = function() -- ./compiler/lua51.can:25
-error("target " .. targetName .. " does not support gotos") -- ./compiler/lua51.can:26
-end -- ./compiler/lua51.can:26
-tags["Label"] = function() -- ./compiler/lua51.can:28
-error("target " .. targetName .. " does not support goto labels") -- ./compiler/lua51.can:29
-end -- ./compiler/lua51.can:29
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:896
 return requireStr .. code -- ./compiler/lua54.can:897
 end -- ./compiler/lua54.can:897
@@ -7158,182 +6970,186 @@ else -- candran.can:182
 error(("invalid macro type %s"):format(tostring(iast["tag"]))) -- candran.can:184
 end -- candran.can:184
 end -- candran.can:184
-if options["builtInMacros"] then -- candran.can:189
-env["define"]("__STR__(x)", function(x) -- candran.can:190
-return ("%q"):format(x) -- candran.can:190
-end) -- candran.can:190
-local s = require("candran.serpent") -- candran.can:191
-env["define"]("__CONSTEXPR__(expr)", function(expr) -- candran.can:192
-return s["block"](assert(candran["load"](expr))(), { ["fatal"] = true }) -- candran.can:193
-end) -- candran.can:193
-end -- candran.can:193
-local preprocess, err = candran["compile"](preprocessor, options) -- candran.can:198
-if not preprocess then -- candran.can:199
-return nil, "in preprocessor: " .. err -- candran.can:200
-end -- candran.can:200
-preprocess, err = util["load"](preprocessor, "candran preprocessor", env) -- candran.can:203
-if not preprocess then -- candran.can:204
-return nil, "in preprocessor: " .. err -- candran.can:205
-end -- candran.can:205
-local success, output = pcall(preprocess) -- candran.can:209
-if not success then -- candran.can:210
-return nil, "in preprocessor: " .. output -- candran.can:211
-end -- candran.can:211
-return output, macros -- candran.can:214
-end -- candran.can:214
-candran["compile"] = function(input, options, macros) -- candran.can:224
-if options == nil then options = {} end -- candran.can:224
-options = util["merge"](candran["default"], options) -- candran.can:225
-local ast, errmsg = parser["parse"](input, options["chunkname"]) -- candran.can:227
-if not ast then -- candran.can:229
-return nil, errmsg -- candran.can:230
-end -- candran.can:230
-return require("compiler." .. options["target"])(input, ast, options, macros) -- candran.can:233
-end -- candran.can:233
-candran["make"] = function(code, options) -- candran.can:242
-local r, err = candran["preprocess"](code, options) -- candran.can:243
-if r then -- candran.can:244
-r, err = candran["compile"](r, options, err) -- candran.can:245
-if r then -- candran.can:246
-return r -- candran.can:247
-end -- candran.can:247
-end -- candran.can:247
-return r, err -- candran.can:250
-end -- candran.can:250
-local errorRewritingActive = false -- candran.can:253
-local codeCache = {} -- candran.can:254
-candran["loadfile"] = function(filepath, env, options) -- candran.can:257
-local f, err = io["open"](filepath) -- candran.can:258
-if not f then -- candran.can:259
-return nil, ("cannot open %s"):format(tostring(err)) -- candran.can:260
-end -- candran.can:260
-local content = f:read("*a") -- candran.can:262
-f:close() -- candran.can:263
-return candran["load"](content, filepath, env, options) -- candran.can:265
-end -- candran.can:265
-candran["load"] = function(chunk, chunkname, env, options) -- candran.can:270
-if options == nil then options = {} end -- candran.can:270
-options = util["merge"]({ ["chunkname"] = tostring(chunkname or chunk) }, options) -- candran.can:271
-local code, err = candran["make"](chunk, options) -- candran.can:273
-if not code then -- candran.can:274
-return code, err -- candran.can:275
-end -- candran.can:275
-codeCache[options["chunkname"]] = code -- candran.can:278
-local f -- candran.can:279
-f, err = util["load"](code, ("=%s(%s)"):format(options["chunkname"], "compiled candran"), env) -- candran.can:280
-if f == nil then -- candran.can:285
-return f, "candran unexpectedly generated invalid code: " .. err -- candran.can:286
-end -- candran.can:286
-if options["rewriteErrors"] == false then -- candran.can:289
-return f -- candran.can:290
-else -- candran.can:290
-return function(...) -- candran.can:292
-if not errorRewritingActive then -- candran.can:293
-errorRewritingActive = true -- candran.can:294
-local t = { xpcall(f, candran["messageHandler"], ...) } -- candran.can:295
-errorRewritingActive = false -- candran.can:296
-if t[1] == false then -- candran.can:297
-error(t[2], 0) -- candran.can:298
-end -- candran.can:298
-return unpack(t, 2) -- candran.can:300
-else -- candran.can:300
-return f(...) -- candran.can:302
+env["set"] = function(identifier, value) -- candran.can:187
+options["preprocessorEnv"][identifier] = value -- candran.can:188
+env[identifier] = value -- candran.can:189
+end -- candran.can:189
+if options["builtInMacros"] then -- candran.can:193
+env["define"]("__STR__(x)", function(x) -- candran.can:194
+return ("%q"):format(x) -- candran.can:194
+end) -- candran.can:194
+local s = require("candran.serpent") -- candran.can:195
+env["define"]("__CONSTEXPR__(expr)", function(expr) -- candran.can:196
+return s["block"](assert(candran["load"](expr))(), { ["fatal"] = true }) -- candran.can:197
+end) -- candran.can:197
+end -- candran.can:197
+local preprocess, err = candran["compile"](preprocessor, options) -- candran.can:202
+if not preprocess then -- candran.can:203
+return nil, "in preprocessor: " .. err -- candran.can:204
+end -- candran.can:204
+preprocess, err = util["load"](preprocessor, "candran preprocessor", env) -- candran.can:207
+if not preprocess then -- candran.can:208
+return nil, "in preprocessor: " .. err -- candran.can:209
+end -- candran.can:209
+local success, output = pcall(preprocess) -- candran.can:213
+if not success then -- candran.can:214
+return nil, "in preprocessor: " .. output -- candran.can:215
+end -- candran.can:215
+return output, macros -- candran.can:218
+end -- candran.can:218
+candran["compile"] = function(input, options, macros) -- candran.can:228
+if options == nil then options = {} end -- candran.can:228
+options = util["merge"](candran["default"], options) -- candran.can:229
+local ast, errmsg = parser["parse"](input, options["chunkname"]) -- candran.can:231
+if not ast then -- candran.can:233
+return nil, errmsg -- candran.can:234
+end -- candran.can:234
+return require("compiler." .. options["target"])(input, ast, options, macros) -- candran.can:237
+end -- candran.can:237
+candran["make"] = function(code, options) -- candran.can:246
+local r, err = candran["preprocess"](code, options) -- candran.can:247
+if r then -- candran.can:248
+r, err = candran["compile"](r, options, err) -- candran.can:249
+if r then -- candran.can:250
+return r -- candran.can:251
+end -- candran.can:251
+end -- candran.can:251
+return r, err -- candran.can:254
+end -- candran.can:254
+local errorRewritingActive = false -- candran.can:257
+local codeCache = {} -- candran.can:258
+candran["loadfile"] = function(filepath, env, options) -- candran.can:261
+local f, err = io["open"](filepath) -- candran.can:262
+if not f then -- candran.can:263
+return nil, ("cannot open %s"):format(tostring(err)) -- candran.can:264
+end -- candran.can:264
+local content = f:read("*a") -- candran.can:266
+f:close() -- candran.can:267
+return candran["load"](content, filepath, env, options) -- candran.can:269
+end -- candran.can:269
+candran["load"] = function(chunk, chunkname, env, options) -- candran.can:274
+if options == nil then options = {} end -- candran.can:274
+options = util["merge"]({ ["chunkname"] = tostring(chunkname or chunk) }, options) -- candran.can:275
+local code, err = candran["make"](chunk, options) -- candran.can:277
+if not code then -- candran.can:278
+return code, err -- candran.can:279
+end -- candran.can:279
+codeCache[options["chunkname"]] = code -- candran.can:282
+local f -- candran.can:283
+f, err = util["load"](code, ("=%s(%s)"):format(options["chunkname"], "compiled candran"), env) -- candran.can:284
+if f == nil then -- candran.can:289
+return f, "candran unexpectedly generated invalid code: " .. err -- candran.can:290
+end -- candran.can:290
+if options["rewriteErrors"] == false then -- candran.can:293
+return f -- candran.can:294
+else -- candran.can:294
+return function(...) -- candran.can:296
+if not errorRewritingActive then -- candran.can:297
+errorRewritingActive = true -- candran.can:298
+local t = { xpcall(f, candran["messageHandler"], ...) } -- candran.can:299
+errorRewritingActive = false -- candran.can:300
+if t[1] == false then -- candran.can:301
+error(t[2], 0) -- candran.can:302
 end -- candran.can:302
-end -- candran.can:302
-end -- candran.can:302
-end -- candran.can:302
-candran["dofile"] = function(filename, options) -- candran.can:310
-local f, err = candran["loadfile"](filename, nil, options) -- candran.can:311
-if f == nil then -- candran.can:313
-error(err) -- candran.can:314
-else -- candran.can:314
-return f() -- candran.can:316
-end -- candran.can:316
-end -- candran.can:316
-candran["messageHandler"] = function(message, noTraceback) -- candran.can:322
-message = tostring(message) -- candran.can:323
+return unpack(t, 2) -- candran.can:304
+else -- candran.can:304
+return f(...) -- candran.can:306
+end -- candran.can:306
+end -- candran.can:306
+end -- candran.can:306
+end -- candran.can:306
+candran["dofile"] = function(filename, options) -- candran.can:314
+local f, err = candran["loadfile"](filename, nil, options) -- candran.can:315
+if f == nil then -- candran.can:317
+error(err) -- candran.can:318
+else -- candran.can:318
+return f() -- candran.can:320
+end -- candran.can:320
+end -- candran.can:320
+candran["messageHandler"] = function(message, noTraceback) -- candran.can:326
+message = tostring(message) -- candran.can:327
 if not noTraceback and not message:match("\
 stack traceback:\
-") then -- candran.can:324
-message = debug["traceback"](message, 2) -- candran.can:325
-end -- candran.can:325
+") then -- candran.can:328
+message = debug["traceback"](message, 2) -- candran.can:329
+end -- candran.can:329
 return message:gsub("(\
 ?%s*)([^\
-]-)%:(%d+)%:", function(indentation, source, line) -- candran.can:327
-line = tonumber(line) -- candran.can:328
-local originalFile -- candran.can:330
-local strName = source:match("^(.-)%(compiled candran%)$") -- candran.can:331
-if strName then -- candran.can:332
-if codeCache[strName] then -- candran.can:333
-originalFile = codeCache[strName] -- candran.can:334
-source = strName -- candran.can:335
-end -- candran.can:335
-else -- candran.can:335
-do -- candran.can:338
-local fi -- candran.can:338
-fi = io["open"](source, "r") -- candran.can:338
-if fi then -- candran.can:338
-originalFile = fi:read("*a") -- candran.can:339
-fi:close() -- candran.can:340
-end -- candran.can:340
-end -- candran.can:340
-end -- candran.can:340
-if originalFile then -- candran.can:344
-local i = 0 -- candran.can:345
+]-)%:(%d+)%:", function(indentation, source, line) -- candran.can:331
+line = tonumber(line) -- candran.can:332
+local originalFile -- candran.can:334
+local strName = source:match("^(.-)%(compiled candran%)$") -- candran.can:335
+if strName then -- candran.can:336
+if codeCache[strName] then -- candran.can:337
+originalFile = codeCache[strName] -- candran.can:338
+source = strName -- candran.can:339
+end -- candran.can:339
+else -- candran.can:339
+do -- candran.can:342
+local fi -- candran.can:342
+fi = io["open"](source, "r") -- candran.can:342
+if fi then -- candran.can:342
+originalFile = fi:read("*a") -- candran.can:343
+fi:close() -- candran.can:344
+end -- candran.can:344
+end -- candran.can:344
+end -- candran.can:344
+if originalFile then -- candran.can:348
+local i = 0 -- candran.can:349
 for l in (originalFile .. "\
 "):gmatch("([^\
 ]*)\
-") do -- candran.can:346
-i = i + 1 -- candran.can:347
-if i == line then -- candran.can:348
-local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$") -- candran.can:349
-if lineMap then -- candran.can:350
-if extSource ~= source then -- candran.can:351
-return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:352
-else -- candran.can:352
-return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):" -- candran.can:354
-end -- candran.can:354
-end -- candran.can:354
-break -- candran.can:357
-end -- candran.can:357
-end -- candran.can:357
-end -- candran.can:357
-end) -- candran.can:357
-end -- candran.can:357
-candran["searcher"] = function(modpath) -- candran.can:365
-local filepath = util["search"](modpath, { "can" }) -- candran.can:366
-if not filepath then -- candran.can:367
-if _VERSION == "Lua 5.4" then -- candran.can:368
-return "no candran file in package.path" -- candran.can:369
-else -- candran.can:369
+") do -- candran.can:350
+i = i + 1 -- candran.can:351
+if i == line then -- candran.can:352
+local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$") -- candran.can:353
+if lineMap then -- candran.can:354
+if extSource ~= source then -- candran.can:355
+return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:356
+else -- candran.can:356
+return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):" -- candran.can:358
+end -- candran.can:358
+end -- candran.can:358
+break -- candran.can:361
+end -- candran.can:361
+end -- candran.can:361
+end -- candran.can:361
+end) -- candran.can:361
+end -- candran.can:361
+candran["searcher"] = function(modpath) -- candran.can:369
+local filepath = util["search"](modpath, { "can" }) -- candran.can:370
+if not filepath then -- candran.can:371
+if _VERSION == "Lua 5.4" then -- candran.can:372
+return "no candran file in package.path" -- candran.can:373
+else -- candran.can:373
 return "\
-\9no candran file in package.path" -- candran.can:371
-end -- candran.can:371
-end -- candran.can:371
-return function(modpath) -- candran.can:374
-local r, s = candran["loadfile"](filepath) -- candran.can:375
-if r then -- candran.can:376
-return r(modpath, filepath) -- candran.can:377
-else -- candran.can:377
+\9no candran file in package.path" -- candran.can:375
+end -- candran.can:375
+end -- candran.can:375
+return function(modpath) -- candran.can:378
+local r, s = candran["loadfile"](filepath) -- candran.can:379
+if r then -- candran.can:380
+return r(modpath, filepath) -- candran.can:381
+else -- candran.can:381
 error(("error loading candran module '%s' from file '%s':\
-\9%s"):format(modpath, filepath, tostring(s)), 0) -- candran.can:379
-end -- candran.can:379
-end, filepath -- candran.can:381
-end -- candran.can:381
-candran["setup"] = function() -- candran.can:385
-local searchers = (function() -- candran.can:386
-if _VERSION == "Lua 5.1" then -- candran.can:386
-return package["loaders"] -- candran.can:387
-else -- candran.can:387
-return package["searchers"] -- candran.can:389
-end -- candran.can:389
-end)() -- candran.can:389
-for _, s in ipairs(searchers) do -- candran.can:392
-if s == candran["searcher"] then -- candran.can:393
-return candran -- candran.can:394
-end -- candran.can:394
-end -- candran.can:394
-table["insert"](searchers, 1, candran["searcher"]) -- candran.can:398
-return candran -- candran.can:399
-end -- candran.can:399
-return candran -- candran.can:402
+\9%s"):format(modpath, filepath, tostring(s)), 0) -- candran.can:383
+end -- candran.can:383
+end, filepath -- candran.can:385
+end -- candran.can:385
+candran["setup"] = function() -- candran.can:389
+local searchers = (function() -- candran.can:390
+if _VERSION == "Lua 5.1" then -- candran.can:390
+return package["loaders"] -- candran.can:391
+else -- candran.can:391
+return package["searchers"] -- candran.can:393
+end -- candran.can:393
+end)() -- candran.can:393
+for _, s in ipairs(searchers) do -- candran.can:396
+if s == candran["searcher"] then -- candran.can:397
+return candran -- candran.can:398
+end -- candran.can:398
+end -- candran.can:398
+table["insert"](searchers, 1, candran["searcher"]) -- candran.can:402
+return candran -- candran.can:403
+end -- candran.can:403
+return candran -- candran.can:406
