@@ -53,7 +53,7 @@ end
 -- @treturn[1] macros registered macros
 -- @treturn[2] nil nil if error
 -- @treturn[2] error string error message
-function candran.preprocess(input, options={})
+function candran.preprocess(input, options={}, _env)
 	options = util.merge(candran.default, options)
 	local macros = {
 		functions = {},
@@ -98,6 +98,7 @@ function candran.preprocess(input, options={})
 	preprocessor ..= "return output"
 
 	-- make preprocessor environement
+	local exportenv = {}
 	local env = util.merge(_G, options.preprocessorEnv)
 	--- Candran library table
 	env.candran = candran
@@ -118,8 +119,9 @@ function candran.preprocess(input, options={})
 
 		margs = util.merge(options, { chunkname = filepath, loadLocal = true, loadPackage = true }, margs)
 		margs.import = {} -- no need for recursive import
-		local modcontent, modmacros = assert(candran.preprocess(f:read("*a"), margs))
+		local modcontent, modmacros, modenv = assert(candran.preprocess(f:read("*a"), margs))
 		macros = util.recmerge(macros, modmacros)
+		for k, v in pairs(modenv) do env[k] = v end
 		f:close()
 
 		-- get module name (ex: module name of path.to.module is module)
@@ -185,7 +187,7 @@ function candran.preprocess(input, options={})
 		end
 	end
 	env.set = function(identifier, value)
-		options.preprocessorEnv[identifier] = value
+		exportenv[identifier] = value
 		env[identifier] = value
 	end
 
@@ -215,7 +217,7 @@ function candran.preprocess(input, options={})
 		return nil, "in preprocessor: "..output
 	end
 
-	return output, macros
+	return output, macros, exportenv
 end
 
 --- Run the compiler
