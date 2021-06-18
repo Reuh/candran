@@ -456,6 +456,7 @@ The preprocessor has access to the following variables:
 * ````write(...)````: write to the preprocessor output. For example, ````#write("hello()")```` will output ````hello()```` in the final file.
 * ```placeholder(name)```: if the variable _name_ is defined in the preprocessor environement, its content will be inserted here.
 * ```define(identifier, replacement)```: define a macro. See below.
+* ```set(identifier, value)```: set a preprocessor constant.
 * each arguments passed to the preprocessor is directly available in the environment.
 * and every standard Lua library.
 
@@ -526,23 +527,41 @@ The library can be used standalone through the ```canc``` (for compiling Candran
 
 	Preprocess and compile each  _filename_ Candran files, and creates the assiociated ```.lua``` files in the same directories.
 
-	_options_ is of type ````-somearg -anotherarg thing=somestring other=5````, which will generate a Lua table ```{ somearg = true, anotherarg = true, thing = "somestring", other = 5 }```.
+	_options_ is of type ````--no-map-lines -p --include module -d VAR 5````.
 
-	You can choose to use another directory where files should be written using the ```dest=destinationDirectory``` argument.
+	You can choose to use another directory where files should be written using the `--destination` or `-d` option: ```--destination destinationDirectory```.
 
-	You can choose the output filename using ```out=filename```. By default, compiled files have the same name as their input file, but with a ```.lua``` extension.
+	You can choose the output filename using `--output` or `-o` option: `--output filename`. By default, compiled files have the same name as their input file, but with a ```.lua``` extension.
 
-	```canc``` can write to the standard output instead of creating files using the ```-print``` argument.
+	```canc``` can write to the standard output instead of creating files using the ```--print``` or `-p` argument.
 
-	You can choose to run only the preprocessor or compile using the ```-preprocess``` and ```-compile``` flags.
+	You can choose to run only the preprocessor or compile using the ```--preprocess``` and ```--compile``` flags.
 
-	You can choose to only parse the file and check it for syntaxic errors using the ```-parse``` flag. Errors will be printed to stderr in a similar format to ```luac -p```.
+	You can choose to only parse the file and check it for syntaxic errors using the ```--parse``` flag. Errors will be printed to stderr in a similar format to ```luac -p```.
 
-	The ```-ast``` flag is also available for debugging, and will disable preprocessing, compiling and file writing, and instead directly dump the AST generated from the input file(s) to stdout.
+	The ```--ast``` flag is also available for debugging, and will disable preprocessing, compiling and file writing, and instead directly dump the AST generated from the input file(s) to stdout.
 
 	Instead of providing filenames, you can use ```-``` to read from standard input.
 
-	Use the ```-h``` or ```-help``` option to display a short help text.
+	You can change the compiler target using `--target` or `-t`: `--target luajit`.
+
+	You can change the identation and newline string using `--indentation` and `--newline`: `--identation luajit`.
+
+	You can change Candran's built-in variable prefix using `--variable-prefix`: `--variable-prefix __CAN_`.
+
+	You can disable line mapping (error rewriting will not work) using `--no-map-lines`.
+
+	You can disable built-in macros using `--no-builtin-macros`.
+
+	You can define preprocessor constants using `--define` or `-D`: `--define VAR 5`. `VAR` will be available and set to 5 in the preprocessor. If you specify no value, it defaults to true.
+
+	You can statically import modules using `--import` or `-I`: `--import module`. The module will be imported in compiled files using `#import("module",{loadLocal=false})`.
+
+	You can disable error rewriting using `--no-rewrite-errors`.
+
+	You can change the chunkname using `--chunkname`: `--chunkname filename`. This will change the filenames are reported in errors. By default, try to use the current file name, or stdin when using `-`.
+
+	Use the ```-h``` or ```--help``` option to display the help text.
 
 	Example uses:
 
@@ -550,15 +569,15 @@ The library can be used standalone through the ```canc``` (for compiling Candran
 
 		preprocess and compile _foo.can_ and write the result in _foo.lua_.
 
-	* ````canc indentation="  " foo.can````
+	* ````canc --indentation "  " foo.can````
 
 		preprocess and compile _foo.can_ with 2-space indentation (readable code!) and write the result in _foo.lua_.
 
-	* ````canc foo.can -verbose -print | lua````
+	* ````canc foo.can -d verbose --print | lua````
 
-		preprocess _foo.can_ with _verbose_ set to _true_, compile it and execute it.
+		preprocess _foo.can_ with _verbose_ set to _true_ in the preprocessor, compile it and execute it.
 
-	* ````canc -parse foo.can````
+	* ````canc --parse foo.can````
 
 		checks foo.can for syntaxic errors.
 
@@ -578,7 +597,9 @@ The library can be used standalone through the ```canc``` (for compiling Candran
 
 	Instead of providing a filename, you can use ```-``` to read from standard input.
 
-	Use the ```-h``` or ```-help``` option to display a short help text.
+	Use similar options as `canc`.
+
+	Use the ```-h``` or ```-help``` option to display the help text.
 
 *   ```cancheck```
 
@@ -672,6 +693,7 @@ chunkname = "nil" -- the chunkname used when running code using the helper funct
 rewriteErrors = true -- true to enable error rewriting when loading code using the helper functions. Will wrap the whole code in a xpcall().
 builtInMacros = true -- false to disable built-in macros __*__
 preprocessorEnv = {} -- environment to merge with the preprocessor environement
+import = {} -- list of modules to automatically import in compiled files (using #import("module",{loadLocal=false}))
 ```
 
 You can change the defaults used for these variables in the table `candran.default`.

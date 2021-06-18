@@ -2220,6 +2220,14 @@ end, -- ./compiler/lua54.can:876
 }, { ["__index"] = function(self, key) -- ./compiler/lua54.can:889
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:890
 end }) -- ./compiler/lua54.can:890
+targetName = "Lua 5.3" -- ./compiler/lua53.can:1
+tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
+if t[2] then -- ./compiler/lua53.can:5
+error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
+else -- ./compiler/lua53.can:6
+return t[1] -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:896
 return requireStr .. code -- ./compiler/lua54.can:897
 end -- ./compiler/lua54.can:897
@@ -3159,6 +3167,39 @@ end, -- ./compiler/lua54.can:876
 }, { ["__index"] = function(self, key) -- ./compiler/lua54.can:889
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:890
 end }) -- ./compiler/lua54.can:890
+targetName = "Lua 5.3" -- ./compiler/lua53.can:1
+tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
+if t[2] then -- ./compiler/lua53.can:5
+error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
+else -- ./compiler/lua53.can:6
+return t[1] -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+targetName = "Lua 5.2" -- ./compiler/lua52.can:1
+APPEND = function(t, toAppend) -- ./compiler/lua52.can:3
+return "do" .. indent() .. "local " .. var("a") .. ", " .. var("p") .. " = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #" .. var("a") .. " do" .. indent() .. t .. "[" .. var("p") .. "] = " .. var("a") .. "[i]" .. newline() .. "" .. var("p") .. " = " .. var("p") .. " + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/lua52.can:4
+end -- ./compiler/lua52.can:4
+tags["_opid"]["idiv"] = function(left, right) -- ./compiler/lua52.can:7
+return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/lua52.can:8
+end -- ./compiler/lua52.can:8
+tags["_opid"]["band"] = function(left, right) -- ./compiler/lua52.can:10
+return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:11
+end -- ./compiler/lua52.can:11
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/lua52.can:13
+return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:14
+end -- ./compiler/lua52.can:14
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/lua52.can:16
+return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:17
+end -- ./compiler/lua52.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/lua52.can:19
+return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:20
+end -- ./compiler/lua52.can:20
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/lua52.can:22
+return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:23
+end -- ./compiler/lua52.can:23
+tags["_opid"]["bnot"] = function(right) -- ./compiler/lua52.can:25
+return "bit32.bnot(" .. lua(right) .. ")" -- ./compiler/lua52.can:26
+end -- ./compiler/lua52.can:26
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:896
 return requireStr .. code -- ./compiler/lua54.can:897
 end -- ./compiler/lua54.can:897
@@ -4102,6 +4143,67 @@ end, -- ./compiler/lua54.can:876
 }, { ["__index"] = function(self, key) -- ./compiler/lua54.can:889
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:890
 end }) -- ./compiler/lua54.can:890
+targetName = "Lua 5.3" -- ./compiler/lua53.can:1
+tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
+if t[2] then -- ./compiler/lua53.can:5
+error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
+else -- ./compiler/lua53.can:6
+return t[1] -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+targetName = "Lua 5.2" -- ./compiler/lua52.can:1
+APPEND = function(t, toAppend) -- ./compiler/lua52.can:3
+return "do" .. indent() .. "local " .. var("a") .. ", " .. var("p") .. " = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #" .. var("a") .. " do" .. indent() .. t .. "[" .. var("p") .. "] = " .. var("a") .. "[i]" .. newline() .. "" .. var("p") .. " = " .. var("p") .. " + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/lua52.can:4
+end -- ./compiler/lua52.can:4
+tags["_opid"]["idiv"] = function(left, right) -- ./compiler/lua52.can:7
+return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/lua52.can:8
+end -- ./compiler/lua52.can:8
+tags["_opid"]["band"] = function(left, right) -- ./compiler/lua52.can:10
+return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:11
+end -- ./compiler/lua52.can:11
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/lua52.can:13
+return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:14
+end -- ./compiler/lua52.can:14
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/lua52.can:16
+return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:17
+end -- ./compiler/lua52.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/lua52.can:19
+return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:20
+end -- ./compiler/lua52.can:20
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/lua52.can:22
+return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:23
+end -- ./compiler/lua52.can:23
+tags["_opid"]["bnot"] = function(right) -- ./compiler/lua52.can:25
+return "bit32.bnot(" .. lua(right) .. ")" -- ./compiler/lua52.can:26
+end -- ./compiler/lua52.can:26
+targetName = "LuaJIT" -- ./compiler/luajit.can:1
+UNPACK = function(list, i, j) -- ./compiler/luajit.can:3
+return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/luajit.can:4
+end -- ./compiler/luajit.can:4
+tags["_opid"]["band"] = function(left, right) -- ./compiler/luajit.can:7
+addRequire("bit", "band", "band") -- ./compiler/luajit.can:8
+return var("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:9
+end -- ./compiler/luajit.can:9
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/luajit.can:11
+addRequire("bit", "bor", "bor") -- ./compiler/luajit.can:12
+return var("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:13
+end -- ./compiler/luajit.can:13
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/luajit.can:15
+addRequire("bit", "bxor", "bxor") -- ./compiler/luajit.can:16
+return var("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:17
+end -- ./compiler/luajit.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/luajit.can:19
+addRequire("bit", "lshift", "lshift") -- ./compiler/luajit.can:20
+return var("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:21
+end -- ./compiler/luajit.can:21
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/luajit.can:23
+addRequire("bit", "rshift", "rshift") -- ./compiler/luajit.can:24
+return var("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:25
+end -- ./compiler/luajit.can:25
+tags["_opid"]["bnot"] = function(right) -- ./compiler/luajit.can:27
+addRequire("bit", "bnot", "bnot") -- ./compiler/luajit.can:28
+return var("bnot") .. "(" .. lua(right) .. ")" -- ./compiler/luajit.can:29
+end -- ./compiler/luajit.can:29
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:896
 return requireStr .. code -- ./compiler/lua54.can:897
 end -- ./compiler/lua54.can:897
@@ -5049,6 +5151,92 @@ end, -- ./compiler/lua54.can:876
 }, { ["__index"] = function(self, key) -- ./compiler/lua54.can:889
 error("don't know how to compile a " .. tostring(key) .. " to " .. targetName) -- ./compiler/lua54.can:890
 end }) -- ./compiler/lua54.can:890
+targetName = "Lua 5.3" -- ./compiler/lua53.can:1
+tags["AttributeId"] = function(t) -- ./compiler/lua53.can:4
+if t[2] then -- ./compiler/lua53.can:5
+error("target " .. targetName .. " does not support variable attributes") -- ./compiler/lua53.can:6
+else -- ./compiler/lua53.can:6
+return t[1] -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+end -- ./compiler/lua53.can:8
+targetName = "Lua 5.2" -- ./compiler/lua52.can:1
+APPEND = function(t, toAppend) -- ./compiler/lua52.can:3
+return "do" .. indent() .. "local " .. var("a") .. ", " .. var("p") .. " = { " .. toAppend .. " }, #" .. t .. "+1" .. newline() .. "for i=1, #" .. var("a") .. " do" .. indent() .. t .. "[" .. var("p") .. "] = " .. var("a") .. "[i]" .. newline() .. "" .. var("p") .. " = " .. var("p") .. " + 1" .. unindent() .. "end" .. unindent() .. "end" -- ./compiler/lua52.can:4
+end -- ./compiler/lua52.can:4
+tags["_opid"]["idiv"] = function(left, right) -- ./compiler/lua52.can:7
+return "math.floor(" .. lua(left) .. " / " .. lua(right) .. ")" -- ./compiler/lua52.can:8
+end -- ./compiler/lua52.can:8
+tags["_opid"]["band"] = function(left, right) -- ./compiler/lua52.can:10
+return "bit32.band(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:11
+end -- ./compiler/lua52.can:11
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/lua52.can:13
+return "bit32.bor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:14
+end -- ./compiler/lua52.can:14
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/lua52.can:16
+return "bit32.bxor(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:17
+end -- ./compiler/lua52.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/lua52.can:19
+return "bit32.lshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:20
+end -- ./compiler/lua52.can:20
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/lua52.can:22
+return "bit32.rshift(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/lua52.can:23
+end -- ./compiler/lua52.can:23
+tags["_opid"]["bnot"] = function(right) -- ./compiler/lua52.can:25
+return "bit32.bnot(" .. lua(right) .. ")" -- ./compiler/lua52.can:26
+end -- ./compiler/lua52.can:26
+targetName = "LuaJIT" -- ./compiler/luajit.can:1
+UNPACK = function(list, i, j) -- ./compiler/luajit.can:3
+return "unpack(" .. list .. (i and (", " .. i .. (j and (", " .. j) or "")) or "") .. ")" -- ./compiler/luajit.can:4
+end -- ./compiler/luajit.can:4
+tags["_opid"]["band"] = function(left, right) -- ./compiler/luajit.can:7
+addRequire("bit", "band", "band") -- ./compiler/luajit.can:8
+return var("band") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:9
+end -- ./compiler/luajit.can:9
+tags["_opid"]["bor"] = function(left, right) -- ./compiler/luajit.can:11
+addRequire("bit", "bor", "bor") -- ./compiler/luajit.can:12
+return var("bor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:13
+end -- ./compiler/luajit.can:13
+tags["_opid"]["bxor"] = function(left, right) -- ./compiler/luajit.can:15
+addRequire("bit", "bxor", "bxor") -- ./compiler/luajit.can:16
+return var("bxor") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:17
+end -- ./compiler/luajit.can:17
+tags["_opid"]["shl"] = function(left, right) -- ./compiler/luajit.can:19
+addRequire("bit", "lshift", "lshift") -- ./compiler/luajit.can:20
+return var("lshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:21
+end -- ./compiler/luajit.can:21
+tags["_opid"]["shr"] = function(left, right) -- ./compiler/luajit.can:23
+addRequire("bit", "rshift", "rshift") -- ./compiler/luajit.can:24
+return var("rshift") .. "(" .. lua(left) .. ", " .. lua(right) .. ")" -- ./compiler/luajit.can:25
+end -- ./compiler/luajit.can:25
+tags["_opid"]["bnot"] = function(right) -- ./compiler/luajit.can:27
+addRequire("bit", "bnot", "bnot") -- ./compiler/luajit.can:28
+return var("bnot") .. "(" .. lua(right) .. ")" -- ./compiler/luajit.can:29
+end -- ./compiler/luajit.can:29
+targetName = "Lua 5.1" -- ./compiler/lua51.can:1
+states["continue"] = {} -- ./compiler/lua51.can:3
+CONTINUE_START = function() -- ./compiler/lua51.can:5
+return "local " .. var("break") .. newline() .. "repeat" .. indent() .. push("continue", var("break")) -- ./compiler/lua51.can:6
+end -- ./compiler/lua51.can:6
+CONTINUE_STOP = function() -- ./compiler/lua51.can:8
+return pop("continue") .. unindent() .. "until true" .. newline() .. "if " .. var("break") .. " then break end" -- ./compiler/lua51.can:9
+end -- ./compiler/lua51.can:9
+tags["Continue"] = function() -- ./compiler/lua51.can:12
+return "break" -- ./compiler/lua51.can:13
+end -- ./compiler/lua51.can:13
+tags["Break"] = function() -- ./compiler/lua51.can:15
+local inContinue = peek("continue") -- ./compiler/lua51.can:16
+if inContinue then -- ./compiler/lua51.can:17
+return inContinue .. " = true" .. newline() .. "break" -- ./compiler/lua51.can:18
+else -- ./compiler/lua51.can:18
+return "break" -- ./compiler/lua51.can:20
+end -- ./compiler/lua51.can:20
+end -- ./compiler/lua51.can:20
+tags["Goto"] = function() -- ./compiler/lua51.can:25
+error("target " .. targetName .. " does not support gotos") -- ./compiler/lua51.can:26
+end -- ./compiler/lua51.can:26
+tags["Label"] = function() -- ./compiler/lua51.can:28
+error("target " .. targetName .. " does not support goto labels") -- ./compiler/lua51.can:29
+end -- ./compiler/lua51.can:29
 local code = lua(ast) .. newline() -- ./compiler/lua54.can:896
 return requireStr .. code -- ./compiler/lua54.can:897
 end -- ./compiler/lua54.can:897
