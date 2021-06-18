@@ -84,6 +84,11 @@ util.cli = {
 				:description "Define a preprocessor constant"
 				:args("1-2")
 				:argname{"name", "value"}
+				:count("*"),
+
+			parser:option("-I --import")
+				:description "Statically import a module into the compiled file"
+				:argname("module")
 				:count("*")
 		)
 
@@ -110,7 +115,8 @@ util.cli = {
 			chunkname = args.chunkname,
 			rewriteErrors = not args.no_rewrite_errors,
 			builtInMacros = not args.no_builtin_macros,
-			preprocessorEnv = preprocessorEnv
+			preprocessorEnv = preprocessorEnv,
+			import = args.import
 		}
 		return options
 	end

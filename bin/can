@@ -3,6 +3,7 @@
 local candran = require("candran").setup()
 local util = require("candran.util")
 local argparse = require("argparse")
+local unpack = unpack or table.unpack
 
 -- Parse args --
 

@@ -29,7 +29,8 @@ candran.default = {
 	chunkname = "nil",
 	rewriteErrors = true,
 	builtInMacros = true,
-	preprocessorEnv = {}
+	preprocessorEnv = {},
+	import = {}
 }
 
 -- Autodetect version
@@ -58,6 +59,11 @@ function candran.preprocess(input, options={})
 		functions = {},
 		variables = {}
 	}
+
+	-- add auto imports
+	for _, mod in ipairs(options.import) do
+		input =.. "#import(%q, {loadLocal=false})\n":format(mod)
+	end
 
 	-- generate preprocessor code
 	local preprocessor = ""
@@ -111,6 +117,7 @@ function candran.preprocess(input, options={})
 		if not f then error("can't open the module file to import") end
 
 		margs = util.merge(options, { chunkname = filepath, loadLocal = true, loadPackage = true }, margs)
+		margs.import = {} -- no need for recursive import
 		local modcontent, modmacros = assert(candran.preprocess(f:read("*a"), margs))
 		macros = util.recmerge(macros, modmacros)
 		f:close()
