@@ -7251,88 +7251,89 @@ return f() -- candran.can:316
 end -- candran.can:316
 end -- candran.can:316
 candran["messageHandler"] = function(message, noTraceback) -- candran.can:322
+message = tostring(message) -- candran.can:323
 if not noTraceback and not message:match("\
 stack traceback:\
-") then -- candran.can:323
-message = debug["traceback"](message, 2) -- candran.can:324
-end -- candran.can:324
+") then -- candran.can:324
+message = debug["traceback"](message, 2) -- candran.can:325
+end -- candran.can:325
 return message:gsub("(\
 ?%s*)([^\
-]-)%:(%d+)%:", function(indentation, source, line) -- candran.can:326
-line = tonumber(line) -- candran.can:327
-local originalFile -- candran.can:329
-local strName = source:match("^(.-)%(compiled candran%)$") -- candran.can:330
-if strName then -- candran.can:331
-if codeCache[strName] then -- candran.can:332
-originalFile = codeCache[strName] -- candran.can:333
-source = strName -- candran.can:334
-end -- candran.can:334
-else -- candran.can:334
-do -- candran.can:337
-local fi -- candran.can:337
-fi = io["open"](source, "r") -- candran.can:337
-if fi then -- candran.can:337
-originalFile = fi:read("*a") -- candran.can:338
-fi:close() -- candran.can:339
-end -- candran.can:339
-end -- candran.can:339
-end -- candran.can:339
-if originalFile then -- candran.can:343
-local i = 0 -- candran.can:344
+]-)%:(%d+)%:", function(indentation, source, line) -- candran.can:327
+line = tonumber(line) -- candran.can:328
+local originalFile -- candran.can:330
+local strName = source:match("^(.-)%(compiled candran%)$") -- candran.can:331
+if strName then -- candran.can:332
+if codeCache[strName] then -- candran.can:333
+originalFile = codeCache[strName] -- candran.can:334
+source = strName -- candran.can:335
+end -- candran.can:335
+else -- candran.can:335
+do -- candran.can:338
+local fi -- candran.can:338
+fi = io["open"](source, "r") -- candran.can:338
+if fi then -- candran.can:338
+originalFile = fi:read("*a") -- candran.can:339
+fi:close() -- candran.can:340
+end -- candran.can:340
+end -- candran.can:340
+end -- candran.can:340
+if originalFile then -- candran.can:344
+local i = 0 -- candran.can:345
 for l in (originalFile .. "\
 "):gmatch("([^\
 ]*)\
-") do -- candran.can:345
-i = i + 1 -- candran.can:346
-if i == line then -- candran.can:347
-local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$") -- candran.can:348
-if lineMap then -- candran.can:349
-if extSource ~= source then -- candran.can:350
-return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:351
-else -- candran.can:351
-return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):" -- candran.can:353
-end -- candran.can:353
-end -- candran.can:353
-break -- candran.can:356
-end -- candran.can:356
-end -- candran.can:356
-end -- candran.can:356
-end) -- candran.can:356
-end -- candran.can:356
-candran["searcher"] = function(modpath) -- candran.can:364
-local filepath = util["search"](modpath, { "can" }) -- candran.can:365
-if not filepath then -- candran.can:366
-if _VERSION == "Lua 5.4" then -- candran.can:367
-return "no candran file in package.path" -- candran.can:368
-else -- candran.can:368
+") do -- candran.can:346
+i = i + 1 -- candran.can:347
+if i == line then -- candran.can:348
+local extSource, lineMap = l:match(".*%-%- (.-)%:(%d+)$") -- candran.can:349
+if lineMap then -- candran.can:350
+if extSource ~= source then -- candran.can:351
+return indentation .. extSource .. ":" .. lineMap .. "(" .. extSource .. ":" .. line .. "):" -- candran.can:352
+else -- candran.can:352
+return indentation .. extSource .. ":" .. lineMap .. "(" .. line .. "):" -- candran.can:354
+end -- candran.can:354
+end -- candran.can:354
+break -- candran.can:357
+end -- candran.can:357
+end -- candran.can:357
+end -- candran.can:357
+end) -- candran.can:357
+end -- candran.can:357
+candran["searcher"] = function(modpath) -- candran.can:365
+local filepath = util["search"](modpath, { "can" }) -- candran.can:366
+if not filepath then -- candran.can:367
+if _VERSION == "Lua 5.4" then -- candran.can:368
+return "no candran file in package.path" -- candran.can:369
+else -- candran.can:369
 return "\
-\9no candran file in package.path" -- candran.can:370
-end -- candran.can:370
-end -- candran.can:370
-return function(modpath) -- candran.can:373
-local r, s = candran["loadfile"](filepath) -- candran.can:374
-if r then -- candran.can:375
-return r(modpath, filepath) -- candran.can:376
-else -- candran.can:376
+\9no candran file in package.path" -- candran.can:371
+end -- candran.can:371
+end -- candran.can:371
+return function(modpath) -- candran.can:374
+local r, s = candran["loadfile"](filepath) -- candran.can:375
+if r then -- candran.can:376
+return r(modpath, filepath) -- candran.can:377
+else -- candran.can:377
 error(("error loading candran module '%s' from file '%s':\
-\9%s"):format(modpath, filepath, tostring(s)), 0) -- candran.can:378
-end -- candran.can:378
-end, filepath -- candran.can:380
-end -- candran.can:380
-candran["setup"] = function() -- candran.can:384
-local searchers = (function() -- candran.can:385
-if _VERSION == "Lua 5.1" then -- candran.can:385
-return package["loaders"] -- candran.can:386
-else -- candran.can:386
-return package["searchers"] -- candran.can:388
-end -- candran.can:388
-end)() -- candran.can:388
-for _, s in ipairs(searchers) do -- candran.can:391
-if s == candran["searcher"] then -- candran.can:392
-return candran -- candran.can:393
-end -- candran.can:393
-end -- candran.can:393
-table["insert"](searchers, 1, candran["searcher"]) -- candran.can:397
-return candran -- candran.can:398
-end -- candran.can:398
-return candran -- candran.can:401
+\9%s"):format(modpath, filepath, tostring(s)), 0) -- candran.can:379
+end -- candran.can:379
+end, filepath -- candran.can:381
+end -- candran.can:381
+candran["setup"] = function() -- candran.can:385
+local searchers = (function() -- candran.can:386
+if _VERSION == "Lua 5.1" then -- candran.can:386
+return package["loaders"] -- candran.can:387
+else -- candran.can:387
+return package["searchers"] -- candran.can:389
+end -- candran.can:389
+end)() -- candran.can:389
+for _, s in ipairs(searchers) do -- candran.can:392
+if s == candran["searcher"] then -- candran.can:393
+return candran -- candran.can:394
+end -- candran.can:394
+end -- candran.can:394
+table["insert"](searchers, 1, candran["searcher"]) -- candran.can:398
+return candran -- candran.can:399
+end -- candran.can:399
+return candran -- candran.can:402

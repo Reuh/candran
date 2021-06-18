@@ -118,6 +118,20 @@ else
 	print("Candran " .. candran.VERSION .. ", targeting " .. candran.default.target)
 	candran.setup()
 
+	-- only perform static imports once, on startup
+	do
+		local r, e = candran.load("local _", "stdin")
+		if not r then
+			print("In static import: "..e)
+		else
+			r, e = pcall(r)
+			if not r then
+				print("In static import: "..e)
+			end
+		end
+		candran.default.import = {}
+	end
+
 	-- REPL loop
 	local multiline = false -- true if wait for another line
 	local buffer
@@ -157,15 +171,15 @@ else
 		end
 
 		-- exec
-		local t = { pcall(candran.load, buffer, "stdin") }
-		if t[1] == false then
-			if t[2]:match("expected '[end})]+' to close") then
+		local r, e = candran.load(buffer, "stdin")
+		if not r then
+			if e:match("expected '[end})]+' to close") then
 				multiline = true
 			else
-				print(t[2])
+				print(e)
 			end
 		else
-			t = { pcall(t[2]) }
+			local t = { pcall(r) }
 			if t[1] == false then
 				print(t[2])
 			elseif #t > 1 then
