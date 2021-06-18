@@ -118,18 +118,20 @@ else
 	print("Candran " .. candran.VERSION .. ", targeting " .. candran.default.target)
 	candran.setup()
 
-	-- only perform static imports once, on startup
+	-- check errors in static import
+	-- note: static imports will be run every line, as preprocessors macros and constants aren't kept between compilations...
 	do
 		local r, e = candran.load("local _", "stdin")
 		if not r then
 			print("In static import: "..e)
+			candran.default.import = {}
 		else
 			r, e = pcall(r)
 			if not r then
 				print("In static import: "..e)
+				candran.default.import = {}
 			end
 		end
-		candran.default.import = {}
 	end
 
 	-- REPL loop
