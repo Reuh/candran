@@ -6,19 +6,19 @@ Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing L
 
 ````lua
 #import("lib.thing") -- static import
-#local debug = false
+#local DEBUG = false
 
-#if debug then
-#	define("log(...)", "print(...)")
+#if DEBUG then
+#	define("log(...)", "print(...)") -- macro: calls to log() will be replaced with print() in compiled code
 #else
-#	define("log(...)", "") -- remove calls to log from the compiled code when debug is true
+#	define("log(...)", "") -- remove calls to log from the compiled code when DEBUG is true
 #end
 log("example macro") -- preprocessor macros
 
 local function calculate(toadd=25) -- default parameters
 	local result = thing.do()
 	result += toadd
-	#if debug then -- preprocessor conditionals
+	#if DEBUG then -- preprocessor conditionals
 		print("Did something")
 	#end
 	return result
@@ -83,7 +83,7 @@ Candran is released under the MIT License (see ```LICENSE``` for details).
 #### Quick setup
 Install Candran automatically using LuaRocks: ```sudo luarocks install candran```.
 
-Or manually install LPegLabel (```luarocks install lpeglabel```, version 1.5 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
+Or manually install LPegLabel and argparse (```luarocks install lpeglabel```, version 1.5 or above, and ```luarocks install argparse```, version 0.7 or above), download this repository and use Candran through the scripts in ```bin/``` or use it as a library with the self-contained ```candran.lua```.
 
 You can optionally install lua-linenoise (```luarocks install linenoise```, version 0.9 or above) for an improved REPL, and luacheck (```luarocks install luacheck```, version 0.23.0 or above) to be able to use ```cancheck```. Installing Candran using LuaRocks will install linenoise and luacheck by default.
 
@@ -449,7 +449,7 @@ Will output ````print("Bonjour")```` or ````print("Hello")```` depending of the 
 The preprocessor has access to the following variables:
 * ````candran````: the Candran library table.
 * ````output````: the current preprocessor output string. Can be redefined at any time. If you want to write something in the preprocessor output, it is preferred to use `write(...)` instead of directly modifying `output`.
-* ````import(module[, [options])````: a function which import a module. This should be equivalent to using _require(module)_ in the Candran code, except the module will be embedded in the current file. _options_ is an optional preprocessor arguments table for the imported module (current preprocessor arguments will be inherited). Options specific to this function:
+* ````import(module[, [options])````: a function which import a module. This should be equivalent to using _require(module)_ in the Candran code, except the module will be embedded in the current file. Macros and preprocessor constants defined in the imported file (using `define` and `set`) will be made available in the current file. _options_ is an optional preprocessor arguments table for the imported module (current preprocessor arguments will be inherited). Options specific to this function:
 	* ```loadLocal``` (default ```true```): ```true``` to automatically load the module into a local variable (i.e. ```local thing = require("module.thing")```)
 	* ```loadPackage``` (default ```true```): ```true``` to automatically load the module into the loaded packages table (so it will be available for following ```require("module")``` calls).
 * ````include(filename)````: a function which copy the contents of the file _filename_ to the output.
@@ -616,7 +616,7 @@ local f = io.open("foo.can") -- read the file foo.can
 local contents = f:read("*a")
 f:close()
 
-local compiled = candran.make(contents, { debug = true }) -- compile foo.can with debug set to true
+local compiled = candran.make(contents, { DEBUG = true }) -- compile foo.can with DEBUG set to true
 
 load(compiled)() -- execute!
 

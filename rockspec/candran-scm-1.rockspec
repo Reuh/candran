@@ -18,8 +18,7 @@ description = {
 }
 
 source = {
-	url = "git://github.com/Reuh/candran",
-	branch = "argparse"
+	url = "git://github.com/Reuh/candran"
 }
 
 dependencies = {

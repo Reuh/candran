@@ -2,7 +2,7 @@ rockspec_format = "3.0"
 
 package = "candran"
 
-version = "0.14.0-1"
+version = "1.0.0-1"
 
 description = {
 	summary = "A simple Lua dialect and preprocessor.",
@@ -19,14 +19,15 @@ description = {
 
 source = {
 	url = "git://github.com/Reuh/candran",
-	tag = "v0.14.0"
+	tag = "v1.0.0"
 }
 
 dependencies = {
 	"lua >= 5.1",
 	"lpeglabel >= 1.5.0",
 	"linenoise >= 0.9",
-	"luacheck >= 0.23.0"
+	"luacheck >= 0.23.0",
+	"argparse >= 0.7.0"
 }
 
 build = {

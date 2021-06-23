@@ -1,4 +1,4 @@
-local candran = { ["VERSION"] = "0.14.0" } -- candran.can:2
+local candran = { ["VERSION"] = "1.0.0" } -- candran.can:2
 package["loaded"]["candran"] = candran -- candran.can:4
 local function _() -- candran.can:7
 local candran = require("candran") -- ./candran/util.can:1
