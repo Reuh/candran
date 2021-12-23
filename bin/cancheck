@@ -181,6 +181,7 @@ local oldRunner = runner.new
 function runner.new(opts)
 	-- Disable max line length checking (it is compiled code...)
 	opts.max_line_length = false
+	opts.ignore = { "4[23]1/__CAN_.*" }
 	return oldRunner(opts)
 end
 
