@@ -1,5 +1,9 @@
 --[[
-This module impements a validator for the AST
+This module impements a validator for the AST.
+
+TODO/Checks that could be added in the future:
+- Check if attributes are valid in declarations: in AttributeNameList, PrefixedAttributeNameList, and GlobalAll
+- Check global variable declarations
 ]]
 local scope = require "candran.can-parser.scope"
 
@@ -395,10 +399,14 @@ function traverse_stm (env, stm)
   elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block }
     return traverse_forin(env, stm)
   elseif tag == "Local" or -- `Local{ {ident+} {expr+}? }
-         tag == "Let" then -- `Let{ {ident+} {expr+}? }
+         tag == "Let" or -- `Let{ {ident+} {expr+}? }
+         tag == "Global" then -- `Global{ {ident+} {expr+}? }
     return traverse_let(env, stm)
-  elseif tag == "Localrec" then -- `Localrec{ ident expr }
+  elseif tag == "Localrec" or -- `Localrec{ ident expr }
+          tag == "Globalrec" then -- `Globalrec{ ident expr }
     return traverse_letrec(env, stm)
+  elseif tag == "GlobalAll" then  -- GlobalAll{ attribute? }
+    return true
   elseif tag == "Goto" then -- `Goto{ <string> }
     return traverse_goto(env, stm)
   elseif tag == "Label" then -- `Label{ <string> }

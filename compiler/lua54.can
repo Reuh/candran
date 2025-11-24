@@ -1,5 +1,15 @@
 targetName = "Lua 5.4"
 
+tags.Global = (t)
+	error("NYI")
+end
+tags.Globalrec = (t)
+	error("NYI")
+end
+tags.GlobalAll = (t)
+	error("NYI")
+end
+
 #placeholder("patch")
 
 #local patch = output

@@ -471,6 +471,15 @@ return function(code, ast, options, macros={functions={}, variables={}})
 			end
 			return r..DESTRUCTURING_ASSIGN(destructured)
 		end,
+		-- Global{ {attributeident+} {expr+}? }
+		Global = (t)
+			local destructured = {}
+			local r = "global "..push("destructuring", destructured)..lua(t[1])..pop("destructuring")
+			if t[2][1] then
+				r ..= " = "..lua(t[2], "_lhs")
+			end
+			return r..DESTRUCTURING_ASSIGN(destructured)
+		end,
 		-- Let{ {ident+} {expr+}? }
 		Let = (t)
 			local destructured = {}
@@ -488,6 +497,18 @@ return function(code, ast, options, macros={functions={}, variables={}})
 		-- Localrec{ {ident} {expr} }
 		Localrec = (t)
 			return "local function "..lua(t[1][1])..lua(t[2][1], "_functionWithoutKeyword")
+		end,
+		-- Globalrec{ {ident} {expr} }
+		Globalrec = (t)
+			return "global function "..lua(t[1][1])..lua(t[2][1], "_functionWithoutKeyword")
+		end,
+		-- GlobalAll{ attribute? }
+		GlobalAll = (t)
+			if #t == 1 then
+				return "global <" .. t[1] .. "> *"
+			else
+				return "global *"
+			end
 		end,
 		-- Goto{ <string> }
 		Goto = (t)

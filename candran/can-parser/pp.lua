@@ -245,7 +245,7 @@ function stm2str (stm)
     str = str .. explist2str(stm[2]) .. ", "
     str = str .. block2str(stm[3])
     str = str .. " }"
-  elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
+  elseif tag == "Local" or tag == "Global" then -- `Local|Global{ {ident+} {expr+}? }
     str = str .. "{ "
     str = str .. varlist2str(stm[1])
     if #stm[2] > 0 then
@@ -254,7 +254,7 @@ function stm2str (stm)
       str = str .. ", " .. "{  }"
     end
     str = str .. " }"
-  elseif tag == "Localrec" then -- `Localrec{ ident expr }
+  elseif tag == "Localrec" or tag == "Globalrec" then -- `Localrec|Globalrec{ ident expr }
     str = str .. "{ "
     str = str .. "{ " .. var2str(stm[1][1]) .. " }, "
     str = str .. "{ " .. exp2str(stm[2][1]) .. " }"
