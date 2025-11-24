@@ -6,6 +6,7 @@ package.loaded["candran"] = candran
 #import("candran.util")
 #import("candran.serpent")
 
+#import("compiler.lua55")
 #import("compiler.lua54")
 #import("compiler.lua53")
 #import("compiler.lua52")
@@ -21,7 +22,7 @@ local unpack = unpack or table.unpack
 
 --- Default options.
 candran.default = {
-	target = "lua54",
+	target = "lua55",
 	indentation = "",
 	newline = "\n",
 	variablePrefix = "__CAN_",
@@ -44,6 +45,8 @@ elseif _VERSION == "Lua 5.2" then
 	candran.default.target = "lua52"
 elseif _VERSION == "Lua 5.3" then
 	candran.default.target = "lua53"
+elseif _VERSION == "Lua 5.4" then
+	candran.default.target = "lua54"
 end
 
 --- Run the preprocessor
