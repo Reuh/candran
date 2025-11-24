@@ -585,8 +585,9 @@ local G = { V"Lua",
   ImplicitPushStat = tagC("Push", commaSep(V"Expr", "RetList")) / markImplicit;
 
   NameList              = tagC("NameList", commaSep(V"Id"));
-  DestructuringNameList = tagC("NameList", commaSep(V"DestructuringId")),
-  AttributeNameList     = tagC("AttributeNameList", commaSep(V"AttributeId"));
+  DestructuringNameList = tagC("NameList", commaSep(V"DestructuringId"));
+  AttributeNameList     = tagC("AttributeNameList", commaSep(V"AttributeId"))
+                        + tagC("PrefixedAttributeNameList", V"Attribute" * commaSep(V"AttributeId"));
   VarList   = tagC("VarList", commaSep(V"VarExpr"));
   ExprList  = tagC("ExpList", commaSep(V"Expr", "ExprList"));
 

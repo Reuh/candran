@@ -465,7 +465,7 @@ return function(code, ast, options, macros={functions={}, variables={}})
 		-- Local{ {attributeident+} {expr+}? }
 		Local = (t)
 			local destructured = {}
-			local r = "local "..push("destructuring", destructured)..lua(t[1], "_lhs")..pop("destructuring")
+			local r = "local "..push("destructuring", destructured)..lua(t[1])..pop("destructuring")
 			if t[2][1] then
 				r ..= " = "..lua(t[2], "_lhs")
 			end
@@ -821,6 +821,14 @@ return function(code, ast, options, macros={functions={}, variables={}})
 				nomacro.variables[t[1]] = nil
 			end
 			return r
+		end,
+		-- PrefixedAttributeNameList{ attribute {AttributeId+} }
+		PrefixedAttributeNameList = (t)
+			return "<" .. t[1] .. "> " .. lua(t, "_lhs", 2)
+		end,
+		-- AttributeNameList{ {AttributeId+} }
+		AttributeNameList = (t)
+			return lua(t, "_lhs")
 		end,
 		-- AttributeId{ <string> <string>? }
 		AttributeId = (t)

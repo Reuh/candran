@@ -8,6 +8,9 @@ tags.AttributeId = (t)
 		return t[1]
 	end
 end
+tags.PrefixedAttributeNameList = (t)
+	error("target "..targetName.." does not support variable attributes")
+end
 
 #placeholder("patch")
 
