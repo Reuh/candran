@@ -34,7 +34,7 @@ expr:
   | `Boolean{ <boolean> }
   | `Number{ <string> }  -- we don't use convert to number to avoid losing precision when tostring()-ing it later
   | `String{ <string> }
-  | `Function{ { ( `ParPair{ Id expr } | `Id{ <string> } )* `Dots? } block }
+  | `Function{ { ( `ParPair{ Id expr } | `Id{ <string> } )* `ParDots? } block }
   | `Table{ ( `Pair{ expr expr } | expr )* }
   | `Op{ opid expr expr? }
   | `Paren{ expr }       -- significant to cut multiple values returns
@@ -573,8 +573,8 @@ local G = { V"Lua",
               * (sym(":") * expect(V"StrId", "NameFunc2"))^-1 / markMethod;
   FuncBody    = tagC("Function", V"FuncParams" * expectBlockWithEnd("EndFunc"));
   FuncParams  = expect(sym("("), "OParenPList") * V"ParList" * expect(sym(")"), "CParenPList");
-  ParList     = V"NamedParList" * (sym(",") * expect(tagC("Dots", sym("...")), "ParList"))^-1 / addDots
-              + Ct(tagC("Dots", sym("...")))
+  ParList     = V"NamedParList" * (sym(",") * expect(tagC("ParDots", sym("...") * V"Id"^-1), "ParList"))^-1 / addDots
+              + Ct(tagC("ParDots", sym("...") * V"Id"^-1))
               + Ct(Cc()); -- Cc({}) generates a bug since the {} would be shared across parses
 
   ShortFuncDef    = tagC("Function", V"ShortFuncParams" * maybeBlockWithEnd()) / fixShortFunc;

@@ -71,7 +71,7 @@ local traverse_block, traverse_explist, traverse_varlist, traverse_parlist
 function traverse_parlist (env, parlist)
   local len = #parlist
   local is_vararg = false
-  if len > 0 and parlist[len].tag == "Dots" then
+  if len > 0 and parlist[len].tag == "ParDots" then
     is_vararg = true
   end
   set_vararg(env, is_vararg)
@@ -348,7 +348,7 @@ function traverse_exp (env, exp)
     return true
   elseif tag == "Dots" then
     return traverse_vararg(env, exp)
-  elseif tag == "Function" then -- `Function{ { `Id{ <string> }* `Dots? } block }
+  elseif tag == "Function" then -- `Function{ { `Id{ <string> }* `ParDots? } block }
     return traverse_function(env, exp)
   elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
     return traverse_table(env, exp)

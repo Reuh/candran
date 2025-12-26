@@ -587,33 +587,35 @@ return function(code, ast, options, macros={functions={}, variables={}})
 		String = (t)
 			return "%q":format(t[1])
 		end,
-		-- Function{ { ( `ParPair{ Id expr } | `Id{ <string> } )* `Dots? } block }
+		-- Function{ { ( `ParPair{ Id expr } | `Id{ <string> } )* `ParDots? } block }
+		_functionParameter = {
+			ParPair = (t, decl)
+				local id = lua(t[1])
+				indentLevel += 1
+				table.insert(decl, "if "..id.." == nil then "..id.." = "..lua(t[2]).." end")
+				indentLevel -= 1
+				return id
+			end,
+			ParDots = (t, decl)
+				if #t == 1 then
+					return "..." .. lua(t[1])
+				else
+					return "..."
+				end
+			end,
+		},
 		_functionWithoutKeyword = (t)
 			local r = "("
 			local decl = {}
-			if t[1][1] then
-				if t[1][1].tag == "ParPair" then
-					local id = lua(t[1][1][1])
-					indentLevel += 1
-					table.insert(decl, "if "..id.." == nil then "..id.." = "..lua(t[1][1][2]).." end")
-					indentLevel -= 1
-					r ..= id
+			local pars = {}
+			for i=1, #t[1], 1 do
+				if tags._functionParameter[t[1][i].tag] then
+					table.insert(pars, tags._functionParameter[t[1][i].tag](t[1][i], decl))
 				else
-					r ..= lua(t[1][1])
-				end
-				for i=2, #t[1], 1 do
-					if t[1][i].tag == "ParPair" then
-						local id = lua(t[1][i][1])
-						indentLevel += 1
-						table.insert(decl, "if "..id.." == nil then "..id.." = "..lua(t[1][i][2]).." end")
-						indentLevel -= 1
-						r ..= ", " ..id
-					else
-						r ..= ", "..lua(t[1][i])
-					end
+					table.insert(pars, lua(t[1][i]))
 				end
 			end
-			r ..= ")"..indent()
+			r ..= table.concat(pars, ", ")..")"..indent()
 			for _, d in ipairs(decl) do
 				r ..= d..newline()
 			end
@@ -849,6 +851,10 @@ return function(code, ast, options, macros={functions={}, variables={}})
 		end,
 		-- AttributeNameList{ {AttributeId+} }
 		AttributeNameList = (t)
+			return lua(t, "_lhs")
+		end,
+		-- NameList{ {Id+} }
+		NameList = (t)
 			return lua(t, "_lhs")
 		end,
 		-- AttributeId{ <string> <string>? }
