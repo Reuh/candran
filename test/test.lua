@@ -1157,20 +1157,21 @@ foo = 12
 ]])
 if _VERSION >= "Lua 5.5" then
 	test("global variable declaration", [[
-	do
-		global foo
-		global <const> bar
-	end
-	foo = 42
-	assert(not pcall(function() foo = 42 end))
+	global foo = 42
 	]])
+	test("global variable declaration with error", [[
+	global foo = 42
+	bar = 12
+	]], { "loadError", "variable 'bar' not declared" })
+	test("global variable declaration with attribute", [[
+	global <const> bar
+	bar = 42
+	]], { "loadError", "attempt to assign to const variable 'bar'" })
 	test("collective global variable declaration with attribute", [[
 	foo = 42
-	do
-		global<const> *
-	end
-	assert(not pcall(function() foo = 12 end))
-	]])
+	global<const> *
+	foo = 12
+	]], { "loadError", "attempt to assign to const variable 'foo'" })
 end
 
 -- bitwise operators
