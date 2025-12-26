@@ -41,6 +41,11 @@ local function test(name, candranCode, expectedResult, options)
 	results[name] = { result = "not finished", message = "no info" }
 	local self = results[name]
 
+	-- result
+	if type(expectedResult) ~= "table" then
+		expectedResult = { "return", expectedResult }
+	end
+
 	-- options
 	options = options or {}
 	options.chunkname = name
@@ -56,25 +61,33 @@ local function test(name, candranCode, expectedResult, options)
 	-- load code
 	local env = {}
 	for k, v in pairs(_G) do env[k] = v end
-	local success, func = pcall(load, code, nil, env)
-	if not success then
+	local func, err = load(code, name, env)
+	if err then
+		if expectedResult[1] == "loadError" and err:match(expectedResult[2] or "") then
+			self.result = "success"
+			return
+		end
 		self.result = "error"
-		self.message = c("/!\\ error while loading code:\n"..func.."\ngenerated code:\n", "bold", "red")..c(code, "red")
+		self.message = c("/!\\ error while loading code:\n"..err.."\ngenerated code:\n", "bold", "red")..c(code, "red")
 		return
 	end
 
 	-- run code
 	local success, output = pcall(func)
 	if not success then
+		if expectedResult[1] == "runtimeError" and output:match(expectedResult[2] or "") then
+			self.result = "success"
+			return
+		end
 		self.result = "error"
 		self.message = c("/!\\ error while running code:\n"..output.."\ngenerated code:\n", "bold", "red")..c(code, "red")
 		return
 	end
 
 	-- check result
-	if output ~= expectedResult then
+	if expectedResult[1] == "return" and output ~= expectedResult[2] then
 		self.result = "fail"
-		self.message = c("/!\\ invalid result from the code; it returned "..tostring(output).." instead of "..tostring(expectedResult).."; generated code:\n", "bold", "purple")..c(code, "purple")
+		self.message = c("/!\\ invalid result from the code; it returned "..tostring(output).." instead of "..tostring(expectedResult[2]).."; generated code:\n", "bold", "purple")..c(code, "purple")
 		return
 	else
 		self.result = "success"
@@ -214,7 +227,7 @@ return hello
 -- SYNTAX ADDITIONS --
 ----------------------
 
--- Assignement operators
+-- Assignment operators
 test("+=", [[
 	local a = 5
 	a += 2
@@ -286,7 +299,7 @@ test(">>=", [[
 	return a
 ]], 5)
 
-test("right assigments operators", [[
+test("right assignments operators", [[
 	local a = 5
 	a =+ 2 assert(a == 7, "=+")
 	a =- 2 assert(a == -5, "=-")
@@ -312,7 +325,7 @@ test("right assigments operators", [[
 	a =>> 23 assert(a == 5, "=>>")
 ]], nil)
 
-test("some left+right assigments operators", [[
+test("some left+right assignments operators", [[
 	local a = 5
 	a -=+ 2 assert(a == 8, "-=+")
 
@@ -320,17 +333,17 @@ test("some left+right assigments operators", [[
 	a ..=.. " world " assert(a == "hello world hello", "..=..")
 ]], nil)
 
-test("left assigments operators priority", [[
+test("left assignments operators priority", [[
 	local a = 5
 	a *= 2 + 3
 	return a
 ]], 25)
-test("right assigments operators priority", [[
+test("right assignments operators priority", [[
 	local a = 5
 	a =/ 2 + 3
 	return a
 ]], 1)
-test("left+right assigments operators priority", [[
+test("left+right assignments operators priority", [[
 	local a = 5
 	a *=/ 2 + 3
 	return a
@@ -915,63 +928,63 @@ test("safe prefixes, random chaining", [[
 	assert(f.l?:o?() == nil)
 ]])
 
--- Destructuring assigments
-test("destructuring assignement with an expression", [[
+-- Destructuring assignments
+test("destructuring assignment with an expression", [[
 	local {x, y} = { x = 5, y = 1 }
 	return x + y
 ]], 6)
-test("destructuring assignement with local", [[
+test("destructuring assignment with local", [[
 	t = { x = 5, y = 1 }
 	local {x, y} = t
 	return x + y
 ]], 6)
-test("destructuring assignement", [[
+test("destructuring assignment", [[
 	t = { x = 5, y = 1 }
 	{x, y} = t
 	return x + y
 ]], 6)
-test("destructuring assignement with +=", [[
+test("destructuring assignment with +=", [[
 	t = { x = 5, y = 1 }
 	local x, y = 5, 9
 	{x, y} += t
 	return x + y
 ]], 20)
-test("destructuring assignement with =-", [[
+test("destructuring assignment with =-", [[
 	t = { x = 5, y = 1 }
 	local x, y = 5, 9
 	{x, y} =- t
 	return x + y
 ]], -8)
-test("destructuring assignement with +=-", [[
+test("destructuring assignment with +=-", [[
 	t = { x = 5, y = 1 }
 	local x, y = 5, 9
 	{x, y} +=- t
 	return x + y
 ]], 6)
-test("destructuring assignement with =-", [[
+test("destructuring assignment with =-", [[
 	t = { x = 5, y = 1 }
 	local x, y = 5, 9
 	{x, y} =- t
 	return x + y
 ]], -8)
-test("destructuring assignement with let", [[
+test("destructuring assignment with let", [[
 	t = { x = 5, y = 1 }
 	let {x, y} = t
 	return x + y
 ]], 6)
-test("destructuring assignement with for in", [[
+test("destructuring assignment with for in", [[
 	t = {{ x = 5, y = 1 }}
 	for k, {x, y} in pairs(t) do
 		return x + y
 	end
 ]], 6)
-test("destructuring assignement with if with assignement", [[
+test("destructuring assignment with if with assignment", [[
 	t = { x = 5, y = 1 }
 	if {x, y} = t then
 		return x + y
 	end
 ]], 6)
-test("destructuring assignement with if-elseif with assignement", [[
+test("destructuring assignment with if-elseif with assignment", [[
 	t = { x = 5, y = 1 }
 	if ({u} = t) and u then
 		return 0
@@ -980,56 +993,56 @@ test("destructuring assignement with if-elseif with assignement", [[
 	end
 ]], 6)
 
-test("destructuring assignement with an expression with custom name", [[
+test("destructuring assignment with an expression with custom name", [[
 	local {o = x, y} = { o = 5, y = 1 }
 	return x + y
 ]], 6)
-test("destructuring assignement with local with custom name", [[
+test("destructuring assignment with local with custom name", [[
 	t = { o = 5, y = 1 }
 	local {o = x, y} = t
 	return x + y
 ]], 6)
-test("destructuring assignement with custom name", [[
+test("destructuring assignment with custom name", [[
 	t = { o = 5, y = 1 }
 	{o = x, y} = t
 	return x + y
 ]], 6)
-test("destructuring assignement with += with custom name", [[
+test("destructuring assignment with += with custom name", [[
 	t = { o = 5, y = 1 }
 	local x, y = 5, 9
 	{o = x, y} += t
 	return x + y
 ]], 20)
-test("destructuring assignement with =- with custom name", [[
+test("destructuring assignment with =- with custom name", [[
 	t = { o = 5, y = 1 }
 	local x, y = 5, 9
 	{o = x, y} =- t
 	return x + y
 ]], -8)
-test("destructuring assignement with +=- with custom name", [[
+test("destructuring assignment with +=- with custom name", [[
 	t = { o = 5, y = 1 }
 	local x, y = 5, 9
 	{o = x, y} +=- t
 	return x + y
 ]], 6)
-test("destructuring assignement with let with custom name", [[
+test("destructuring assignment with let with custom name", [[
 	t = { o = 5, y = 1 }
 	let {o = x, y} = t
 	return x + y
 ]], 6)
-test("destructuring assignement with for in with custom name", [[
+test("destructuring assignment with for in with custom name", [[
 	t = {{ o = 5, y = 1 }}
 	for k, {o = x, y} in pairs(t) do
 		return x + y
 	end
 ]], 6)
-test("destructuring assignement with if with assignement with custom name", [[
+test("destructuring assignment with if with assignment with custom name", [[
 	t = { o = 5, y = 1 }
 	if {o = x, y} = t then
 		return x + y
 	end
 ]], 6)
-test("destructuring assignement with if-elseif with assignement with custom name", [[
+test("destructuring assignment with if-elseif with assignment with custom name", [[
 	t = { o = 5, y = 1 }
 	if ({x} = t) and x then
 		return 0
@@ -1038,56 +1051,56 @@ test("destructuring assignement with if-elseif with assignement with custom name
 	end
 ]], 6)
 
-test("destructuring assignement with an expression with expression as key", [[
+test("destructuring assignment with an expression with expression as key", [[
 	local {[1] = x, y} = { 5, y = 1 }
 	return x + y
 ]], 6)
-test("destructuring assignement with local with expression as key", [[
+test("destructuring assignment with local with expression as key", [[
 	t = { 5, y = 1 }
 	local {[1] = x, y} = t
 	return x + y
 ]], 6)
-test("destructuring assignement with expression as key", [[
+test("destructuring assignment with expression as key", [[
 	t = { 5, y = 1 }
 	{[1] = x, y} = t
 	return x + y
 ]], 6)
-test("destructuring assignement with += with expression as key", [[
+test("destructuring assignment with += with expression as key", [[
 	t = { 5, y = 1 }
 	local x, y = 5, 9
 	{[1] = x, y} += t
 	return x + y
 ]], 20)
-test("destructuring assignement with =- with expression as key", [[
+test("destructuring assignment with =- with expression as key", [[
 	t = { 5, y = 1 }
 	local x, y = 5, 9
 	{[1] = x, y} =- t
 	return x + y
 ]], -8)
-test("destructuring assignement with +=- with expression as key", [[
+test("destructuring assignment with +=- with expression as key", [[
 	t = { 5, y = 1 }
 	local x, y = 5, 9
 	{[1] = x, y} +=- t
 	return x + y
 ]], 6)
-test("destructuring assignement with let with expression as key", [[
+test("destructuring assignment with let with expression as key", [[
 	t = { 5, y = 1 }
 	let {[1] = x, y} = t
 	return x + y
 ]], 6)
-test("destructuring assignement with for in with expression as key", [[
+test("destructuring assignment with for in with expression as key", [[
 	t = {{ 5, y = 1 }}
 	for k, {[1] = x, y} in pairs(t) do
 		return x + y
 	end
 ]], 6)
-test("destructuring assignement with if with assignement with expression as key", [[
+test("destructuring assignment with if with assignment with expression as key", [[
 	t = { 5, y = 1 }
 	if {[1] = x, y} = t then
 		return x + y
 	end
 ]], 6)
-test("destructuring assignement with if-elseif with assignement with expression as key", [[
+test("destructuring assignment with if-elseif with assignment with expression as key", [[
 	t = { 5, y = 1 }
 	if ({x} = t) and x then
 		return 0
@@ -1095,6 +1108,80 @@ test("destructuring assignement with if-elseif with assignement with expression 
 		return x + y
 	end
 ]], 6)
+
+-- named varargs
+test("named varargs", [[
+	function fn(...x)
+		return table.concat(x, "-")
+	end
+	return fn("hello", "world")
+]], "hello-world")
+test("named varargs with preceding arguments", [[
+	function fn(a, ...x)
+		return a..table.concat(x, "-")
+	end
+	return fn("hey! ", "hello", "world")
+]], "hey! hello-world")
+
+-- variable attributes
+if _VERSION >= "Lua 5.4" then
+	test("variable attributes", [[
+	local a <const>, b, c <close>
+	b = 42
+	]])
+
+	test("variable attributes: const violation", [[
+	local a <const>, b, c <close>
+	b = 42
+	a = 42
+	]], { "loadError", "attempt to assign to const variable 'a'" })
+
+	test("variable attributes: const violation 2", [[
+	local <const> d, e, f
+	e = 42
+	]], { "loadError", "attempt to assign to const variable 'e'" })
+
+	test("variable attributes shortcut", [[
+	const a
+	a = 42
+	]], { "loadError", "attempt to assign to const variable 'a'" })
+end
+
+-- global keyword
+test("collective global variable declaration", [[
+foo = 42
+do
+	global *
+end
+foo = 12
+]])
+if _VERSION >= "Lua 5.5" then
+	test("global variable declaration", [[
+	do
+		global foo
+		global <const> bar
+	end
+	foo = 42
+	assert(not pcall(function() foo = 42 end))
+	]])
+	test("collective global variable declaration with attribute", [[
+	foo = 42
+	do
+		global<const> *
+	end
+	assert(not pcall(function() foo = 12 end))
+	]])
+end
+
+-- bitwise operators
+if _VERSION >= "Lua 5.2" or bit then
+	test("bitwise operators: &", "return 0xDEAD & 0xBEEF", 40621)
+	test("bitwise operators: |", "return 0xDEAD | 0xBEEF", 65263)
+	test("bitwise operators: ~", "return 0xDEAD ~ 0xBEEF", 24642)
+	test("bitwise operators: >>", "return 0xDEAD >> 2", 14251)
+	test("bitwise operators: <<", "return 0xDEAD << 2", 228020)
+	test("bitwise operators: unary ~", "return ~0xDEAD", -57006)
+end
 
 -- results
 local resultCounter = {}

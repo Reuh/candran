@@ -199,7 +199,7 @@ return function(code, ast, options, macros={functions={}, variables={}})
 	local CONTINUE_STOP = () -- at the start of loops using continue
 		return unindent().."end"..newline().."::"..var"continue".."::"
 	end
-	local DESTRUCTURING_ASSIGN = (destructured, newlineAfter=false, noLocal=false) -- to define values from a destructuring assignement
+	local DESTRUCTURING_ASSIGN = (destructured, newlineAfter=false, noLocal=false) -- to define values from a destructuring assignment
 		local vars = {}
 		local values = {}
 		for _, list in ipairs(destructured) do
@@ -870,7 +870,7 @@ return function(code, ast, options, macros={functions={}, variables={}})
 			if t.id then -- destructing already done before, use parent variable as id
 				return t.id
 			else
-				local d = assert(peek("destructuring"), "DestructuringId not in a destructurable assignement")
+				local d = assert(peek("destructuring"), "DestructuringId not in a destructurable assignment")
 				local vars = { id = tmp() }
 				for j=1, #t, 1 do
 					table.insert(vars, t[j])
