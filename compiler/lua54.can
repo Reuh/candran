@@ -1,13 +1,44 @@
 targetName = "Lua 5.4"
 
+-- Note: global declaration could be backported to older Lua versions, but would require more work than I personally have use for the feature; but if you have an use-case, open an issue and I'll give it a try.
 tags.Global = (t)
-	error("NYI")
+	error("target "..targetName.." does not support global variable declaration")
 end
 tags.Globalrec = (t)
-	error("NYI")
+	error("target "..targetName.." does not support global variable declaration")
 end
 tags.GlobalAll = (t)
-	error("NYI")
+    if #t == 1 then
+	    error("target "..targetName.." does not support collective global variable declaration")
+    else
+        return "" -- global * is no-op when used alone
+    end
+end
+
+-- Named vararg
+tags._functionParameter.ParDots = (t, decl)
+    if #t == 1 then
+        local id = lua(t[1])
+        indentLevel += 1
+        table.insert(decl, "local "..id.." = { ... }")
+        indentLevel -= 1
+    end
+    return "..."
+end
+
+-- Prefixed attributes
+-- PrefixedAttributeNameList{ attribute {AttributeId+} }
+tags.PrefixedAttributeNameList = (t)
+    local ids = {}
+    for i=2, #t, 1 do
+        if t[i][2] then
+            error("target "..targetName.." does not support combining prefixed and suffixed attributes in variable declaration")
+        else
+            t[i][2] = t[1]
+            table.insert(ids, lua(t[i]))
+        end
+    end
+    return table.concat(ids, ", ")
 end
 
 #placeholder("patch")
