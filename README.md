@@ -1,6 +1,6 @@
 Candran
 =======
-Candran is a dialect of the [Lua 5.4](http://www.lua.org) programming language which compiles to Lua 5.4, Lua 5.3, Lua 5.2, LuaJIT and Lua 5.1 compatible code. It adds several useful syntax additions which aims to make Lua faster and easier to write, and a simple preprocessor.
+Candran is a dialect of the [Lua 5.5](http://www.lua.org) programming language which compiles to Lua 5.5, Lua 5.4, Lua 5.3, Lua 5.2, LuaJIT and Lua 5.1 compatible code. It adds several useful syntax additions which aims to make Lua faster and easier to write, and a simple preprocessor.
 
 Unlike Moonscript, Candran tries to stay close to the Lua syntax, and existing Lua code should be able to run on Candran unmodified.
 
@@ -51,7 +51,7 @@ end)
 
 a.child?:method?() -- safe navigation operator
 
-local {hey, method} = a -- destructuring assignement
+local {hey, method} = a -- destructuring assignment
 
 local odd = [ -- table comprehension
 	for i=1, 10 do
@@ -66,9 +66,9 @@ local count = [for i=1,10 i] -- single line statements
 
 local a = if condition then "one" else "two" end -- statement as expressions
 
-print("Hello %s":format("world")) -- methods calls on strings (and tables) litterals without enclosing parentheses
+print("Hello %s":format("world")) -- methods calls on strings (and tables) literals without enclosing parentheses
 
-if f, err = io.open("data") then -- if condition with assignements
+if f, err = io.open("data") then -- if condition with assignments
 	thing.process(f)
 else
 	error("can't open data: "..err)
@@ -104,7 +104,7 @@ For linting, if your editor support [luacheck](https://github.com/luarocks/luach
 The language
 ------------
 ### Syntax additions
-After the [preprocessor](#preprocessor) is run the Candran code is compiled to Lua. Candran code adds the folowing syntax to Lua 5.4 syntax:
+After the [preprocessor](#preprocessor) is run the Candran code is compiled to Lua. Candran code adds the folowing syntax to standard Lua syntax:
 
 ##### Assignment operators
 * ````var += nb````
@@ -124,7 +124,7 @@ After the [preprocessor](#preprocessor) is run the Candran code is compiled to L
 
 For example, a ````var += nb```` assignment will be compiled into ````var = var + nb````.
 
-All theses operators can also be put right of the assigment operator, in which case ```var =+ nb``` will be compiled into ```var = nb + var```.
+All theses operators can also be put right of the assignment operator, in which case ```var =+ nb``` will be compiled into ```var = nb + var```.
 
 Right and left operator can be used at the same time.
 
@@ -273,7 +273,7 @@ Values returned by the function will be inserted in the generated table in the o
 
 The table generation function also have access to the `self` variable (and its alias `@`), which is the table which is being created, so you can set any of the table's field.
 
-##### Destructuring assignement
+##### Destructuring assignment
 ```lua
 t = { x = 1, y = 2, z = 3 }
 
@@ -283,21 +283,21 @@ t = { x = 1, y = 2, z = 3 }
 
 {["x"] = o} = t -- o = t["x"]
 
--- Also works with local, let, for ... in, if with assignement, +=, etc.
+-- Also works with local, let, for ... in, if with assignment, +=, etc.
 local {x, y} = t
 let {x, y} = t
 for i, {x, y} in ipairs{t} do end
 if {x, y} = t then end
 {x} += t -- x = x + t.x
 
--- Works as expected with multiple assignement.
+-- Works as expected with multiple assignment.
 a, {x, y, z}, b = 1, t, 2
 
 ```
 
-Destruturing assignement allows to quickly extract fields from a table into a variable.
+Destruturing assignment allows to quickly extract fields from a table into a variable.
 
-This is done by replacing the variable name in any assignement with a table literal, where every item is the name of the field and assigned variable. It is possible to use a different field name than the variable name by naming the table item (`fieldName = var` or `[fieldExpression] = var`).
+This is done by replacing the variable name in any assignment with a table literal, where every item is the name of the field and assigned variable. It is possible to use a different field name than the variable name by naming the table item (`fieldName = var` or `[fieldExpression] = var`).
 
 
 ##### Safe navigation operators
@@ -328,7 +328,7 @@ print(a?()) -- nil if a is nil, other normal behaviour
 
 Some operators can be prefixed by a `?` to turn into a safe version of the operator: if the base value if `nil`, the normal behaviour of the operator will be skipped and nil will be returned; otherwise, the operator run as usual. Is available safe dot index `?.`, safe array index `?[...]`, safe method stub `?:` and safe function call `?(...)`.
 
-##### If and while with assignement in the condition
+##### If and while with assignment in the condition
 ```lua
 if f, err = io.open("somefile") then -- condition if verified if f is a truthy value (not nil or false)
 	-- do something with f
@@ -343,7 +343,7 @@ else
 end
 -- f, err, f2 and err2 are now out of scope
 
-if (value = list[index = 2]) and yes = true then -- several assignements can be performed, anywhere in the expression; index is defined before value, yes is defined after these two. The condition is verified if both value and yes are thruthy.
+if (value = list[index = 2]) and yes = true then -- several assignments can be performed, anywhere in the expression; index is defined before value, yes is defined after these two. The condition is verified if both value and yes are thruthy.
 	print(index, value)
 end
 
@@ -352,13 +352,13 @@ while line = io.read() do
 	print(line)
 end
 
--- The assignement have the same priority as regular assignements, i.e., the lowest.
+-- The assignment have the same priority as regular assignments, i.e., the lowest.
 if a = 1 and 2 then -- will be read as a = (1 and 2)
 elseif (a = 1) and 2 then -- will be read as (a = 1) and 2
 end
 ```
 
-Assignements can be used in the condition of if, elseif and while statements. Several variables can be assigned; only the first will be tested in the condition, for each assignement. The assigned variables will be in scope the duration of the block; for if statements, they will also be in scope for the following elseif(s) and else.
+Assignments can be used in the condition of if, elseif and while statements. Several variables can be assigned; only the first will be tested in the condition, for each assignment. The assigned variables will be in scope the duration of the block; for if statements, they will also be in scope for the following elseif(s) and else.
 
 For while statements, the assigned expression will be reevaluated at each iteration.
 
@@ -498,19 +498,22 @@ You can disable these built-in macros using the `builtInMacros` compiler option.
 
 Compile targets
 ---------------
-Candran is based on the Lua 5.4 syntax, but can be compiled to Lua 5.4, Lua 5.3, Lua 5.2, LuaJIT, and Lua 5.1 compatible code.
+Candran is based on the Lua 5.5 syntax, but can be compiled to Lua 5.5, Lua 5.4, Lua 5.3, Lua 5.2, LuaJIT, and Lua 5.1 compatible code.
 
-To chose a compile target, set the ```target``` option to  ```lua54```, ```lua53```, ```lua52```, ```luajit```, or ```lua51``` in the option table when using the library or the command line tools. Candran will try to detect the currently used Lua version and use it as the default target.
+To chose a compile target, set the ```target``` option to  ```lua55```, ```lua54```, ```lua53```, ```lua52```, ```luajit```, or ```lua51``` in the option table when using the library or the command line tools. Candran will try to detect the currently used Lua version and use it as the default target.
 
-Candran will try to translate Lua 5.4 syntax into something usable with the current target if possible. Here is what is currently supported:
+Candran will try to translate Lua 5.5 syntax into something usable with the current target if possible. Some syntax features are only supported by specific targets:
 
-| Lua version     | Candran target | Integer division operator // | Bitwise operators                                     | Goto/Labels        | Variable attributes |
-| ---             | ---            | ---                          | ---                                                   | ---                | ---                 |
-| Lua 5.4         | lua54          | :white_check_mark:           | :white_check_mark:                                    | :white_check_mark: | :white_check_mark:  |
-| Lua 5.3         | lua53          | :white_check_mark:           | :white_check_mark:                                    | :white_check_mark: | X                   |
-| Lua 5.2         | lua52          | :white_check_mark:           | :white_check_mark: (32bit)                            | :white_check_mark: | X                   |
-| LuaJIT          | luajit         | :white_check_mark:           | :white_check_mark: (32bit)                            | :white_check_mark: | X                   |
-| Lua 5.1         | lua51          | :white_check_mark:           | :white_check_mark: if LuaJIT bit library is available (32bit) | X                  | X                   |
+| Lua version     | Candran target | Bitwise operators                                     | Goto/Labels        | Variable attributes | Global keyword |
+| ---             | ---            | ---                                                   | ---                | ---                 | ---                |
+| Lua 5.5         | lua55          | :white_check_mark:                                    | :white_check_mark: | :white_check_mark:  | :white_check_mark:  |
+| Lua 5.4         | lua54          | :white_check_mark:                                    | :white_check_mark: | :white_check_mark:  | X                   |
+| Lua 5.3         | lua53          | :white_check_mark:                                    | :white_check_mark: | X                   | X                   |
+| Lua 5.2         | lua52          | :white_check_mark: (32bit)                            | :white_check_mark: | X                   | X                   |
+| LuaJIT          | luajit         | :white_check_mark: (32bit)                            | :white_check_mark: | X                   | X                   |
+| Lua 5.1         | lua51          | :white_check_mark: if LuaJIT bit library is available (32bit) | X                  | X                   | X                   |
+
+All other Lua 5.5 syntax features not listed in this table, like the integer division operator `//`, named varargs, are supported by all targets.
 
 **Please note** that Candran only translates syntax, and will not try to do anything about changes in the Lua standard library (for example, the new utf8 module). If you need this, you should be able to use [lua-compat-5.3](https://github.com/keplerproject/lua-compat-5.3) along with Candran.
 
@@ -684,7 +687,7 @@ at the top of your main Lua file. If a Candran file is found when you call ```re
 You can give arbitrary options to the compiler and preprocessor, but Candran already provide and uses these with their associated default values:
 
 ```lua
-target = "lua53" -- compiler target. "lua54", "lua53", "lua52", "luajit" or "lua51" (default is automatically selected based on the Lua version used).
+target = "lua55" -- compiler target. "lua55", "lua54", "lua53", "lua52", "luajit" or "lua51" (default is automatically selected based on the Lua version used).
 indentation = "" -- character(s) used for indentation in the compiled file.
 newline = "\n" -- character(s) used for newlines in the compiled file.
 variablePrefix = "__CAN_" -- Prefix used when Candran needs to set a local variable to provide some functionality (example: to load LuaJIT's bit lib when using bitwise operators).
