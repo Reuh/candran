@@ -1,5 +1,5 @@
 local candran = {
-	VERSION = "1.0.0"
+	VERSION = "1.1.0"
 }
 package.loaded["candran"] = candran
 

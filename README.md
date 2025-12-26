@@ -76,7 +76,7 @@ end
 
 ````
 
-**Current status**: Candran is heavily used in several of my personal projects and works as expected.
+**Current status**: Candran is stable ; I use it heavily used in several of my personal projects and maintain it. If there's no activity on the repo, it means there's no bug or new Lua version that requires an update.
 
 Candran is released under the MIT License (see ```LICENSE``` for details).
 
