@@ -97,6 +97,7 @@ Most editors should be able to use their existing Lua support for Candran code. 
 	* [sublime-candran](https://github.com/Reuh/sublime-candran) support the full Candran syntax
 	* [SublimeLinter-cancheck-contrib](https://github.com/Reuh/SublimeLinter-contrib-cancheck) SublimeLinter plugin for Candran using ```cancheck```
 	* [SublimeLinter-candran-contrib](https://github.com/Reuh/SublimeLinter-contrib-candran) SublimeLinter plugin for Candran using ```canc -parse``` (only checks for syntaxic errors, no linting)
+* **VS Code**: [vscode-candran](https://github.com/Reuh/vscode-candran) basic support for the full Candran syntax
 * **Atom**: [language-candran](https://atom.io/packages/language-candran) support the full Candran syntax
 
 For linting, if your editor support [luacheck](https://github.com/luarocks/luacheck), you should be able to replace it with ```cancheck``` (in this repository ```bin/cancheck```, or installed automatically if Candran was installed using LuaRocks), which is a wrapper around luacheck that monkey-patch it to support Candran.
